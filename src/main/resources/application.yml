@@ -1,0 +1,34 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: lycanclaw-backend
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+lycan:
+  cors:
+    allowed-origins: http://localhost:5173,http://127.0.0.1:5173,https://wreckloud.com,https://www.wreckloud.com
+  security:
+    admin-token: change-me-token
+    auth-rate-limit-per-minute: 30
+    music-rate-limit-per-minute: 120
+  analytics:
+    repo-path: D:/Portfolio/Website/LycanClaw
+    zone-id: Asia/Shanghai
+    days: 365
+    scope: docs/thoughts,docs/knowledge
+  music:
+    fallback-uid: 629126546
+    preferred-level: jymaster
+    upstream:
+      base-url: http://127.0.0.1:3000
