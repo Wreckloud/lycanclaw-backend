@@ -83,6 +83,12 @@ mvn spring-boot:run
 
 - `http://localhost:8080`
 
+接口文档地址（已接入）：
+
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- Knife4j UI: `http://localhost:8080/doc.html`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+
 ## 关键配置
 
 `src/main/resources/application.yml`：

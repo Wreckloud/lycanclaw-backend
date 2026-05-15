@@ -11,6 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * @Description 音乐数据聚合服务
+ * @Author Wreckloud
+ * @Date 2026-05-15
+ */
 @Service
 public class MusicDataService {
 
@@ -22,10 +27,10 @@ public class MusicDataService {
             "standard"
     );
 
-    @Value("${lycan.music.fallback-uid:}")
+    @Value("${lycan.music.fallback-uid}")
     private String fallbackUid;
 
-    @Value("${lycan.music.preferred-level:jymaster}")
+    @Value("${lycan.music.preferred-level}")
     private String preferredLevel;
 
     private final NcmUpstreamClient upstreamClient;
@@ -36,6 +41,9 @@ public class MusicDataService {
         this.sessionService = sessionService;
     }
 
+    /**
+     * 拉取周听歌榜：优先当前登录账号，未登录则回退 fallbackUid。
+     */
     public Map<String, Object> getWeeklyRanking(int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 100));
         String uid = resolveUid();
@@ -81,6 +89,9 @@ public class MusicDataService {
         return data;
     }
 
+    /**
+     * 获取歌曲播放地址：按指定音质和预设降级顺序尝试。
+     */
     public Map<String, Object> getTrackUrl(String id, String level) {
         String safeId = validateSongId(id);
         String preferred = normalizeLevel(level);
@@ -104,6 +115,9 @@ public class MusicDataService {
         );
     }
 
+    /**
+     * 获取歌曲详情并拼接最终可播放 URL。
+     */
     public Map<String, Object> getTrackDetailWithUrl(String id, String level) {
         String safeId = validateSongId(id);
         JsonNode detailNode = upstreamClient.get("/song/detail", Map.of("ids", safeId));
@@ -125,6 +139,9 @@ public class MusicDataService {
         return data;
     }
 
+    /**
+     * 解析最终使用的 uid（登录账号 > 回退账号）。
+     */
     private String resolveUid() {
         if (sessionService.hasCookie()) {
             String uid = resolveUidFromLoginStatus(sessionService.getCookie());
@@ -136,6 +153,9 @@ public class MusicDataService {
         throw new IllegalStateException("未检测到登录账号，且未配置 lycan.music.fallback-uid");
     }
 
+    /**
+     * 从 /login/status 响应中提取当前账号 id。
+     */
     private String resolveUidFromLoginStatus(String cookie) {
         JsonNode node = upstreamClient.get("/login/status", Map.of(
                 "cookie", cookie,
@@ -144,6 +164,9 @@ public class MusicDataService {
         return findText(node, "id").orElse("");
     }
 
+    /**
+     * 带音质参数请求上游 URL 接口，返回可播放地址。
+     */
     private String fetchTrackUrlWithLevel(String id, String level) {
         Map<String, String> query = new LinkedHashMap<>();
         query.put("id", id);
@@ -161,6 +184,9 @@ public class MusicDataService {
         return url.startsWith("http:") ? url.replace("http:", "https:") : url;
     }
 
+    /**
+     * 在有登录态时把 cookie 注入上游请求。
+     */
     private void appendCookie(Map<String, String> query) {
         if (sessionService.hasCookie()) {
             query.put("cookie", sessionService.getCookie());
@@ -181,6 +207,9 @@ public class MusicDataService {
         return level.trim();
     }
 
+    /**
+     * 构建音质尝试顺序：优先传入值，再补齐默认降级链路。
+     */
     private List<String> buildLevelAttempts(String preferred) {
         List<String> levels = new ArrayList<>();
         levels.add(preferred);

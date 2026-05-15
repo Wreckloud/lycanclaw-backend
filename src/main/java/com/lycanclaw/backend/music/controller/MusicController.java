@@ -7,6 +7,9 @@ import com.lycanclaw.backend.music.dto.QueueRemoveRequest;
 import com.lycanclaw.backend.music.dto.QueueSetCurrentRequest;
 import com.lycanclaw.backend.music.service.MusicDataService;
 import com.lycanclaw.backend.music.service.MusicQueueService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,8 +19,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+/**
+ * @Description 音乐数据与队列接口
+ * @Author Wreckloud
+ * @Date 2026-05-15
+ */
 @RestController
 @RequestMapping("/api/music")
+@Tag(name = "音乐播放", description = "音乐数据查询与播放队列控制")
 public class MusicController {
 
     private final MusicDataService musicDataService;
@@ -28,59 +37,102 @@ public class MusicController {
         this.musicQueueService = musicQueueService;
     }
 
+    /**
+     * 查询当前账号（或回退账号）的周听歌榜。
+     */
+    @Operation(summary = "查询周听歌榜")
     @GetMapping("/ranking/weekly")
     public ApiResponse<Map<String, Object>> weeklyRanking(
+            @Parameter(description = "最多返回条数，范围 1-100")
             @RequestParam(name = "limit", defaultValue = "20") int limit
     ) {
         return ApiResponse.ok(musicDataService.getWeeklyRanking(limit));
     }
 
+    /**
+     * 按歌曲 id 获取可播放 URL，会按音质降级尝试。
+     */
+    @Operation(summary = "获取歌曲播放地址")
     @GetMapping("/track/url")
     public ApiResponse<Map<String, Object>> trackUrl(
+            @Parameter(description = "歌曲 ID", required = true)
             @RequestParam("id") String id,
+            @Parameter(description = "期望音质级别，如 jymaster / exhigh / standard")
             @RequestParam(name = "level", required = false) String level
     ) {
         return ApiResponse.ok(musicDataService.getTrackUrl(id, level));
     }
 
+    /**
+     * 获取歌曲详情并附带可播放 URL。
+     */
+    @Operation(summary = "获取歌曲详情和播放地址")
     @GetMapping("/track/detail-with-url")
     public ApiResponse<Map<String, Object>> trackDetailWithUrl(
+            @Parameter(description = "歌曲 ID", required = true)
             @RequestParam("id") String id,
+            @Parameter(description = "期望音质级别，如 jymaster / exhigh / standard")
             @RequestParam(name = "level", required = false) String level
     ) {
         return ApiResponse.ok(musicDataService.getTrackDetailWithUrl(id, level));
     }
 
+    /**
+     * 获取播放队列快照（当前播放 + 待播放列表）。
+     */
+    @Operation(summary = "获取播放队列快照")
     @GetMapping("/queue")
     public ApiResponse<MusicQueueSnapshotDto> queueSnapshot(
+            @Parameter(description = "返回队列明细最大条数，范围 1-200")
             @RequestParam(name = "limit", defaultValue = "30") int limit
     ) {
         return ApiResponse.ok(musicQueueService.snapshot(limit));
     }
 
+    /**
+     * 入队，可通过请求体控制插队、去重、是否打断当前播放。
+     */
+    @Operation(summary = "歌曲入队")
     @PostMapping("/queue/enqueue")
     public ApiResponse<Map<String, Object>> enqueue(@RequestBody QueueEnqueueRequest request) {
         return ApiResponse.ok(musicQueueService.enqueue(request));
     }
 
+    /**
+     * 播放下一首（队列头部提升为 current）。
+     */
+    @Operation(summary = "切到下一首")
     @PostMapping("/queue/next")
     public ApiResponse<Map<String, Object>> playNext() {
         return ApiResponse.ok(musicQueueService.playNext());
     }
 
+    /**
+     * 按 queueId 指定当前播放项。
+     */
+    @Operation(summary = "切换当前播放项")
     @PostMapping("/queue/current")
     public ApiResponse<Map<String, Object>> setCurrent(@RequestBody QueueSetCurrentRequest request) {
         boolean resumeCurrent = request.resumeCurrent() == null || request.resumeCurrent();
         return ApiResponse.ok(musicQueueService.setCurrentByQueueId(request.queueId(), resumeCurrent));
     }
 
+    /**
+     * 从等待队列中移除指定项。
+     */
+    @Operation(summary = "移除队列项")
     @PostMapping("/queue/remove")
     public ApiResponse<Map<String, Object>> removeQueueItem(@RequestBody QueueRemoveRequest request) {
         return ApiResponse.ok(musicQueueService.removeByQueueId(request.queueId()));
     }
 
+    /**
+     * 清空等待队列，可选择保留 current。
+     */
+    @Operation(summary = "清空队列")
     @PostMapping("/queue/clear")
     public ApiResponse<Map<String, Object>> clearQueue(
+            @Parameter(description = "是否保留当前播放项")
             @RequestParam(name = "keepCurrent", defaultValue = "true") boolean keepCurrent
     ) {
         return ApiResponse.ok(musicQueueService.clear(keepCurrent));

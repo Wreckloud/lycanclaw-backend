@@ -16,6 +16,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
+/**
+ * @Description 播放队列管理服务
+ * @Author Wreckloud
+ * @Date 2026-05-15
+ */
 @Service
 public class MusicQueueService {
 
@@ -27,6 +32,7 @@ public class MusicQueueService {
         this.musicDataService = musicDataService;
     }
 
+    // 入队核心逻辑：支持去重策略、插队、以及打断后恢复。
     public synchronized Map<String, Object> enqueue(QueueEnqueueRequest request) {
         if (request == null || request.id() == null || request.id().isBlank()) {
             throw new IllegalArgumentException("入队失败：歌曲 id 不能为空");
@@ -107,6 +113,7 @@ public class MusicQueueService {
         );
     }
 
+    // 按 queueId 把队列中的歌曲提为当前播放（可选择恢复被替换的当前歌曲）。
     public synchronized Map<String, Object> setCurrentByQueueId(String queueId, boolean resumeCurrent) {
         if (queueId == null || queueId.isBlank()) {
             throw new IllegalArgumentException("切换失败：queueId 不能为空");
@@ -131,6 +138,7 @@ public class MusicQueueService {
         );
     }
 
+    // 从等待队列移除一个元素，不影响 current。
     public synchronized Map<String, Object> removeByQueueId(String queueId) {
         if (queueId == null || queueId.isBlank()) {
             throw new IllegalArgumentException("移除失败：queueId 不能为空");
@@ -142,6 +150,7 @@ public class MusicQueueService {
         );
     }
 
+    // 切到下一首：current 出队，队首补位为新 current。
     public synchronized Map<String, Object> playNext() {
         MusicQueueItemDto previous = current;
         current = queue.pollFirst();
@@ -152,6 +161,7 @@ public class MusicQueueService {
         );
     }
 
+    // 清空等待队列；可配置是否保留当前播放项。
     public synchronized Map<String, Object> clear(boolean keepCurrent) {
         queue.clear();
         if (!keepCurrent) {
@@ -163,6 +173,7 @@ public class MusicQueueService {
         );
     }
 
+    // 给前端返回当前快照（current + 队列长度 + 截断后的队列内容）。
     public synchronized MusicQueueSnapshotDto snapshot(int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 200));
         List<MusicQueueItemDto> items = new ArrayList<>(safeLimit);

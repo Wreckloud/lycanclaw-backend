@@ -8,6 +8,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * @Description 网易云扫码登录服务
+ * @Author Wreckloud
+ * @Date 2026-05-15
+ */
 @Service
 public class MusicAuthService {
 
@@ -19,6 +24,7 @@ public class MusicAuthService {
         this.sessionService = sessionService;
     }
 
+    // 第一步：向上游申请二维码 key（unikey）。
     public Map<String, Object> createQrKey() {
         JsonNode node = upstreamClient.get("/login/qr/key", Map.of("timestamp", String.valueOf(System.currentTimeMillis())));
         String key = findText(node, "unikey")
@@ -30,6 +36,7 @@ public class MusicAuthService {
         return data;
     }
 
+    // 第二步：根据 key 生成二维码图片/链接，前端直接展示 qrimg。
     public Map<String, Object> createQrImage(String key) {
         if (key == null || key.isBlank()) {
             throw new IllegalArgumentException("key 参数不能为空");
@@ -47,6 +54,7 @@ public class MusicAuthService {
         return data;
     }
 
+    // 第三步：轮询扫码状态；803 时写入本地 cookie 会话。
     public Map<String, Object> checkQrStatus(String key) {
         if (key == null || key.isBlank()) {
             throw new IllegalArgumentException("key 参数不能为空");
@@ -72,6 +80,7 @@ public class MusicAuthService {
         return data;
     }
 
+    // 使用已保存 cookie 查询当前登录账号信息。
     public Map<String, Object> loginStatus() {
         if (!sessionService.hasCookie()) {
             return Map.of(
@@ -96,6 +105,7 @@ public class MusicAuthService {
         return data;
     }
 
+    // 保活登录态，避免 cookie 过快失效。
     public Map<String, Object> refreshLogin() {
         if (!sessionService.hasCookie()) {
             throw new IllegalStateException("当前未登录，无法刷新登录状态");
@@ -112,6 +122,7 @@ public class MusicAuthService {
         );
     }
 
+    // 仅清理本地会话，不主动调用上游退出接口。
     public Map<String, Object> logout() {
         sessionService.clear();
         return Map.of("message", "已退出并清除本地登录态");

@@ -11,14 +11,22 @@ import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * @Description 公共音乐接口限流拦截器
+ * @Author Wreckloud
+ * @Date 2026-05-15
+ */
 @Component
 public class PublicMusicRateLimitInterceptor implements HandlerInterceptor {
 
-    @Value("${lycan.security.music-rate-limit-per-minute:120}")
+    @Value("${lycan.security.music-rate-limit-per-minute}")
     private int rateLimitPerMinute;
 
     private final Map<String, ArrayDeque<Long>> buckets = new ConcurrentHashMap<>();
 
+    /**
+     * 对公开音乐接口做分钟级限流，防止被批量刷接口。
+     */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String key = request.getRemoteAddr() + ":" + request.getRequestURI();

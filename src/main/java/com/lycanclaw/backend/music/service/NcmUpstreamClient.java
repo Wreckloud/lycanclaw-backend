@@ -17,6 +17,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 
+/**
+ * @Description 网易云上游 HTTP 客户端
+ * @Author Wreckloud
+ * @Date 2026-05-15
+ */
 @Component
 public class NcmUpstreamClient {
 
@@ -30,11 +35,14 @@ public class NcmUpstreamClient {
         this.properties = properties;
     }
 
+    // 统一上游 GET 调用入口：拼接 base-url + path + query，然后解析为 JsonNode。
     public JsonNode get(String path, Map<String, String> queryParams) {
         URI uri = UriComponentsBuilder
                 .fromHttpUrl(normalizeBaseUrl(properties.getBaseUrl()) + path)
                 .queryParams(toMultiValueMap(queryParams))
-                .build(true)
+                // query 中会包含原始 cookie（含 ; = 等字符），必须由 Spring 负责编码。
+                .build()
+                .encode(StandardCharsets.UTF_8)
                 .toUri();
 
         HttpRequest request = HttpRequest.newBuilder(uri)

@@ -7,12 +7,20 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
 
+/**
+ * @Description 跨域访问配置
+ * @Author Wreckloud
+ * @Date 2026-05-15
+ */
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
 
-    @Value("${lycan.cors.allowed-origins:http://localhost:5173,http://127.0.0.1:5173,https://wreckloud.com,https://www.wreckloud.com}")
+    @Value("${lycan.cors.allowed-origins}")
     private String allowedOriginsRaw;
 
+    /**
+     * 仅开放 /api/** 的跨域能力，减少非 API 资源暴露面。
+     */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
@@ -23,6 +31,9 @@ public class CorsConfig implements WebMvcConfigurer {
                 .maxAge(3600);
     }
 
+    /**
+     * 将配置字符串转为 origin 数组，并过滤空值。
+     */
     private String[] parseAllowedOrigins() {
         return Arrays.stream(allowedOriginsRaw.split(","))
                 .map(String::trim)

@@ -19,23 +19,31 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @Description Git 日贡献统计服务
+ * @Author Wreckloud
+ * @Date 2026-05-15
+ */
 @Service
 public class ContributionService {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
 
-    @Value("${lycan.analytics.repo-path:D:/Portfolio/Website/LycanClaw}")
+    @Value("${lycan.analytics.repo-path}")
     private String repoPath;
 
-    @Value("${lycan.analytics.zone-id:Asia/Shanghai}")
+    @Value("${lycan.analytics.zone-id}")
     private String zoneId;
 
-    @Value("${lycan.analytics.days:365}")
+    @Value("${lycan.analytics.days}")
     private int defaultDays;
 
-    @Value("${lycan.analytics.scope:docs/thoughts,docs/knowledge}")
+    @Value("${lycan.analytics.scope}")
     private String scopeRaw;
 
+    /**
+     * 读取 Git 日志并聚合为日贡献数据。
+     */
     public DailyContributionResponse getDailyContributions(Integer daysParam) {
         int days = normalizeDays(daysParam);
         ZoneId zone = ZoneId.of(zoneId);
@@ -67,12 +75,18 @@ public class ContributionService {
         );
     }
 
+    /**
+     * 统一 days 参数边界，避免过大查询拖慢接口。
+     */
     private int normalizeDays(Integer daysParam) {
         int raw = daysParam == null ? defaultDays : daysParam;
         if (raw < 1) return 1;
         return Math.min(raw, 3660);
     }
 
+    /**
+     * 解析统计目录配置（逗号分隔）。
+     */
     private List<String> parseScope(String raw) {
         return Arrays.stream(raw.split(","))
                 .map(String::trim)
@@ -80,6 +94,9 @@ public class ContributionService {
                 .toList();
     }
 
+    /**
+     * 预生成日期桶，确保没有提交的日期也会返回 0。
+     */
     private Map<LocalDate, ContributionCounter> initDateBuckets(LocalDate startDate, LocalDate endDate) {
         Map<LocalDate, ContributionCounter> map = new LinkedHashMap<>();
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
@@ -88,6 +105,9 @@ public class ContributionService {
         return map;
     }
 
+    /**
+     * 执行 git log --numstat 并把结果填充到日桶中。
+     */
     private void fillFromGitLog(
             Map<LocalDate, ContributionCounter> dailyMap,
             LocalDate startDate,
@@ -123,6 +143,9 @@ public class ContributionService {
         }
     }
 
+    /**
+     * 解析 git 输出：日期行用于切换当前桶，numstat 行用于累计新增/删除。
+     */
     private void parseGitLogOutput(Process process, Map<LocalDate, ContributionCounter> dailyMap) throws IOException {
         LocalDate currentDate = null;
         try (BufferedReader reader = new BufferedReader(
@@ -158,6 +181,9 @@ public class ContributionService {
         }
     }
 
+    /**
+     * 解析 numstat 数值，二进制文件（-）按 0 处理。
+     */
     private int parseNumStatValue(String value) {
         if (value == null || value.isBlank() || "-".equals(value)) {
             return 0;

@@ -16,6 +16,7 @@
     .status { margin-top: 14px; font-size: 14px; color: #9aa7bd; white-space: pre-wrap; }
     .qr { margin-top: 16px; }
     .qr img { width: 240px; height: 240px; background: #fff; border-radius: 6px; }
+    .qr a { display: inline-block; margin-top: 10px; font-size: 13px; color: #7fb3ff; }
     .hint { font-size: 13px; color: #8b96aa; line-height: 1.7; }
   </style>
 </head>
@@ -39,6 +40,7 @@
     </div>
     <div class="qr">
       <img id="qrImg" alt="二维码" />
+      <div><a id="qrLink" target="_blank" rel="noopener"></a></div>
     </div>
     <div id="status" class="status">状态：未开始</div>
   </div>
@@ -46,6 +48,7 @@
   <script>
     const tokenInput = document.getElementById('token');
     const qrImg = document.getElementById('qrImg');
+    const qrLink = document.getElementById('qrLink');
     const statusBox = document.getElementById('status');
     let qrKey = '';
     let timer = null;
@@ -83,7 +86,13 @@
       const keyResp = await callApi('/api/music/auth/qr/key');
       qrKey = keyResp.key;
       const qrResp = await callApi(`/api/music/auth/qr/create?key=${encodeURIComponent(qrKey)}`);
-      qrImg.src = qrResp.qrimg || '';
+      const imageSrc = (qrResp.qrimg || '').trim();
+      if (!imageSrc) {
+        throw new Error('上游未返回二维码图片，请确认 api-enhanced 服务可用');
+      }
+      qrImg.src = imageSrc;
+      qrLink.href = qrResp.qrurl || '';
+      qrLink.textContent = qrResp.qrurl ? '二维码链接（无法显示图片时可点此打开）' : '';
       setStatus('二维码已生成，请打开网易云音乐扫码');
     }
 
@@ -124,6 +133,9 @@
 
     document.getElementById('createQr').addEventListener('click', () => {
       createQr().catch((e) => setStatus(e.message));
+    });
+    qrImg.addEventListener('error', () => {
+      setStatus('二维码图片加载失败：请检查后端返回的 qrimg 或浏览器拦截策略');
     });
 
     document.getElementById('startPoll').addEventListener('click', () => {

@@ -6,6 +6,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+/**
+ * @Description Web 安全拦截器注册配置
+ * @Author Wreckloud
+ * @Date 2026-05-15
+ */
 @Configuration
 public class WebSecurityConfig implements WebMvcConfigurer {
 
@@ -20,6 +25,11 @@ public class WebSecurityConfig implements WebMvcConfigurer {
         this.publicMusicRateLimitInterceptor = publicMusicRateLimitInterceptor;
     }
 
+    /**
+     * 注册拦截器：
+     * - /api/music/auth/** 需要管理员令牌；
+     * - 公开音乐接口应用限流规则。
+     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(adminAuthInterceptor)

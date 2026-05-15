@@ -1,10 +1,13 @@
 server:
+  # 后端服务端口
   port: 8080
 
 spring:
   application:
+    # 应用名称（日志与监控中展示）
     name: lycanclaw-backend
   autoconfigure:
+    # 当前阶段不启用数据库，避免未配置数据源导致启动失败
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
@@ -13,22 +16,53 @@ management:
   endpoints:
     web:
       exposure:
+        # 暴露 actuator 端点（当前仅健康检查和基础信息）
         include: health,info
+
+springdoc:
+  api-docs:
+    # OpenAPI JSON 开关与路径
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    # Swagger UI 开关与路径
+    enabled: true
+    path: /swagger-ui.html
+  # 文档默认返回类型
+  default-produces-media-type: application/json
+
+knife4j:
+  # Knife4j 文档页开关（访问 /doc.html）
+  enable: true
+  setting:
+    # 文档界面语言
+    language: zh_cn
 
 lycan:
   cors:
+    # 允许跨域来源，多个域名用英文逗号分隔
     allowed-origins: http://localhost:5173,http://127.0.0.1:5173,https://wreckloud.com,https://www.wreckloud.com
   security:
+    # 管理员令牌（必须改成你自己的随机值）
     admin-token: change-me-token
+    # 管理接口限流（每分钟）
     auth-rate-limit-per-minute: 30
+    # 公开音乐接口限流（每分钟）
     music-rate-limit-per-minute: 120
   analytics:
+    # 博客仓库绝对路径（用于读取 git log）
     repo-path: D:/Portfolio/Website/LycanClaw
+    # 统计时区
     zone-id: Asia/Shanghai
+    # 默认统计天数
     days: 365
+    # 统计目录，多个目录用英文逗号分隔
     scope: docs/thoughts,docs/knowledge
   music:
+    # 未登录时的回退网易云 uid（如不需要可置空：""）
     fallback-uid: 629126546
+    # 默认目标音质（会自动降级尝试）
     preferred-level: jymaster
     upstream:
+      # 上游网易云 API 服务地址（api-enhanced）
       base-url: http://127.0.0.1:3000

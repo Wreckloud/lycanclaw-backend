@@ -12,19 +12,29 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * @Description 管理员鉴权与限流拦截器
+ * @Author Wreckloud
+ * @Date 2026-05-15
+ */
 @Component
 public class AdminAuthInterceptor implements HandlerInterceptor {
 
     private static final String TOKEN_HEADER = "X-Lycan-Admin-Token";
 
-    @Value("${lycan.security.admin-token:change-me-token}")
+    @Value("${lycan.security.admin-token}")
     private String adminToken;
 
-    @Value("${lycan.security.auth-rate-limit-per-minute:30}")
+    @Value("${lycan.security.auth-rate-limit-per-minute}")
     private int rateLimitPerMinute;
 
     private final Map<String, ArrayDeque<Long>> rateBuckets = new ConcurrentHashMap<>();
 
+    /**
+     * 对 /api/music/auth/* 做双重保护：
+     * 1) 校验管理员令牌；
+     * 2) 按 IP + URI 做分钟级限流。
+     */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String token = request.getHeader(TOKEN_HEADER);
