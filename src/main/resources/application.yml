@@ -66,3 +66,19 @@ lycan:
     upstream:
       # 上游网易云 API 服务地址（api-enhanced）
       base-url: http://127.0.0.1:3000
+  recommendation:
+    # 前端 posts.json 路径（用于读取文章元信息）
+    posts-json-path: D:/Portfolio/Website/LycanClaw/docs/public/posts.json
+    # Waline 服务地址（用于读取浏览量与评论数）
+    waline-base-url: http://127.0.0.1:8360
+    # 手动推荐配置文件（管理员接口写入）
+    manual-config-path: data/recommendation-manual.json
+    # 热门推荐缓存秒数
+    cache-seconds: 300
+    # 最大候选文章数
+    max-candidate-posts: 200
+    score:
+      # 浏览量权重
+      pageview-weight: 1.0
+      # 评论数权重
+      comment-weight: 24.0

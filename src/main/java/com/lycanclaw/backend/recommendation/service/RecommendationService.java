@@ -1,0 +1,205 @@
+package com.lycanclaw.backend.recommendation.service;
+
+import com.lycanclaw.backend.recommendation.config.RecommendationProperties;
+import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
+import com.lycanclaw.backend.recommendation.dto.RecommendationPostDto;
+import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * @Description 推荐阅读聚合服务
+ * @Author Wreckloud
+ * @Date 2026-05-15
+ */
+@Service
+public class RecommendationService {
+
+    private final RecommendationSourceService sourceService;
+    private final RecommendationManualConfigService manualConfigService;
+    private final WalineStatsClient walineStatsClient;
+    private final RecommendationProperties properties;
+
+    private volatile CachedHotSnapshot cachedHotSnapshot;
+
+    public RecommendationService(
+            RecommendationSourceService sourceService,
+            RecommendationManualConfigService manualConfigService,
+            WalineStatsClient walineStatsClient,
+            RecommendationProperties properties
+    ) {
+        this.sourceService = sourceService;
+        this.manualConfigService = manualConfigService;
+        this.walineStatsClient = walineStatsClient;
+        this.properties = properties;
+    }
+
+    /**
+     * 获取推荐结果：手动置顶优先，剩余位置按热门分补齐。
+     */
+    public List<RecommendationPostDto> listRecommendations(String excludePath, int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 20));
+        String normalizedExcludePath = normalizeUrl(excludePath);
+
+        RecommendationManualConfigDto manualConfig = manualConfigService.read();
+        List<RecommendationPostDto> hotPosts = getHotPosts();
+
+        Map<String, RecommendationPostDto> byUrl = hotPosts.stream()
+                .collect(Collectors.toMap(RecommendationPostDto::url, post -> post, (left, right) -> left));
+
+        List<RecommendationPostDto> result = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+
+        for (String manualUrl : manualConfig.manualUrls()) {
+            if (manualUrl.equals(normalizedExcludePath)) {
+                continue;
+            }
+            RecommendationPostDto post = byUrl.get(manualUrl);
+            if (post == null || seen.contains(post.url())) {
+                continue;
+            }
+            result.add(toManualPinned(post));
+            seen.add(post.url());
+            if (result.size() >= safeLimit) {
+                return result;
+            }
+        }
+
+        for (RecommendationPostDto post : hotPosts) {
+            if (post.url().equals(normalizedExcludePath) || seen.contains(post.url())) {
+                continue;
+            }
+            result.add(post);
+            seen.add(post.url());
+            if (result.size() >= safeLimit) {
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    public RecommendationManualConfigDto getManualConfig() {
+        return manualConfigService.read();
+    }
+
+    public RecommendationManualConfigDto updateManualConfig(List<String> manualUrls) {
+        RecommendationManualConfigDto config = manualConfigService.update(manualUrls);
+        cachedHotSnapshot = null;
+        return config;
+    }
+
+    public List<RecommendationPostDto> listCandidates(int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, Math.max(1, properties.getMaxCandidatePosts())));
+        return getHotPosts().stream().limit(safeLimit).toList();
+    }
+
+    private RecommendationPostDto toManualPinned(RecommendationPostDto post) {
+        return new RecommendationPostDto(
+                post.url(),
+                post.title(),
+                post.description(),
+                post.date(),
+                post.tags(),
+                post.pageviewCount(),
+                post.commentCount(),
+                post.hotScore(),
+                true
+        );
+    }
+
+    private List<RecommendationPostDto> getHotPosts() {
+        CachedHotSnapshot current = cachedHotSnapshot;
+        if (current != null && !isCacheExpired(current.generatedAtEpochMilli())) {
+            return current.posts();
+        }
+
+        synchronized (this) {
+            CachedHotSnapshot latest = cachedHotSnapshot;
+            if (latest != null && !isCacheExpired(latest.generatedAtEpochMilli())) {
+                return latest.posts();
+            }
+
+            List<RecommendationPostDto> rebuilt = rebuildHotPosts();
+            cachedHotSnapshot = new CachedHotSnapshot(Instant.now().toEpochMilli(), rebuilt);
+            return rebuilt;
+        }
+    }
+
+    private boolean isCacheExpired(long generatedAtEpochMilli) {
+        int cacheSeconds = Math.max(5, properties.getCacheSeconds());
+        long ttlMillis = cacheSeconds * 1000L;
+        return Instant.now().toEpochMilli() - generatedAtEpochMilli > ttlMillis;
+    }
+
+    private List<RecommendationPostDto> rebuildHotPosts() {
+        List<RecommendationSourceService.RecommendationCandidate> candidates = sourceService.loadCandidates();
+        Map<String, RecommendationPostDto> hotByUrl = new HashMap<>();
+
+        for (RecommendationSourceService.RecommendationCandidate candidate : candidates) {
+            RecommendationPostDto post = buildRecommendation(candidate);
+            hotByUrl.put(post.url(), post);
+        }
+
+        return hotByUrl.values().stream()
+                .sorted(Comparator
+                        .comparingDouble(RecommendationPostDto::hotScore).reversed()
+                        .thenComparing(RecommendationPostDto::date, Comparator.reverseOrder()))
+                .toList();
+    }
+
+    private RecommendationPostDto buildRecommendation(RecommendationSourceService.RecommendationCandidate candidate) {
+        int pageviewCount = safeFetchPageview(candidate.url());
+        int commentCount = safeFetchComment(candidate.url());
+
+        double score = pageviewCount * properties.getScore().getPageviewWeight()
+                + commentCount * properties.getScore().getCommentWeight();
+
+        return new RecommendationPostDto(
+                candidate.url(),
+                candidate.title(),
+                candidate.description(),
+                candidate.date(),
+                candidate.tags(),
+                pageviewCount,
+                commentCount,
+                Math.round(score * 100.0) / 100.0,
+                false
+        );
+    }
+
+    private int safeFetchPageview(String url) {
+        try {
+            return Math.max(0, walineStatsClient.fetchPageviewCount(url));
+        } catch (Exception ignored) {
+            return 0;
+        }
+    }
+
+    private int safeFetchComment(String url) {
+        try {
+            return Math.max(0, walineStatsClient.fetchCommentCount(url));
+        } catch (Exception ignored) {
+            return 0;
+        }
+    }
+
+    private String normalizeUrl(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        String trimmed = value.trim();
+        return trimmed.startsWith("/") ? trimmed : "/" + trimmed;
+    }
+
+    private record CachedHotSnapshot(long generatedAtEpochMilli, List<RecommendationPostDto> posts) {
+    }
+}

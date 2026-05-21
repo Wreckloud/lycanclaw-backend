@@ -31,7 +31,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
     private final Map<String, ArrayDeque<Long>> rateBuckets = new ConcurrentHashMap<>();
 
     /**
-     * 对 /api/music/auth/* 做双重保护：
+     * 对管理员接口做双重保护：
      * 1) 校验管理员令牌；
      * 2) 按 IP + URI 做分钟级限流。
      */

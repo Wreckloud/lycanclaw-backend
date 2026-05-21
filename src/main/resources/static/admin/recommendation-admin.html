@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>推荐管理（管理员）</title>
+  <style>
+    body { margin: 0; font-family: "Microsoft YaHei", sans-serif; background: #0b1020; color: #e5ecff; }
+    .container { max-width: 1100px; margin: 24px auto; padding: 0 16px 32px; }
+    .card { background: #121a2f; border: 1px solid #24314f; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    h1, h2 { margin: 0 0 12px; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    input, button { border-radius: 8px; border: 1px solid #2f3d62; background: #0f172a; color: #e5ecff; padding: 8px 10px; }
+    input { min-width: 260px; }
+    button { cursor: pointer; }
+    button.primary { background: #2563eb; border-color: #2563eb; }
+    button.ghost { background: transparent; }
+    .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    ul { list-style: none; margin: 0; padding: 0; }
+    li { padding: 10px; border-bottom: 1px solid #273354; display: flex; justify-content: space-between; gap: 8px; }
+    .meta { font-size: 12px; color: #95a4c8; margin-top: 6px; }
+    .title { font-weight: 700; }
+    .status { color: #3b82f6; margin-top: 8px; min-height: 20px; }
+    .small { font-size: 12px; color: #95a4c8; }
+    @media (max-width: 900px) { .columns { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>推荐管理（管理员）</h1>
+  <div class="card">
+    <div class="row">
+      <input id="token" type="password" placeholder="管理员令牌（X-Lycan-Admin-Token）" />
+      <button class="primary" onclick="loadAll()">加载数据</button>
+      <button onclick="saveConfig()">保存手动推荐</button>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="small">手动推荐优先展示；顺序即首页展示优先级。</div>
+  </div>
+
+  <div class="columns">
+    <div class="card">
+      <h2>手动推荐顺序</h2>
+      <ul id="manualList"></ul>
+    </div>
+
+    <div class="card">
+      <h2>候选文章（按热门分）</h2>
+      <ul id="candidateList"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  const state = {
+    manualUrls: [],
+    candidates: []
+  }
+
+  function setStatus(text, isError = false) {
+    const node = document.getElementById('status')
+    node.textContent = text
+    node.style.color = isError ? '#f87171' : '#3b82f6'
+  }
+
+  function tokenHeader() {
+    const token = document.getElementById('token').value.trim()
+    return token ? { 'X-Lycan-Admin-Token': token } : {}
+  }
+
+  async function requestJson(url, options = {}) {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...tokenHeader(),
+        ...(options.headers || {})
+      }
+    })
+    const payload = await response.json()
+    if (!response.ok || payload.success === false) {
+      const message = payload?.error?.message || `请求失败: ${response.status}`
+      throw new Error(message)
+    }
+    return payload.data
+  }
+
+  function addManual(url) {
+    if (!state.manualUrls.includes(url)) {
+      state.manualUrls.push(url)
+      renderManual()
+    }
+  }
+
+  function removeManual(url) {
+    state.manualUrls = state.manualUrls.filter(item => item !== url)
+    renderManual()
+  }
+
+  function moveManual(url, direction) {
+    const index = state.manualUrls.indexOf(url)
+    if (index < 0) return
+    const next = index + direction
+    if (next < 0 || next >= state.manualUrls.length) return
+    const copy = [...state.manualUrls]
+    ;[copy[index], copy[next]] = [copy[next], copy[index]]
+    state.manualUrls = copy
+    renderManual()
+  }
+
+  function renderManual() {
+    const node = document.getElementById('manualList')
+    if (!state.manualUrls.length) {
+      node.innerHTML = '<li>暂无手动推荐</li>'
+      return
+    }
+
+    node.innerHTML = state.manualUrls.map((url) => `
+      <li>
+        <span>${url}</span>
+        <span>
+          <button class="ghost" onclick="moveManual('${url}', -1)">↑</button>
+          <button class="ghost" onclick="moveManual('${url}', 1)">↓</button>
+          <button class="ghost" onclick="removeManual('${url}')">移除</button>
+        </span>
+      </li>
+    `).join('')
+  }
+
+  function renderCandidates() {
+    const node = document.getElementById('candidateList')
+    if (!state.candidates.length) {
+      node.innerHTML = '<li>暂无候选数据</li>'
+      return
+    }
+
+    node.innerHTML = state.candidates.map((item) => {
+      const added = state.manualUrls.includes(item.url)
+      const score = Number(item.hotScore || 0).toFixed(2)
+      return `
+        <li>
+          <div>
+            <div class="title">${item.title}</div>
+            <div class="small">${item.url}</div>
+            <div class="meta">浏览 ${item.pageviewCount || 0} / 评论 ${item.commentCount || 0} / 热门分 ${score}</div>
+          </div>
+          <div>
+            <button ${added ? 'disabled' : ''} onclick="addManual('${item.url}')">${added ? '已加入' : '加入'}</button>
+          </div>
+        </li>
+      `
+    }).join('')
+  }
+
+  async function loadAll() {
+    try {
+      setStatus('正在加载...')
+      const [config, candidates] = await Promise.all([
+        requestJson('/api/recommendations/admin/config'),
+        requestJson('/api/recommendations/admin/candidates?limit=200')
+      ])
+      state.manualUrls = Array.isArray(config.manualUrls) ? config.manualUrls : []
+      state.candidates = Array.isArray(candidates) ? candidates : []
+      renderManual()
+      renderCandidates()
+      setStatus('加载完成')
+    } catch (error) {
+      setStatus(error.message || String(error), true)
+    }
+  }
+
+  async function saveConfig() {
+    try {
+      setStatus('正在保存...')
+      const saved = await requestJson('/api/recommendations/admin/config', {
+        method: 'PUT',
+        body: JSON.stringify({ manualUrls: state.manualUrls })
+      })
+      state.manualUrls = Array.isArray(saved.manualUrls) ? saved.manualUrls : []
+      renderManual()
+      renderCandidates()
+      setStatus('保存成功')
+    } catch (error) {
+      setStatus(error.message || String(error), true)
+    }
+  }
+</script>
+</body>
+</html>

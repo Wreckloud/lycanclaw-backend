@@ -19,6 +19,7 @@
   - 标签：`/api/tags/*`
   - 音乐：`/api/music/*`
   - 日贡献：`/api/contributions/daily`
+  - 推荐：`/api/recommendations`
 
 ## 当前已落地的第一个真实 API
 
@@ -47,6 +48,7 @@
 管理页面：
 
 - `GET /admin/music-login.html`
+- `GET /admin/recommendation-admin.html`
 
 > 说明：二维码登录是否需要二次确认，取决于网易云 App 安全策略。  
 > 后端不绕过验证，只托管你扫码后获得的登录态。
@@ -72,6 +74,16 @@
   - `replace`（默认）：替换掉同歌曲旧队列项
   - `skip`：若已在播放或队列中存在则跳过
   - `allow`：允许重复入队
+
+## 推荐阅读接口（已落地）
+
+- `GET /api/recommendations?limit=5&excludePath=/thoughts/xxx.html`
+  - 热门分算法：`浏览量 * pageviewWeight + 评论数 * commentWeight`
+  - 数据来源：`posts.json + Waline(article/comment)`
+- `GET /api/recommendations/admin/config`（管理员）
+- `PUT /api/recommendations/admin/config`（管理员）
+  - Body: `{ \"manualUrls\": [\"/thoughts/xxx.html\"] }`
+  - 管理员手动置顶优先于热门分排序
 
 ## 启动
 
@@ -103,6 +115,10 @@ mvn spring-boot:run
 - `lycan.music.upstream.base-url`：api-enhanced 服务地址
 - `lycan.music.fallback-uid`：未登录时排行榜回退账号
 - `lycan.music.preferred-level`：默认音质级别
+- `lycan.recommendation.posts-json-path`：前端 posts.json 路径
+- `lycan.recommendation.waline-base-url`：Waline 地址
+- `lycan.recommendation.manual-config-path`：手动推荐持久化文件路径
+- `lycan.recommendation.score.*`：热门分权重配置
 
 > 当前阶段默认关闭了数据源自动装配，便于先推进无状态 API。  
 > 开始接入数据库时再恢复 `spring.datasource` 与 `spring.jpa` 配置。
