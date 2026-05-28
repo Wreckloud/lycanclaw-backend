@@ -19,7 +19,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 public class AdminAuthInterceptor implements HandlerInterceptor {
 
-    private static final String TOKEN_HEADER = "X-Lycan-Admin-Token";
     private static final Logger log = LoggerFactory.getLogger(AdminAuthInterceptor.class);
 
     private final ClientIpResolver clientIpResolver;
@@ -65,13 +64,15 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        String token = request.getHeader(TOKEN_HEADER);
-        if (adminTokenAuthService.authenticate(token).isEmpty()) {
+        String token = request.getHeader(AdminAuthConstants.ADMIN_TOKEN_HEADER);
+        var principal = adminTokenAuthService.authenticate(token);
+        if (principal.isEmpty()) {
             logDenied(clientIp, method, uri, "invalid_token");
             apiErrorResponseWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, ErrorCode.ADMIN_TOKEN_INVALID);
             return false;
         }
 
+        request.setAttribute(AdminAuthConstants.ADMIN_PRINCIPAL_ATTR, principal.get());
         logAllowed(clientIp, method, uri);
         return true;
     }

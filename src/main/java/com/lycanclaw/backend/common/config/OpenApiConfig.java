@@ -1,5 +1,6 @@
 package com.lycanclaw.backend.common.config;
 
+import com.lycanclaw.backend.common.security.AdminAuthConstants;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
@@ -20,7 +21,7 @@ import org.springframework.context.annotation.Configuration;
         name = "adminToken",
         type = SecuritySchemeType.APIKEY,
         in = SecuritySchemeIn.HEADER,
-        paramName = "X-Lycan-Admin-Token",
+        paramName = AdminAuthConstants.ADMIN_TOKEN_HEADER,
         description = "管理员凭证（静态 token 或 /api/admin/auth/waline/exchange 返回的会话 token）"
 )
 public class OpenApiConfig {

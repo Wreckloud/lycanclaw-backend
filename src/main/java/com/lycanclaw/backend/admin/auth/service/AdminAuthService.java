@@ -98,16 +98,7 @@ public class AdminAuthService {
      */
     public Optional<AdminAuthMeDto> currentAdmin(String adminToken) {
         return adminTokenAuthService.authenticate(adminToken)
-                .map(principal -> new AdminAuthMeDto(
-                        true,
-                        principal.mode(),
-                        principal.userId(),
-                        principal.nickname(),
-                        principal.email(),
-                        principal.qq(),
-                        principal.role(),
-                        principal.expiresAt()
-                ));
+                .map(this::toMeDto);
     }
 
     /**
@@ -115,6 +106,22 @@ public class AdminAuthService {
      */
     public void logout(String adminToken) {
         adminTokenAuthService.revokeSession(adminToken);
+    }
+
+    /**
+     * 管理员主体转换为 /me 输出 DTO。
+     */
+    public AdminAuthMeDto toMeDto(AdminAuthPrincipal principal) {
+        return new AdminAuthMeDto(
+                true,
+                principal.mode(),
+                principal.userId(),
+                principal.nickname(),
+                principal.email(),
+                principal.qq(),
+                principal.role(),
+                principal.expiresAt()
+        );
     }
 
     private void checkQqWhitelist(String qq) {

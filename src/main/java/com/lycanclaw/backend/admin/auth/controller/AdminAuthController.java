@@ -6,8 +6,11 @@ import com.lycanclaw.backend.admin.auth.dto.AdminWalineExchangeRequest;
 import com.lycanclaw.backend.admin.auth.service.AdminAuthService;
 import com.lycanclaw.backend.common.api.ApiResponse;
 import com.lycanclaw.backend.common.api.ErrorCode;
+import com.lycanclaw.backend.common.security.AdminAuthConstants;
+import com.lycanclaw.backend.common.security.AdminAuthPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,8 +33,6 @@ import java.util.Map;
 @Tag(name = "管理员鉴权", description = "Waline 身份换取后端管理会话")
 public class AdminAuthController {
 
-    private static final String ADMIN_TOKEN_HEADER = "X-Lycan-Admin-Token";
-
     private final AdminAuthService adminAuthService;
 
     public AdminAuthController(AdminAuthService adminAuthService) {
@@ -53,8 +54,13 @@ public class AdminAuthController {
     @Operation(summary = "查看当前管理会话")
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<AdminAuthMeDto>> me(
-            @RequestHeader(name = ADMIN_TOKEN_HEADER, required = false) String token
+            @RequestHeader(name = AdminAuthConstants.ADMIN_TOKEN_HEADER, required = false) String token,
+            HttpServletRequest request
     ) {
+        Object attr = request.getAttribute(AdminAuthConstants.ADMIN_PRINCIPAL_ATTR);
+        if (attr instanceof AdminAuthPrincipal principal) {
+            return ResponseEntity.ok(ApiResponse.ok(adminAuthService.toMeDto(principal)));
+        }
         return adminAuthService.currentAdmin(token)
                 .map(dto -> ResponseEntity.ok(ApiResponse.ok(dto)))
                 .orElseGet(() -> ResponseEntity
@@ -68,7 +74,7 @@ public class AdminAuthController {
     @Operation(summary = "退出当前管理会话")
     @PostMapping("/logout")
     public ApiResponse<Map<String, Object>> logout(
-            @RequestHeader(name = ADMIN_TOKEN_HEADER, required = false) String token
+            @RequestHeader(name = AdminAuthConstants.ADMIN_TOKEN_HEADER, required = false) String token
     ) {
         adminAuthService.logout(token);
         return ApiResponse.ok(Map.of("success", true));
