@@ -1,6 +1,7 @@
 package com.lycanclaw.backend.common.config;
 
 import com.lycanclaw.backend.common.security.AdminAuthInterceptor;
+import com.lycanclaw.backend.common.security.PublicAccessLogInterceptor;
 import com.lycanclaw.backend.common.security.PublicMusicRateLimitInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -17,13 +18,16 @@ public class WebSecurityConfig implements WebMvcConfigurer {
 
     private final AdminAuthInterceptor adminAuthInterceptor;
     private final PublicMusicRateLimitInterceptor publicMusicRateLimitInterceptor;
+    private final PublicAccessLogInterceptor publicAccessLogInterceptor;
 
     public WebSecurityConfig(
             AdminAuthInterceptor adminAuthInterceptor,
-            PublicMusicRateLimitInterceptor publicMusicRateLimitInterceptor
+            PublicMusicRateLimitInterceptor publicMusicRateLimitInterceptor,
+            PublicAccessLogInterceptor publicAccessLogInterceptor
     ) {
         this.adminAuthInterceptor = adminAuthInterceptor;
         this.publicMusicRateLimitInterceptor = publicMusicRateLimitInterceptor;
+        this.publicAccessLogInterceptor = publicAccessLogInterceptor;
     }
 
     /**
@@ -49,6 +53,21 @@ public class WebSecurityConfig implements WebMvcConfigurer {
                         "/api/music/ranking/**",  // 排行榜接口
                         "/api/music/track/**",    // 歌曲信息接口
                         "/api/music/queue/**"     // 播放队列接口
+                );
+
+        registry.addInterceptor(publicAccessLogInterceptor)
+                .addPathPatterns(
+                        "/api/comments/**",
+                        "/api/stats/**",
+                        "/api/recommendations/**",
+                        "/api/tags/**",
+                        "/api/contributions/**",
+                        "/api/music/**"
+                )
+                .excludePathPatterns(
+                        "/api/music/auth/**",
+                        "/api/recommendations/admin/**",
+                        "/api/admin/**"
                 );
     }
 }

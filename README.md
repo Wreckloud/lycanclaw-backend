@@ -148,7 +148,8 @@
 - 管理端接口统一使用 `X-Lycan-Admin-Token` 鉴权；
 - 支持双模式：admin 静态 token（应急）+ Waline 交换会话 token（主流程）；
 - 管理端启用分钟级限流与访问日志（IP / URI / method / 结果）；
-- 已取消 IP 白名单机制，避免换网/代理误锁后台。
+- 已取消 IP 白名单机制，避免换网/代理误锁后台；
+- 公共 API 默认记录访问日志（访客 IP / URI / User-Agent），用于后续访客分析与风控回放。
 
 ## 启动
 
@@ -187,6 +188,7 @@ mvn spring-boot:run
 - `lycan.security.auth-rate-limit-per-minute`：登录接口限流阈值
 - `lycan.security.music-rate-limit-per-minute`：公开音乐接口限流阈值
 - `lycan.security.admin-auth-log-enabled`：管理端鉴权访问日志开关
+- `lycan.security.public-access-log-enabled`：公共 API 访问日志开关
 - `lycan.music.upstream.base-url`：api-enhanced 服务地址
 - `lycan.music.fallback-uid`：未登录时排行榜回退账号
 - `lycan.music.preferred-level`：默认音质级别
