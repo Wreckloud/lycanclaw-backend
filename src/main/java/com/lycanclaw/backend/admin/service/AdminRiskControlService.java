@@ -53,6 +53,9 @@ public class AdminRiskControlService {
         return false;
     }
 
+    /**
+     * 输出白名单摘要，用于管理端展示当前生效配置。
+     */
     public String whitelistSummary() {
         List<String> whitelist = parseWhitelist();
         if (whitelist.isEmpty()) {
@@ -61,6 +64,9 @@ public class AdminRiskControlService {
         return String.join(", ", whitelist);
     }
 
+    /**
+     * 解析白名单配置，忽略空值并统一 IP 格式。
+     */
     private List<String> parseWhitelist() {
         if (adminIpWhitelist == null || adminIpWhitelist.isBlank()) {
             return List.of();

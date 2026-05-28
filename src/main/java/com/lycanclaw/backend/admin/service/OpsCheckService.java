@@ -52,6 +52,9 @@ public class OpsCheckService {
         this.appTimeProvider = appTimeProvider;
     }
 
+    /**
+     * 汇总管理端所需检查项：服务可用性、同步文件状态、常见错误提示。
+     */
     public Map<String, Object> collectChecks() {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("checkedAt", appTimeProvider.nowOffsetString());
@@ -88,6 +91,9 @@ public class OpsCheckService {
         return result;
     }
 
+    /**
+     * 探测 Waline 评论与阅读统计链路可用性。
+     */
     private Map<String, Object> checkWaline() {
         try {
             JsonNode recent = walineGatewayClient.fetchRecentComments(1);
@@ -108,6 +114,9 @@ public class OpsCheckService {
         }
     }
 
+    /**
+     * 探测音乐上游服务可用性（使用登录状态接口做轻量探针）。
+     */
     private Map<String, Object> checkNcmUpstream() {
         try {
             JsonNode status = ncmUpstreamClient.get("/login/status", Map.of());
@@ -123,6 +132,9 @@ public class OpsCheckService {
         }
     }
 
+    /**
+     * 读取手动推荐配置的元数据，不返回完整内容。
+     */
     private Map<String, Object> recommendationManualMeta() {
         RecommendationManualConfigDto dto = recommendationManualConfigService.read();
         return Map.of(
@@ -131,6 +143,9 @@ public class OpsCheckService {
         );
     }
 
+    /**
+     * 返回索引文件存在性与体积，便于快速排查挂载或路径错误。
+     */
     private Map<String, Object> postsJsonMeta(String pathValue) {
         Path path = Path.of(pathValue);
         boolean exists = Files.exists(path);

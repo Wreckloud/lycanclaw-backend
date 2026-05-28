@@ -84,6 +84,9 @@ public class AdminDashboardService {
         );
     }
 
+    /**
+     * 聚合音乐登录状态；异常时返回降级状态，避免首页整体失败。
+     */
     private AdminMusicStatusDto musicSection() {
         try {
             MusicLoginStatusDto status = musicAuthService.loginStatus();
@@ -98,6 +101,9 @@ public class AdminDashboardService {
         }
     }
 
+    /**
+     * 聚合推荐/标签/评论治理摘要；异常时返回红色降级状态。
+     */
     private AdminGovernanceSummaryDto governanceSection(Map<String, Object> syncStatus) {
         try {
             RecommendationManualConfigDto config = recommendationManualConfigService.read();
@@ -131,6 +137,9 @@ public class AdminDashboardService {
         }
     }
 
+    /**
+     * 风控配置属于本地静态信息，默认不做降级分支。
+     */
     private AdminRiskControlSummaryDto riskSection() {
         return new AdminRiskControlSummaryDto(
                 Math.max(1, authRateLimit),
@@ -144,6 +153,9 @@ public class AdminDashboardService {
         );
     }
 
+    /**
+     * 运维检查摘要直接透传检查快照，并携带模块错误信息。
+     */
     private AdminOpsSummaryDto opsSection(Map<String, Object> checks, String opsError) {
         Object services = checks.getOrDefault("services", Map.of());
         Object sync = checks.getOrDefault("sync", Map.of());
@@ -156,6 +168,9 @@ public class AdminDashboardService {
         );
     }
 
+    /**
+     * 同步状态计算失败时返回 red，保证管理首页可渲染。
+     */
     private Map<String, Object> safeSyncStatus(Map<String, Object> checks) {
         try {
             return adminGovernanceService.syncStatus(checks);

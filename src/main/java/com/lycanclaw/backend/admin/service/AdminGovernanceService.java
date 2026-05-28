@@ -34,6 +34,9 @@ public class AdminGovernanceService {
         this.appTimeProvider = appTimeProvider;
     }
 
+    /**
+     * 手动触发推荐缓存重建，并返回动作执行快照。
+     */
     public Map<String, Object> rebuildRecommendations() {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("action", "recommendations.rebuild");
@@ -42,6 +45,9 @@ public class AdminGovernanceService {
         return payload;
     }
 
+    /**
+     * 手动刷新标签缓存，并返回动作执行快照。
+     */
     public Map<String, Object> refreshTagsCache() {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("action", "tags.refresh");
@@ -124,6 +130,9 @@ public class AdminGovernanceService {
         return "green";
     }
 
+    /**
+     * 仅在 value 是 Boolean.TRUE 时返回 true，其他类型全部按 false 处理。
+     */
     private boolean asBoolean(Object value) {
         return value instanceof Boolean b && b;
     }
