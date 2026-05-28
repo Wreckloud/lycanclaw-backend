@@ -74,6 +74,23 @@
     node.style.color = isError ? '#f87171' : '#3b82f6'
   }
 
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;')
+  }
+
+  function encodeActionArg(value) {
+    return encodeURIComponent(String(value ?? ''))
+  }
+
+  function decodeActionArg(value) {
+    return decodeURIComponent(String(value ?? ''))
+  }
+
   async function requestJson(url, options = {}) {
     return adminCommon.requestJson(url, options)
   }
@@ -101,6 +118,18 @@
     renderManual()
   }
 
+  function addManualByEncoded(encodedUrl) {
+    addManual(decodeActionArg(encodedUrl))
+  }
+
+  function removeManualByEncoded(encodedUrl) {
+    removeManual(decodeActionArg(encodedUrl))
+  }
+
+  function moveManualByEncoded(encodedUrl, direction) {
+    moveManual(decodeActionArg(encodedUrl), direction)
+  }
+
   function renderManual() {
     const node = document.getElementById('manualList')
     if (!state.manualUrls.length) {
@@ -108,16 +137,20 @@
       return
     }
 
-    node.innerHTML = state.manualUrls.map((url) => `
+    node.innerHTML = state.manualUrls.map((url) => {
+      const encodedUrl = encodeActionArg(url)
+      const safeUrl = escapeHtml(url)
+      return `
       <li>
-        <span>${url}</span>
+        <span>${safeUrl}</span>
         <span>
-          <button class="ghost" onclick="moveManual('${url}', -1)">↑</button>
-          <button class="ghost" onclick="moveManual('${url}', 1)">↓</button>
-          <button class="ghost" onclick="removeManual('${url}')">移除</button>
+          <button class="ghost" onclick="moveManualByEncoded('${encodedUrl}', -1)">↑</button>
+          <button class="ghost" onclick="moveManualByEncoded('${encodedUrl}', 1)">↓</button>
+          <button class="ghost" onclick="removeManualByEncoded('${encodedUrl}')">移除</button>
         </span>
       </li>
-    `).join('')
+    `
+    }).join('')
   }
 
   function renderCandidates() {
@@ -130,15 +163,18 @@
     node.innerHTML = state.candidates.map((item) => {
       const added = state.manualUrls.includes(item.url)
       const score = Number(item.hotScore || 0).toFixed(2)
+      const encodedUrl = encodeActionArg(item.url)
+      const safeTitle = escapeHtml(item.title)
+      const safeUrl = escapeHtml(item.url)
       return `
         <li>
           <div>
-            <div class="title">${item.title}</div>
-            <div class="small">${item.url}</div>
+            <div class="title">${safeTitle}</div>
+            <div class="small">${safeUrl}</div>
             <div class="meta">浏览 ${item.pageviewCount || 0} / 评论 ${item.commentCount || 0} / 热门分 ${score}</div>
           </div>
           <div>
-            <button ${added ? 'disabled' : ''} onclick="addManual('${item.url}')">${added ? '已加入' : '加入'}</button>
+            <button ${added ? 'disabled' : ''} onclick="addManualByEncoded('${encodedUrl}')">${added ? '已加入' : '加入'}</button>
           </div>
         </li>
       `
