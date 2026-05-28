@@ -34,14 +34,18 @@ public class WebSecurityConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(adminAuthInterceptor)
                 .addPathPatterns(
-                        "/api/music/auth/**",
-                        "/api/recommendations/admin/**",
-                        "/api/admin/ops/**",
-                        "/api/admin/dashboard/**",
-                        "/api/admin/governance/**"
+                        "/api/music/auth/**",               // 音乐认证接口
+                        "/api/recommendations/admin/**",    // 推荐管理接口
+                        "/api/admin/ops/**",                // 运维检查接口
+                        "/api/admin/dashboard/**",          // 仪表盘接口
+                        "/api/admin/governance/**"          // 治理接口
                 );
 
         registry.addInterceptor(publicMusicRateLimitInterceptor)
-                .addPathPatterns("/api/music/ranking/**", "/api/music/track/**", "/api/music/queue/**");
+                .addPathPatterns(
+                        "/api/music/ranking/**",  // 排行榜接口
+                        "/api/music/track/**",    // 歌曲信息接口
+                        "/api/music/queue/**"     // 播放队列接口
+                );
     }
 }

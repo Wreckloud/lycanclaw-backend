@@ -95,15 +95,28 @@ public class MusicDataService {
     public Map<String, Object> getTrackUrl(String id, String level) {
         String safeId = validateSongId(id);
         String preferred = normalizeLevel(level);
+        boolean hasLoginCookie = sessionService.hasCookie();
 
         List<String> levels = buildLevelAttempts(preferred);
         for (String attemptLevel : levels) {
-            String url = fetchTrackUrlWithLevel(safeId, attemptLevel);
-            if (!url.isBlank()) {
+            String publicUrl = fetchTrackUrlWithLevel(safeId, attemptLevel, false);
+            if (!publicUrl.isBlank()) {
                 return Map.of(
                         "id", safeId,
-                        "url", url,
-                        "level", attemptLevel
+                        "url", publicUrl,
+                        "level", attemptLevel,
+                        "source", "public"
+                );
+            }
+
+            if (!hasLoginCookie) continue;
+            String authUrl = fetchTrackUrlWithLevel(safeId, attemptLevel, true);
+            if (!authUrl.isBlank()) {
+                return Map.of(
+                        "id", safeId,
+                        "url", authUrl,
+                        "level", attemptLevel,
+                        "source", "login"
                 );
             }
         }
@@ -111,7 +124,8 @@ public class MusicDataService {
         return Map.of(
                 "id", safeId,
                 "url", "",
-                "level", preferred
+                "level", preferred,
+                "source", hasLoginCookie ? "login_fallback_failed" : "public_only"
         );
     }
 
@@ -167,12 +181,12 @@ public class MusicDataService {
     /**
      * 带音质参数请求上游 URL 接口，返回可播放地址。
      */
-    private String fetchTrackUrlWithLevel(String id, String level) {
+    private String fetchTrackUrlWithLevel(String id, String level, boolean withCookie) {
         Map<String, String> query = new LinkedHashMap<>();
         query.put("id", id);
         query.put("level", level);
         query.put("timestamp", String.valueOf(System.currentTimeMillis()));
-        appendCookie(query);
+        appendCookie(query, withCookie);
         JsonNode node = upstreamClient.get("/song/url/v1", query);
 
         JsonNode dataArray = node.path("data");
@@ -188,7 +202,11 @@ public class MusicDataService {
      * 在有登录态时把 cookie 注入上游请求。
      */
     private void appendCookie(Map<String, String> query) {
-        if (sessionService.hasCookie()) {
+        appendCookie(query, true);
+    }
+
+    private void appendCookie(Map<String, String> query, boolean enabled) {
+        if (enabled && sessionService.hasCookie()) {
             query.put("cookie", sessionService.getCookie());
         }
     }

@@ -35,6 +35,7 @@ public class CorsConfig implements WebMvcConfigurer {
      * 将配置字符串转为 origin 数组，并过滤空值。
      */
     private String[] parseAllowedOrigins() {
+        if (allowedOriginsRaw == null || allowedOriginsRaw.isBlank()) return new String[0];
         return Arrays.stream(allowedOriginsRaw.split(","))
                 .map(String::trim)
                 .filter(value -> !value.isEmpty())

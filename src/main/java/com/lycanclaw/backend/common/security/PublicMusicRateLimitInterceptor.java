@@ -7,12 +7,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.time.Instant;
-import java.util.ArrayDeque;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 /**
  * @Description 公共音乐接口限流拦截器
  * @Author Wreckloud
@@ -21,70 +15,34 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class PublicMusicRateLimitInterceptor implements HandlerInterceptor {
 
-    private static final String FORWARDED_FOR_HEADER = "X-Forwarded-For";
-
     @Value("${lycan.security.music-rate-limit-per-minute}")
     private int rateLimitPerMinute;
 
-    @Value("${lycan.security.trust-forwarded-headers:false}")
-    private boolean trustForwardedHeaders;
+    private final ClientIpResolver clientIpResolver;
+    private final InMemorySlidingWindowRateLimiter rateLimiter;
+    private final ApiErrorResponseWriter apiErrorResponseWriter;
 
-    private final Map<String, ArrayDeque<Long>> buckets = new ConcurrentHashMap<>();
+    public PublicMusicRateLimitInterceptor(
+            ClientIpResolver clientIpResolver,
+            InMemorySlidingWindowRateLimiter rateLimiter,
+            ApiErrorResponseWriter apiErrorResponseWriter
+    ) {
+        this.clientIpResolver = clientIpResolver;
+        this.rateLimiter = rateLimiter;
+        this.apiErrorResponseWriter = apiErrorResponseWriter;
+    }
 
     /**
      * 对公开音乐接口做分钟级限流，防止被批量刷接口。
      */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        String key = resolveClientIp(request) + ":" + request.getRequestURI();
-        long now = Instant.now().toEpochMilli();
-
-        ArrayDeque<Long> bucket = buckets.computeIfAbsent(key, ignored -> new ArrayDeque<>());
-        synchronized (bucket) {
-            long windowStart = now - 60_000L;
-            while (!bucket.isEmpty() && bucket.peekFirst() < windowStart) {
-                bucket.pollFirst();
-            }
-
-            if (bucket.size() >= Math.max(1, rateLimitPerMinute)) {
-                response.setStatus(429);
-                response.setContentType("application/json;charset=UTF-8");
-                response.getWriter().write(
-                        "{\"success\":false,\"data\":null,\"error\":{\"code\":\""
-                                + ErrorCode.MUSIC_RATE_LIMITED.code()
-                                + "\",\"message\":\"" + ErrorCode.MUSIC_RATE_LIMITED.defaultMessage() + "\"}}"
-                );
-                return false;
-            }
-            bucket.addLast(now);
+        String clientIp = clientIpResolver.resolve(request);
+        boolean allow = rateLimiter.allow("music:" + clientIp + ":" + request.getRequestURI(), rateLimitPerMinute);
+        if (!allow) {
+            apiErrorResponseWriter.write(response, 429, ErrorCode.MUSIC_RATE_LIMITED);
+            return false;
         }
         return true;
-    }
-
-    /**
-     * 反向代理场景优先使用 X-Forwarded-For 首 IP，避免所有请求被算成同一个反代地址。
-     */
-    private String resolveClientIp(HttpServletRequest request) {
-        if (trustForwardedHeaders) {
-            String forwardedFor = request.getHeader(FORWARDED_FOR_HEADER);
-            if (forwardedFor != null && !forwardedFor.isBlank()) {
-                String first = forwardedFor.split(",")[0].trim();
-                if (!first.isBlank()) {
-                    return normalizeIp(first);
-                }
-            }
-        }
-        return normalizeIp(request.getRemoteAddr());
-    }
-
-    private String normalizeIp(String value) {
-        if (value == null) {
-            return "";
-        }
-        String normalized = value.trim();
-        if (normalized.startsWith("::ffff:")) {
-            normalized = normalized.substring("::ffff:".length());
-        }
-        return normalized.toLowerCase(Locale.ROOT);
     }
 }
