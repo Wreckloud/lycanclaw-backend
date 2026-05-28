@@ -10,9 +10,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * @Description OpenAPI 与 Knife4j 文档配置
- * @Author Wreckloud
- * @Date 2026-05-15
+ * OpenAPI 与 Knife4j 文档配置
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Configuration
 @SecurityScheme(

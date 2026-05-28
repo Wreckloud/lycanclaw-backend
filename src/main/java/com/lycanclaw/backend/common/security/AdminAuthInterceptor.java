@@ -12,9 +12,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 /**
- * @Description 管理员接口鉴权与限流拦截器
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 管理员接口鉴权与限流拦截器
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Component
 public class AdminAuthInterceptor implements HandlerInterceptor {

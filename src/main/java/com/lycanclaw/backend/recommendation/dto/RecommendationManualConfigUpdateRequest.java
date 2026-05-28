@@ -6,9 +6,10 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 /**
- * @Description 手动推荐配置更新请求
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 手动推荐配置更新请求
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Schema(description = "手动推荐配置更新请求")
 public record RecommendationManualConfigUpdateRequest(

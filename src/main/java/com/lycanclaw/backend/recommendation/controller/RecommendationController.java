@@ -19,9 +19,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * @Description 推荐阅读接口控制器
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 推荐阅读接口控制器
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @RestController
 @RequestMapping("/api/recommendations")

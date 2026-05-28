@@ -18,9 +18,10 @@ import java.time.Duration;
 import java.util.Map;
 
 /**
- * @Description 网易云上游 HTTP 客户端
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 网易云上游 HTTP 客户端
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Component
 public class NcmUpstreamClient {

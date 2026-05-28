@@ -8,9 +8,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import java.util.Arrays;
 
 /**
- * @Description 跨域访问配置
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 跨域访问配置
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {

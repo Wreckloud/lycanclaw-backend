@@ -12,9 +12,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * @Description 日贡献查询接口控制器
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 日贡献查询接口控制器
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @RestController
 @RequestMapping("/api/contributions")

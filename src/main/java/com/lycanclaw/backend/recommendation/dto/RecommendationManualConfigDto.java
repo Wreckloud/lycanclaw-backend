@@ -5,9 +5,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * @Description 手动推荐配置 DTO
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 手动推荐配置 DTO
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Schema(description = "手动推荐配置")
 public record RecommendationManualConfigDto(

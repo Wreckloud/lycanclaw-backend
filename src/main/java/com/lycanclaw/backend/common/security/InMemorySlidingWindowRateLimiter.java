@@ -8,9 +8,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * @Description 内存滑动窗口限流器
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 内存滑动窗口限流器
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Component
 public class InMemorySlidingWindowRateLimiter {

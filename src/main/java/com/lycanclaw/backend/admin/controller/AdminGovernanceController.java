@@ -12,9 +12,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * @Description 管理端内容治理接口
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 管理端内容治理接口
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @RestController
 @RequestMapping("/api/admin/governance")

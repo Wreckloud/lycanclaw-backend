@@ -8,9 +8,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * @Description 全局异常处理器
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 全局异常处理器
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {

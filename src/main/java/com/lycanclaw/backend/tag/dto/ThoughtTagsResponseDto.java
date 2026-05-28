@@ -5,9 +5,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * @Description 随想标签列表响应
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 随想标签列表响应
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Schema(description = "随想标签列表")
 public record ThoughtTagsResponseDto(

@@ -3,9 +3,10 @@ package com.lycanclaw.backend.common.api;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * @Description 统一响应体模型
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 统一响应体模型
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Schema(description = "统一响应结构")
 public record ApiResponse<T>(

@@ -14,9 +14,10 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * @Description 推荐文章源数据读取服务
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 推荐文章源数据读取服务
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Service
 public class RecommendationSourceService {

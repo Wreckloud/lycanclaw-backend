@@ -17,9 +17,10 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * @Description 播放队列管理服务
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 播放队列管理服务
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Service
 public class MusicQueueService {

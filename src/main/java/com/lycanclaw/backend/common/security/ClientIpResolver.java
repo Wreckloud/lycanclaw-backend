@@ -7,9 +7,10 @@ import org.springframework.stereotype.Component;
 import java.util.Locale;
 
 /**
- * @Description 客户端 IP 解析器（支持反向代理场景）
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 客户端 IP 解析器（支持反向代理场景）
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Component
 public class ClientIpResolver {

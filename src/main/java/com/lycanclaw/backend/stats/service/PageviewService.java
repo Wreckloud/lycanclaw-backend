@@ -4,9 +4,10 @@ import com.lycanclaw.backend.waline.service.WalineGatewayClient;
 import org.springframework.stereotype.Service;
 
 /**
- * @Description 阅读量统计服务（后端统一入口）
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 阅读量统计服务（后端统一入口）
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Service
 public class PageviewService {

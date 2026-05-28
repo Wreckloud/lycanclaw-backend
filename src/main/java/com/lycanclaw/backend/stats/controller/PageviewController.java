@@ -15,9 +15,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * @Description 阅读量统计接口
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 阅读量统计接口
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @RestController
 @RequestMapping("/api/stats")

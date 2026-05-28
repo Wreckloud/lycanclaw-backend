@@ -28,9 +28,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * @Description 标签数据聚合服务
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 标签数据聚合服务
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Service
 public class TagService {

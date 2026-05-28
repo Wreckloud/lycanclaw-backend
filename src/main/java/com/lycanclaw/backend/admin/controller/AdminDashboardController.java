@@ -9,9 +9,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * @Description 管理端首页数据接口
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 管理端首页数据接口
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @RestController
 @RequestMapping("/api/admin/dashboard")

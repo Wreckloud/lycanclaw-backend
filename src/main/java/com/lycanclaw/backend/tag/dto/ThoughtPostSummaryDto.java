@@ -5,9 +5,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * @Description 随想文章摘要
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 随想文章摘要
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Schema(description = "随想文章摘要")
 public record ThoughtPostSummaryDto(

@@ -20,9 +20,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * @Description 音乐数据与队列接口
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 音乐数据与队列接口
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @RestController
 @RequestMapping("/api/music")

@@ -11,9 +11,10 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * @Description 系统健康检查接口
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 系统健康检查接口
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @RestController
 @RequestMapping("/api/health")

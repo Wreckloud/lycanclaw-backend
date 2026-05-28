@@ -8,9 +8,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * @Description 公共音乐接口限流拦截器
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 公共音乐接口限流拦截器
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Component
 public class PublicMusicRateLimitInterceptor implements HandlerInterceptor {

@@ -3,9 +3,10 @@ package com.lycanclaw.backend.music.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * @Description 音乐上游配置模型
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 音乐上游配置模型
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @ConfigurationProperties(prefix = "lycan.music.upstream")
 public class MusicUpstreamProperties {

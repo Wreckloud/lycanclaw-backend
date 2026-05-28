@@ -4,9 +4,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 
 /**
- * @Description 阅读量上报请求
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 阅读量上报请求
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Schema(description = "阅读量上报请求")
 public record PageviewUpdateRequest(

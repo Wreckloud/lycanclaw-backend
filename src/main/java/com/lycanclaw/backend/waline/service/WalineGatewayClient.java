@@ -17,9 +17,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 /**
- * @Description Waline HTTP 网关客户端
- * @Author Wreckloud
- * @Date 2026-05-15
+ * Waline HTTP 网关客户端
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Component
 public class WalineGatewayClient {

@@ -1,9 +1,10 @@
 package com.lycanclaw.backend.common.api;
 
 /**
- * @Description 统一错误码定义（错误码 + 默认提示）
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 统一错误码定义（错误码 + 默认提示）
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 public enum ErrorCode {
     BAD_REQUEST("BAD_REQUEST", "参数错误"),

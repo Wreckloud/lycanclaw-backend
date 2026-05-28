@@ -12,9 +12,10 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * @Description 音乐数据聚合服务
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 音乐数据聚合服务
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Service
 public class MusicDataService {

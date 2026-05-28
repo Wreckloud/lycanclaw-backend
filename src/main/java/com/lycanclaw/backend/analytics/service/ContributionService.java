@@ -20,9 +20,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @Description Git 日贡献统计服务
- * @Author Wreckloud
- * @Date 2026-05-15
+ * Git 日贡献统计服务
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Service
 public class ContributionService {

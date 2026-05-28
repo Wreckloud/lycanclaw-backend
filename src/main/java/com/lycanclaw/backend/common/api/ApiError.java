@@ -3,9 +3,10 @@ package com.lycanclaw.backend.common.api;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * @Description 统一错误体模型
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 统一错误体模型
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Schema(description = "错误信息")
 public record ApiError(

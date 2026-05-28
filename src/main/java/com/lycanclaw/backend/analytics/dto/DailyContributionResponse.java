@@ -5,9 +5,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * @Description 日贡献响应模型
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 日贡献响应模型
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Schema(description = "日贡献统计响应")
 public record DailyContributionResponse(

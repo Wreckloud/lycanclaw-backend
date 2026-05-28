@@ -16,9 +16,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @Description 管理端首页聚合服务
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 管理端首页聚合服务
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Service
 public class AdminDashboardService {

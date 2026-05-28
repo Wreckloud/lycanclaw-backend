@@ -19,9 +19,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @Description 运维检查项聚合服务
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 运维检查项聚合服务
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Service
 public class OpsCheckService {

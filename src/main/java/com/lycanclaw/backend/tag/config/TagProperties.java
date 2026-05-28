@@ -3,9 +3,10 @@ package com.lycanclaw.backend.tag.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * @Description 标签模块配置项
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 标签模块配置项
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @ConfigurationProperties(prefix = "lycan.tag")
 public class TagProperties {

@@ -11,9 +11,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * @Description 运维检查项控制器
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 运维检查项控制器
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @RestController
 @RequestMapping("/api/admin/ops")

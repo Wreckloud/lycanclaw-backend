@@ -5,9 +5,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * @Description 推荐文章数据传输对象
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 推荐文章数据传输对象
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Schema(description = "推荐文章")
 public record RecommendationPostDto(

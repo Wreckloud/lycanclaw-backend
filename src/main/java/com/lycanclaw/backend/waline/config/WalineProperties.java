@@ -3,9 +3,10 @@ package com.lycanclaw.backend.waline.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * @Description Waline 网关配置项
- * @Author Wreckloud
- * @Date 2026-05-15
+ * Waline 网关配置项
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @ConfigurationProperties(prefix = "lycan.waline")
 public class WalineProperties {

@@ -10,9 +10,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * @Description 管理端内容治理服务
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 管理端内容治理服务
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Service
 public class AdminGovernanceService {

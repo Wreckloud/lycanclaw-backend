@@ -9,9 +9,10 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * @Description 网易云扫码登录服务
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 网易云扫码登录服务
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Service
 public class MusicAuthService {

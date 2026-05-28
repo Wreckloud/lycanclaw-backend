@@ -19,9 +19,10 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * @Description 手动推荐配置持久化服务
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 手动推荐配置持久化服务
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Service
 public class RecommendationManualConfigService {

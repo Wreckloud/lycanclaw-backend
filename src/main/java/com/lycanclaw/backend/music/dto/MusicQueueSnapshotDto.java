@@ -5,9 +5,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * @Description 队列快照模型
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 队列快照模型
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Schema(description = "播放队列快照")
 public record MusicQueueSnapshotDto(

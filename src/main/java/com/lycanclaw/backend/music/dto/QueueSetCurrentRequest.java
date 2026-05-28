@@ -3,9 +3,10 @@ package com.lycanclaw.backend.music.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * @Description 队列切换当前项请求模型
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 队列切换当前项请求模型
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Schema(description = "切换当前播放项请求")
 public record QueueSetCurrentRequest(

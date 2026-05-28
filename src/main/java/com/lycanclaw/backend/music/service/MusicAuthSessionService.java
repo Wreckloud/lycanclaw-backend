@@ -5,9 +5,10 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * @Description 音乐登录会话存储服务
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 音乐登录会话存储服务
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Service
 public class MusicAuthSessionService {

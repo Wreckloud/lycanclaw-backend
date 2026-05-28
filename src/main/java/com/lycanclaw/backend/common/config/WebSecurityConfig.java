@@ -7,9 +7,10 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * @Description Web 安全拦截器注册配置
- * @Author Wreckloud
- * @Date 2026-05-15
+ * Web 安全拦截器注册配置
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Configuration
 public class WebSecurityConfig implements WebMvcConfigurer {

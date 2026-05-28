@@ -3,9 +3,10 @@ package com.lycanclaw.backend.music.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * @Description 队列项模型
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 队列项模型
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Schema(description = "队列中的歌曲项")
 public record MusicQueueItemDto(

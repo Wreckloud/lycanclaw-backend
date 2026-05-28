@@ -17,9 +17,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * @Description 推荐阅读聚合服务
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 推荐阅读聚合服务
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Service
 public class RecommendationService {

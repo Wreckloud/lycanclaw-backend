@@ -3,9 +3,10 @@ package com.lycanclaw.backend.analytics.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * @Description 单日贡献条目模型
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 单日贡献条目模型
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @Schema(description = "单日贡献条目")
 public record DailyContributionItem(

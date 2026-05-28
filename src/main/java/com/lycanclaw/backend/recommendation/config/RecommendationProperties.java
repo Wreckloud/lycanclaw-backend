@@ -3,9 +3,10 @@ package com.lycanclaw.backend.recommendation.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * @Description 推荐模块配置项
- * @Author Wreckloud
- * @Date 2026-05-15
+ * 推荐模块配置项
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
  */
 @ConfigurationProperties(prefix = "lycan.recommendation")
 public class RecommendationProperties {
