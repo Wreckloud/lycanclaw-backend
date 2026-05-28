@@ -1,6 +1,6 @@
 package com.lycanclaw.backend.common.security;
 
-import com.lycanclaw.backend.common.api.ErrorCodes;
+import com.lycanclaw.backend.common.api.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,8 +51,8 @@ public class PublicMusicRateLimitInterceptor implements HandlerInterceptor {
                 response.setContentType("application/json;charset=UTF-8");
                 response.getWriter().write(
                         "{\"success\":false,\"data\":null,\"error\":{\"code\":\""
-                                + ErrorCodes.MUSIC_RATE_LIMITED
-                                + "\",\"message\":\"音乐接口请求过于频繁，请稍后再试\"}}"
+                                + ErrorCode.MUSIC_RATE_LIMITED.code()
+                                + "\",\"message\":\"" + ErrorCode.MUSIC_RATE_LIMITED.defaultMessage() + "\"}}"
                 );
                 return false;
             }

@@ -1,7 +1,7 @@
 package com.lycanclaw.backend.common.security;
 
 import com.lycanclaw.backend.admin.service.AdminRiskControlService;
-import com.lycanclaw.backend.common.api.ErrorCodes;
+import com.lycanclaw.backend.common.api.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,18 +54,18 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         String clientIp = extractClientIp(request);
 
         if (!allowByRateLimit(clientIp, request.getRequestURI())) {
-            reject(response, 429, ErrorCodes.ADMIN_RATE_LIMITED, "请求频率过高，请稍后再试");
+            reject(response, 429, ErrorCode.ADMIN_RATE_LIMITED, null);
             return false;
         }
 
         if (!adminRiskControlService.isIpAllowed(clientIp)) {
-            reject(response, HttpServletResponse.SC_FORBIDDEN, ErrorCodes.ADMIN_IP_FORBIDDEN, "当前 IP 不在管理端白名单中");
+            reject(response, HttpServletResponse.SC_FORBIDDEN, ErrorCode.ADMIN_IP_FORBIDDEN, null);
             return false;
         }
 
         String token = request.getHeader(TOKEN_HEADER);
         if (!constantTimeEquals(adminToken, token)) {
-            reject(response, HttpServletResponse.SC_UNAUTHORIZED, ErrorCodes.ADMIN_TOKEN_INVALID, "管理员令牌无效");
+            reject(response, HttpServletResponse.SC_UNAUTHORIZED, ErrorCode.ADMIN_TOKEN_INVALID, null);
             return false;
         }
 
@@ -111,11 +111,12 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         return MessageDigest.isEqual(left, right);
     }
 
-    private void reject(HttpServletResponse response, int status, String code, String message) throws Exception {
+    private void reject(HttpServletResponse response, int status, ErrorCode errorCode, String customMessage) throws Exception {
         response.setStatus(status);
         response.setContentType("application/json;charset=UTF-8");
+        String message = (customMessage == null || customMessage.isBlank()) ? errorCode.defaultMessage() : customMessage;
         response.getWriter().write(
-                "{\"success\":false,\"data\":null,\"error\":{\"code\":\"" + code + "\",\"message\":\"" + message + "\"}}"
+                "{\"success\":false,\"data\":null,\"error\":{\"code\":\"" + errorCode.code() + "\",\"message\":\"" + message + "\"}}"
         );
     }
 }

@@ -21,6 +21,15 @@ public record ApiResponse<T>(
         return new ApiResponse<>(true, data, null);
     }
 
+    public static <T> ApiResponse<T> fail(ErrorCode errorCode) {
+        return new ApiResponse<>(false, null, new ApiError(errorCode.code(), errorCode.defaultMessage()));
+    }
+
+    public static <T> ApiResponse<T> fail(ErrorCode errorCode, String message) {
+        String finalMessage = message == null || message.isBlank() ? errorCode.defaultMessage() : message;
+        return new ApiResponse<>(false, null, new ApiError(errorCode.code(), finalMessage));
+    }
+
     public static <T> ApiResponse<T> fail(String code, String message) {
         return new ApiResponse<>(false, null, new ApiError(code, message));
     }
