@@ -1,6 +1,7 @@
 package com.lycanclaw.backend.music.controller;
 
 import com.lycanclaw.backend.common.api.ApiResponse;
+import com.lycanclaw.backend.music.dto.MusicLoginStatusDto;
 import com.lycanclaw.backend.music.service.MusicAuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -70,7 +71,7 @@ public class MusicAuthController {
      */
     @Operation(summary = "查询登录状态")
     @GetMapping("/status")
-    public ApiResponse<Map<String, Object>> status() {
+    public ApiResponse<MusicLoginStatusDto> status() {
         return ApiResponse.ok(musicAuthService.loginStatus());
     }
 

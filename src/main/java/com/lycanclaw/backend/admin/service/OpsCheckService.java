@@ -6,14 +6,13 @@ import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
 import com.lycanclaw.backend.recommendation.service.RecommendationManualConfigService;
 import com.lycanclaw.backend.recommendation.config.RecommendationProperties;
 import com.lycanclaw.backend.tag.config.TagProperties;
+import com.lycanclaw.backend.common.time.AppTimeProvider;
 import com.lycanclaw.backend.waline.config.WalineProperties;
 import com.lycanclaw.backend.waline.service.WalineGatewayClient;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +32,7 @@ public class OpsCheckService {
     private final RecommendationProperties recommendationProperties;
     private final TagProperties tagProperties;
     private final WalineProperties walineProperties;
+    private final AppTimeProvider appTimeProvider;
 
     public OpsCheckService(
             WalineGatewayClient walineGatewayClient,
@@ -40,7 +40,8 @@ public class OpsCheckService {
             RecommendationManualConfigService recommendationManualConfigService,
             RecommendationProperties recommendationProperties,
             TagProperties tagProperties,
-            WalineProperties walineProperties
+            WalineProperties walineProperties,
+            AppTimeProvider appTimeProvider
     ) {
         this.walineGatewayClient = walineGatewayClient;
         this.ncmUpstreamClient = ncmUpstreamClient;
@@ -48,11 +49,12 @@ public class OpsCheckService {
         this.recommendationProperties = recommendationProperties;
         this.tagProperties = tagProperties;
         this.walineProperties = walineProperties;
+        this.appTimeProvider = appTimeProvider;
     }
 
     public Map<String, Object> collectChecks() {
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("checkedAt", OffsetDateTime.now(ZoneOffset.ofHours(8)).toString());
+        result.put("checkedAt", appTimeProvider.nowOffsetString());
 
         result.put("services", Map.of(
                 "waline", checkWaline(),

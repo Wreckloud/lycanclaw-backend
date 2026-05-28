@@ -1,12 +1,11 @@
 package com.lycanclaw.backend.admin.controller;
 
+import com.lycanclaw.backend.admin.dto.AdminDashboardSummaryDto;
 import com.lycanclaw.backend.admin.service.AdminDashboardService;
 import com.lycanclaw.backend.common.api.ApiResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Map;
 
 /**
  * 管理端首页数据接口
@@ -25,7 +24,7 @@ public class AdminDashboardController {
     }
 
     @GetMapping("/summary")
-    public ApiResponse<Map<String, Object>> summary() {
+    public ApiResponse<AdminDashboardSummaryDto> summary() {
         return ApiResponse.ok(adminDashboardService.buildSummary());
     }
 }

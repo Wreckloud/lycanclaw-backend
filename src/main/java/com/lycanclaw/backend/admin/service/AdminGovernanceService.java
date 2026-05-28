@@ -2,10 +2,9 @@ package com.lycanclaw.backend.admin.service;
 
 import com.lycanclaw.backend.recommendation.service.RecommendationService;
 import com.lycanclaw.backend.tag.service.TagService;
+import com.lycanclaw.backend.common.time.AppTimeProvider;
 import org.springframework.stereotype.Service;
 
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -21,22 +20,25 @@ public class AdminGovernanceService {
     private final RecommendationService recommendationService;
     private final TagService tagService;
     private final OpsCheckService opsCheckService;
+    private final AppTimeProvider appTimeProvider;
 
     public AdminGovernanceService(
             RecommendationService recommendationService,
             TagService tagService,
-            OpsCheckService opsCheckService
+            OpsCheckService opsCheckService,
+            AppTimeProvider appTimeProvider
     ) {
         this.recommendationService = recommendationService;
         this.tagService = tagService;
         this.opsCheckService = opsCheckService;
+        this.appTimeProvider = appTimeProvider;
     }
 
     public Map<String, Object> rebuildRecommendations() {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("action", "recommendations.rebuild");
         payload.put("result", recommendationService.forceRebuildCache());
-        payload.put("checkedAt", OffsetDateTime.now(ZoneOffset.ofHours(8)).toString());
+        payload.put("checkedAt", appTimeProvider.nowOffsetString());
         return payload;
     }
 
@@ -44,7 +46,7 @@ public class AdminGovernanceService {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("action", "tags.refresh");
         payload.put("result", tagService.refreshCache());
-        payload.put("checkedAt", OffsetDateTime.now(ZoneOffset.ofHours(8)).toString());
+        payload.put("checkedAt", appTimeProvider.nowOffsetString());
         return payload;
     }
 

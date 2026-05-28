@@ -40,12 +40,24 @@
       headers
     });
 
-    const payload = await response.json();
-    if (!response.ok || payload.success === false) {
+    const rawBody = await response.text();
+    let payload = null;
+    try {
+      payload = rawBody ? JSON.parse(rawBody) : null;
+    } catch (_ignored) {
+      payload = null;
+    }
+
+    if (!response.ok || payload?.success === false) {
       const errorCode = payload?.error?.code;
-      const errorMessage = payload?.error?.message || `请求失败: ${response.status}`;
+      const errorMessage = payload?.error?.message || rawBody || `请求失败: ${response.status}`;
       throw new Error(errorCode ? `[${errorCode}] ${errorMessage}` : errorMessage);
     }
+
+    if (!payload || typeof payload !== 'object' || !('data' in payload)) {
+      throw new Error(`响应结构异常: ${url}`);
+    }
+
     return payload.data;
   }
 

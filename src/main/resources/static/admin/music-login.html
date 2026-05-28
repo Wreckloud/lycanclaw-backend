@@ -134,7 +134,7 @@
     document.getElementById('checkStatus').addEventListener('click', async () => {
       try {
         const data = await callApi('/api/music/auth/status');
-        setStatus(data.已登录 ? `已登录：${data.nickname || '未知'}` : '当前未登录');
+        setStatus(data.loggedIn ? `已登录：${data.nickname || '未知'}` : '当前未登录');
       } catch (e) {
         setStatus(e.message);
       }

@@ -39,6 +39,9 @@ knife4j:
     language: zh_cn
 
 lycan:
+  system:
+    # 系统时间时区（管理端检查时间、配置更新时间等）
+    zone-id: Asia/Shanghai
   cors:
     # 允许跨域来源，多个域名用英文逗号分隔
     allowed-origins: http://localhost:5173,http://127.0.0.1:5173,https://wreckloud.com,https://www.wreckloud.com

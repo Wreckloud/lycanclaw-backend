@@ -1,6 +1,7 @@
 package com.lycanclaw.backend.music.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.lycanclaw.backend.music.dto.MusicLoginStatusDto;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -77,17 +78,14 @@ public class MusicAuthService {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("code", code);
         data.put("message", message);
-        data.put("已登录", code == 803);
+        data.put("loggedIn", code == 803);
         return data;
     }
 
     // 使用已保存 cookie 查询当前登录账号信息。
-    public Map<String, Object> loginStatus() {
+    public MusicLoginStatusDto loginStatus() {
         if (!sessionService.hasCookie()) {
-            return Map.of(
-                    "已登录", false,
-                    "message", "当前未登录"
-            );
+            return new MusicLoginStatusDto(false, "当前未登录", "", "", "");
         }
 
         JsonNode node = upstreamClient.get("/login/status", Map.of(
@@ -98,12 +96,13 @@ public class MusicAuthService {
         boolean loggedIn = findInt(node, "code").orElse(-1) == 200
                 && findText(node, "nickname").isPresent();
 
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("已登录", loggedIn);
-        data.put("nickname", findText(node, "nickname").orElse(""));
-        data.put("userId", findText(node, "userId").orElse(""));
-        data.put("avatarUrl", findText(node, "avatarUrl").orElse(""));
-        return data;
+        return new MusicLoginStatusDto(
+                loggedIn,
+                loggedIn ? "已登录" : "登录态无效",
+                findText(node, "nickname").orElse(""),
+                findText(node, "userId").orElse(""),
+                findText(node, "avatarUrl").orElse("")
+        );
     }
 
     // 保活登录态，避免 cookie 过快失效。

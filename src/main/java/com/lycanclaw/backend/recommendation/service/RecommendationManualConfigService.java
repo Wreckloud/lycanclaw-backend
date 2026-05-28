@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.lycanclaw.backend.common.time.AppTimeProvider;
 import com.lycanclaw.backend.recommendation.config.RecommendationProperties;
 import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
 import org.springframework.stereotype.Service;
@@ -11,8 +12,6 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -29,10 +28,16 @@ public class RecommendationManualConfigService {
 
     private final ObjectMapper objectMapper;
     private final RecommendationProperties properties;
+    private final AppTimeProvider appTimeProvider;
 
-    public RecommendationManualConfigService(ObjectMapper objectMapper, RecommendationProperties properties) {
+    public RecommendationManualConfigService(
+            ObjectMapper objectMapper,
+            RecommendationProperties properties,
+            AppTimeProvider appTimeProvider
+    ) {
         this.objectMapper = objectMapper;
         this.properties = properties;
+        this.appTimeProvider = appTimeProvider;
     }
 
     public synchronized RecommendationManualConfigDto read() {
@@ -61,7 +66,7 @@ public class RecommendationManualConfigService {
 
     public synchronized RecommendationManualConfigDto update(List<String> manualUrls) {
         List<String> sanitized = sanitizeManualUrls(manualUrls);
-        String updatedAt = OffsetDateTime.now(ZoneOffset.ofHours(8)).toString();
+        String updatedAt = appTimeProvider.nowOffsetString();
 
         Path path = resolveConfigPath();
         try {
