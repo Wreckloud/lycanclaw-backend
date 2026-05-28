@@ -42,7 +42,9 @@
 
     const payload = await response.json();
     if (!response.ok || payload.success === false) {
-      throw new Error(payload?.error?.message || `请求失败: ${response.status}`);
+      const errorCode = payload?.error?.code;
+      const errorMessage = payload?.error?.message || `请求失败: ${response.status}`;
+      throw new Error(errorCode ? `[${errorCode}] ${errorMessage}` : errorMessage);
     }
     return payload.data;
   }
