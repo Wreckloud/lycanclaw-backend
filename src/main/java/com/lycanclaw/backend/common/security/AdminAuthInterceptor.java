@@ -2,6 +2,7 @@ package com.lycanclaw.backend.common.security;
 
 import com.lycanclaw.backend.admin.service.AdminRiskControlService;
 import com.lycanclaw.backend.common.api.ErrorCode;
+import io.micrometer.common.lang.NonNull;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,7 +53,10 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
      * 3) 最后校验管理员令牌。
      */
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull Object handler) throws Exception {
         String clientIp = clientIpResolver.resolve(request);
 
         if (!allowByRateLimit(clientIp, request.getRequestURI())) {

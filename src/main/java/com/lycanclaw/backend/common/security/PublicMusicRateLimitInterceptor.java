@@ -1,6 +1,7 @@
 package com.lycanclaw.backend.common.security;
 
 import com.lycanclaw.backend.common.api.ErrorCode;
+import io.micrometer.common.lang.NonNull;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,7 +38,7 @@ public class PublicMusicRateLimitInterceptor implements HandlerInterceptor {
      * 对公开音乐接口做分钟级限流，防止被批量刷接口。
      */
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull Object handler) throws Exception {
         String clientIp = clientIpResolver.resolve(request);
         boolean allow = rateLimiter.allow("music:" + clientIp + ":" + request.getRequestURI(), rateLimitPerMinute);
         if (!allow) {
