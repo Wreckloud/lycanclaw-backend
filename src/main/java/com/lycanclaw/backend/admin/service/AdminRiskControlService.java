@@ -1,11 +1,11 @@
 package com.lycanclaw.backend.admin.service;
 
+import com.lycanclaw.backend.common.security.ClientIpResolver;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * 管理端基础风控（IP 白名单）
@@ -16,8 +16,14 @@ import java.util.Locale;
 @Service
 public class AdminRiskControlService {
 
+    private final ClientIpResolver clientIpResolver;
+
     @Value("${lycan.security.admin-ip-whitelist:127.0.0.1,::1}")
     private String adminIpWhitelist;
+
+    public AdminRiskControlService(ClientIpResolver clientIpResolver) {
+        this.clientIpResolver = clientIpResolver;
+    }
 
     /**
      * 支持精确匹配和前缀匹配（末尾 *）。
@@ -74,13 +80,6 @@ public class AdminRiskControlService {
      * 兼容 IPv4-mapped IPv6，例如 ::ffff:127.0.0.1。
      */
     public String normalizeIp(String value) {
-        if (value == null) {
-            return "";
-        }
-        String trimmed = value.trim();
-        if (trimmed.startsWith("::ffff:")) {
-            trimmed = trimmed.substring("::ffff:".length());
-        }
-        return trimmed.toLowerCase(Locale.ROOT);
+        return clientIpResolver.normalize(value);
     }
 }
