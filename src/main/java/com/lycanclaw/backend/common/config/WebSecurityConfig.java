@@ -37,10 +37,12 @@ public class WebSecurityConfig implements WebMvcConfigurer {
                 .addPathPatterns(
                         "/api/music/auth/**",               // 音乐认证接口
                         "/api/recommendations/admin/**",    // 推荐管理接口
+                        "/api/admin/auth/**",               // 管理员会话接口（exchange 放行）
                         "/api/admin/ops/**",                // 运维检查接口
                         "/api/admin/dashboard/**",          // 仪表盘接口
                         "/api/admin/governance/**"          // 治理接口
-                );
+                )
+                .excludePathPatterns("/api/admin/auth/waline/exchange");
 
         registry.addInterceptor(publicMusicRateLimitInterceptor)
                 .addPathPatterns(

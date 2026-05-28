@@ -1,16 +1,14 @@
 package com.lycanclaw.backend.common.security;
 
-import com.lycanclaw.backend.admin.service.AdminRiskControlService;
 import com.lycanclaw.backend.common.api.ErrorCode;
 import io.micrometer.common.lang.NonNull;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
-
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 
 /**
  * 管理员接口鉴权与限流拦截器
@@ -22,26 +20,27 @@ import java.security.MessageDigest;
 public class AdminAuthInterceptor implements HandlerInterceptor {
 
     private static final String TOKEN_HEADER = "X-Lycan-Admin-Token";
+    private static final Logger log = LoggerFactory.getLogger(AdminAuthInterceptor.class);
 
-    private final AdminRiskControlService adminRiskControlService;
     private final ClientIpResolver clientIpResolver;
+    private final AdminTokenAuthService adminTokenAuthService;
     private final InMemorySlidingWindowRateLimiter rateLimiter;
     private final ApiErrorResponseWriter apiErrorResponseWriter;
-
-    @Value("${lycan.security.admin-token}")
-    private String adminToken;
 
     @Value("${lycan.security.auth-rate-limit-per-minute}")
     private int rateLimitPerMinute;
 
+    @Value("${lycan.security.admin-auth-log-enabled:true}")
+    private boolean adminAuthLogEnabled;
+
     public AdminAuthInterceptor(
-            AdminRiskControlService adminRiskControlService,
             ClientIpResolver clientIpResolver,
+            AdminTokenAuthService adminTokenAuthService,
             InMemorySlidingWindowRateLimiter rateLimiter,
             ApiErrorResponseWriter apiErrorResponseWriter
     ) {
-        this.adminRiskControlService = adminRiskControlService;
         this.clientIpResolver = clientIpResolver;
+        this.adminTokenAuthService = adminTokenAuthService;
         this.rateLimiter = rateLimiter;
         this.apiErrorResponseWriter = apiErrorResponseWriter;
     }
@@ -49,8 +48,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
     /**
      * 访问顺序：
      * 1) 先按来源 IP + URI 限流，减少暴力探测成本；
-     * 2) 再校验来源 IP 是否在白名单；
-     * 3) 最后校验管理员令牌。
+     * 2) 再校验管理员凭证（静态 token 或 Waline 会话 token）。
      */
     @Override
     public boolean preHandle(
@@ -58,23 +56,23 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
             @NonNull HttpServletResponse response,
             @NonNull Object handler) throws Exception {
         String clientIp = clientIpResolver.resolve(request);
+        String uri = request.getRequestURI();
+        String method = request.getMethod();
 
-        if (!allowByRateLimit(clientIp, request.getRequestURI())) {
+        if (!allowByRateLimit(clientIp, uri)) {
+            logDenied(clientIp, method, uri, "rate_limited");
             apiErrorResponseWriter.write(response, 429, ErrorCode.ADMIN_RATE_LIMITED);
             return false;
         }
 
-        if (!adminRiskControlService.isIpAllowed(clientIp)) {
-            apiErrorResponseWriter.write(response, HttpServletResponse.SC_FORBIDDEN, ErrorCode.ADMIN_IP_FORBIDDEN);
-            return false;
-        }
-
         String token = request.getHeader(TOKEN_HEADER);
-        if (!constantTimeEquals(adminToken, token)) {
+        if (adminTokenAuthService.authenticate(token).isEmpty()) {
+            logDenied(clientIp, method, uri, "invalid_token");
             apiErrorResponseWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, ErrorCode.ADMIN_TOKEN_INVALID);
             return false;
         }
 
+        logAllowed(clientIp, method, uri);
         return true;
     }
 
@@ -85,14 +83,17 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         return rateLimiter.allow("admin:" + clientIp + ":" + uri, rateLimitPerMinute);
     }
 
-    /**
-     * token 比较方法；
-     * 做相对更安全的比较，减少时序攻击风险；
-     * (虽然不一定真有人用时序攻击来干我)
-     */
-    private boolean constantTimeEquals(String expected, String actual) {
-        byte[] left = (expected == null ? "" : expected).getBytes(StandardCharsets.UTF_8);
-        byte[] right = (actual == null ? "" : actual).getBytes(StandardCharsets.UTF_8);
-        return MessageDigest.isEqual(left, right);
+    private void logDenied(String clientIp, String method, String uri, String reason) {
+        if (!adminAuthLogEnabled) {
+            return;
+        }
+        log.warn("admin_access_denied ip={} method={} uri={} reason={}", clientIp, method, uri, reason);
+    }
+
+    private void logAllowed(String clientIp, String method, String uri) {
+        if (!adminAuthLogEnabled) {
+            return;
+        }
+        log.info("admin_access_allowed ip={} method={} uri={}", clientIp, method, uri);
     }
 }

@@ -10,7 +10,6 @@
     .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
     h1 { margin: 0; font-size: 26px; }
     .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    .token-input { min-width: 260px; border-radius: 8px; border: 1px solid #365287; background: #0f1a32; color: #dce8ff; padding: 8px 12px; }
     button, a.btn { border-radius: 8px; border: 1px solid #365287; background: #0f1a32; color: #dce8ff; padding: 8px 12px; text-decoration: none; cursor: pointer; }
     a.primary, button.primary { background: #2563eb; border-color: #2563eb; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -33,9 +32,9 @@
   <div class="top">
     <h1>LycanClaw 管理端</h1>
     <div class="actions">
-      <input id="adminToken" class="token-input" type="password" placeholder="管理员令牌（X-Lycan-Admin-Token）" />
+      <span id="meInfo" class="meta">管理员：加载中...</span>
       <button id="refreshBtn" class="primary">刷新总览</button>
-      <button id="clearTokenBtn">清空令牌</button>
+      <button id="logoutBtn">退出登录</button>
     </div>
   </div>
 
@@ -144,7 +143,7 @@
     riskEl.innerHTML = `
       <div class="line">管理接口限流：${risk?.adminApiRateLimitPerMinute ?? '-'} 次/分钟</div>
       <div class="line">公开音乐接口限流：${risk?.publicMusicRateLimitPerMinute ?? '-'} 次/分钟</div>
-      <div class="line">IP 白名单：${escapeHtml(risk?.ipWhitelist || '-')}</div>
+      <div class="line">鉴权模式：${escapeHtml(risk?.authMode || '-')}</div>
       <div class="meta">当前策略说明：</div>
       <ul>${notes.map(item => `<li>${item}</li>`).join('')}</ul>
     `;
@@ -178,23 +177,38 @@
     }
   }
 
-  function clearToken() {
-    adminCommon.clearToken();
-    const input = document.getElementById('adminToken');
-    if (input) input.value = '';
-    setStatus('管理员令牌已清空');
+  function renderMe(me) {
+    const title = me?.nickname || '管理员';
+    const mode = me?.mode || '-';
+    const suffix = me?.qq ? `（QQ: ${escapeHtml(me.qq)}）` : '';
+    document.getElementById('meInfo').innerHTML = `管理员：<strong>${escapeHtml(title)}</strong>${suffix} / 模式：${escapeHtml(mode)}`;
   }
 
-  adminCommon.bindTokenInput('adminToken', (text) => setStatus(text));
+  async function logout() {
+    try {
+      await adminCommon.logout();
+    } finally {
+      location.href = '/admin/auth.html';
+    }
+  }
+
   document.getElementById('refreshBtn').addEventListener('click', loadSummary);
-  document.getElementById('clearTokenBtn').addEventListener('click', clearToken);
+  document.getElementById('logoutBtn').addEventListener('click', logout);
   document.getElementById('rebuildRecommendationBtn').addEventListener('click', () =>
     governanceAction('/api/admin/governance/recommendations/rebuild', '重算推荐缓存')
   );
   document.getElementById('refreshTagBtn').addEventListener('click', () =>
     governanceAction('/api/admin/governance/tags/refresh', '刷新标签缓存')
   );
-  loadSummary();
+  (async () => {
+    try {
+      const me = await adminCommon.ensureAuthenticated(true);
+      renderMe(me);
+      await loadSummary();
+    } catch (_error) {
+      // ensureAuthenticated 已处理跳转
+    }
+  })();
 </script>
 </body>
 </html>

@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Configuration;
         type = SecuritySchemeType.APIKEY,
         in = SecuritySchemeIn.HEADER,
         paramName = "X-Lycan-Admin-Token",
-        description = "管理员令牌（用于 /api/music/auth/*、/api/admin/*、/api/recommendations/admin/*）"
+        description = "管理员凭证（静态 token 或 /api/admin/auth/waline/exchange 返回的会话 token）"
 )
 public class OpenApiConfig {
 

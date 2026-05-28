@@ -16,8 +16,8 @@ public record AdminRiskControlSummaryDto(
         int adminApiRateLimitPerMinute,
         @Schema(description = "公开音乐接口限流阈值（每分钟）", example = "120")
         int publicMusicRateLimitPerMinute,
-        @Schema(description = "管理端IP白名单摘要", example = "127.0.0.1, ::1")
-        String ipWhitelist,
+        @Schema(description = "管理端鉴权模式说明", example = "静态 token + Waline 会话 token")
+        String authMode,
         @Schema(description = "风控说明列表")
         List<String> notes
 ) {

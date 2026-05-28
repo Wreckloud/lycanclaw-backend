@@ -57,6 +57,24 @@
 > 说明：二维码登录是否需要二次确认，取决于网易云 App 安全策略。  
 > 后端不绕过验证，只托管你扫码后获得的登录态。
 
+## 管理员登录（Waline 会话）已落地
+
+- `POST /api/admin/auth/waline/exchange`
+  - 入参：`{ "walineToken": "..." }`
+  - 说明：Waline QQ 登录成功后，用该 token 换取后端管理会话 token
+- `GET /api/admin/auth/me`
+  - 查询当前管理凭证对应身份（静态 token / 会话 token）
+- `POST /api/admin/auth/logout`
+  - 注销当前后端管理会话
+
+管理页面入口：
+
+- `GET /admin/auth.html`（先登录）
+- `GET /admin/index.html`
+- `GET /admin/music-login.html`
+- `GET /admin/recommendation-admin.html`
+- `GET /admin/ops-checks.html`
+
 ## 音乐数据接口（已切后端）
 
 - `GET /api/music/ranking/weekly?limit=20`
@@ -128,8 +146,9 @@
 说明：
 
 - 管理端接口统一使用 `X-Lycan-Admin-Token` 鉴权；
-- 结合 `lycan.security.admin-ip-whitelist` 可限制来源 IP；
-- 评论登录和管理员身份由 Waline 侧负责（QQ 登录）。
+- 支持双模式：admin 静态 token（应急）+ Waline 交换会话 token（主流程）；
+- 管理端启用分钟级限流与访问日志（IP / URI / method / 结果）；
+- 已取消 IP 白名单机制，避免换网/代理误锁后台。
 
 ## 启动
 
@@ -160,10 +179,14 @@ mvn spring-boot:run
 - `lycan.analytics.scope`：统计目录（逗号分隔）
 - `lycan.analytics.days`：默认统计天数
 - `lycan.cors.allowed-origins`：允许跨域来源
-- `lycan.security.admin-token`：音乐登录管理员令牌（必须改成强随机值）
-- `lycan.security.admin-ip-whitelist`：管理端 IP 白名单，支持 `*` 前缀匹配
+- `lycan.security.admin-token`：静态管理员令牌（应急保底）
+- `lycan.security.admin-qq-whitelist`：可换取后端会话的 QQ 白名单（逗号分隔）
+- `lycan.security.admin-require-waline-administrator`：是否强制 Waline 角色为 administrator
+- `lycan.security.admin-session-ttl-seconds`：后端会话有效期（秒）
+- `lycan.security.admin-session-max-size`：内存会话最大数量
 - `lycan.security.auth-rate-limit-per-minute`：登录接口限流阈值
 - `lycan.security.music-rate-limit-per-minute`：公开音乐接口限流阈值
+- `lycan.security.admin-auth-log-enabled`：管理端鉴权访问日志开关
 - `lycan.music.upstream.base-url`：api-enhanced 服务地址
 - `lycan.music.fallback-uid`：未登录时排行榜回退账号
 - `lycan.music.preferred-level`：默认音质级别

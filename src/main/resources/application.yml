@@ -48,12 +48,20 @@ lycan:
   security:
     # 管理员令牌（必须改成你自己的随机值）
     admin-token: change-me-token
-    # 管理端 IP 白名单，支持前缀 *（如 10.0.*）
-    admin-ip-whitelist: 127.0.0.1,::1
+    # 管理员 QQ 白名单（逗号分隔，Waline 登录后仅这些 QQ 可换取后端会话）
+    admin-qq-whitelist: 1677820334
+    # 是否要求 Waline 账号必须是 administrator 才能换取后端会话
+    admin-require-waline-administrator: true
+    # 后端管理会话有效期（秒）
+    admin-session-ttl-seconds: 28800
+    # 后端内存会话最大数量
+    admin-session-max-size: 200
     # 管理接口限流（每分钟）
     auth-rate-limit-per-minute: 30
     # 公开音乐接口限流（每分钟）
     music-rate-limit-per-minute: 120
+    # 管理接口访问日志开关（记录 IP / URI / method / 放行或拒绝）
+    admin-auth-log-enabled: true
     # 是否信任代理头（反向代理后可开启，按 X-Forwarded-For 识别真实 IP）
     trust-forwarded-headers: false
   analytics:

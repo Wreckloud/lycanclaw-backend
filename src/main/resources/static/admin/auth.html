@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>管理员登录</title>
+  <style>
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", sans-serif; background: #0b1220; color: #dbe7ff; }
+    .wrap { max-width: 720px; margin: 48px auto; padding: 0 16px; }
+    .card { background: #101a30; border: 1px solid #263654; border-radius: 12px; padding: 18px; }
+    h1 { margin: 0 0 12px; font-size: 24px; }
+    .hint { color: #95a4c8; line-height: 1.8; margin-bottom: 14px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    button, a.btn { border-radius: 8px; border: 1px solid #365287; background: #0f1a32; color: #dce8ff; padding: 8px 12px; text-decoration: none; cursor: pointer; }
+    button.primary { background: #2563eb; border-color: #2563eb; }
+    .status { min-height: 22px; margin-top: 12px; color: #60a5fa; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="card">
+      <h1>LycanClaw 管理员登录</h1>
+      <div class="hint">
+        1. 点击“使用 Waline QQ 登录”后完成授权。<br>
+        2. 页面会自动把 Waline 登录身份换成后端会话。<br>
+        3. 只有 QQ 白名单（当前配置：1677820334）可进入管理端。
+      </div>
+      <div class="row">
+        <button class="primary" id="loginBtn">使用 Waline QQ 登录</button>
+        <a class="btn" href="/waline/" target="_blank" rel="noopener">打开 Waline 页面</a>
+      </div>
+      <div id="status" class="status">状态：待登录</div>
+    </section>
+  </div>
+
+  <script src="/admin/admin-common.js"></script>
+  <script>
+    const statusEl = document.getElementById('status');
+
+    function setStatus(text, isError = false) {
+      statusEl.textContent = `状态：${text}`;
+      statusEl.style.color = isError ? '#ef4444' : '#60a5fa';
+    }
+
+    async function tryAutoLogin() {
+      const token = adminCommon.readToken();
+      if (!token) return;
+      try {
+        await adminCommon.fetchMe();
+        location.href = '/admin/index.html';
+      } catch (_error) {
+        adminCommon.clearToken();
+      }
+    }
+
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      try {
+        setStatus('正在打开 Waline 登录窗口...');
+        const session = await adminCommon.loginWithWaline();
+        setStatus(`登录成功，欢迎 ${session.nickname || '管理员'}，正在跳转...`);
+        location.href = '/admin/index.html';
+      } catch (error) {
+        setStatus(error.message || String(error), true);
+      }
+    });
+
+    tryAutoLogin();
+  </script>
+</body>
+</html>

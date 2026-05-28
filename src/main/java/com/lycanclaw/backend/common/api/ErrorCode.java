@@ -11,8 +11,7 @@ public enum ErrorCode {
     INTERNAL_ERROR("INTERNAL_ERROR", "服务器错误"),
 
     ADMIN_RATE_LIMITED("ADMIN_RATE_LIMITED", "请求频率过高，请稍后再试"),
-    ADMIN_IP_FORBIDDEN("ADMIN_IP_FORBIDDEN", "当前 IP 不在管理端白名单中"),
-    ADMIN_TOKEN_INVALID("ADMIN_TOKEN_INVALID", "管理员令牌无效"),
+    ADMIN_TOKEN_INVALID("ADMIN_TOKEN_INVALID", "管理员凭证无效或已过期"),
 
     MUSIC_RATE_LIMITED("MUSIC_RATE_LIMITED", "音乐接口请求过于频繁，请稍后再试");
 

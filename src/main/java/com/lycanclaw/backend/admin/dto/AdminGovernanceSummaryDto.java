@@ -1,5 +1,6 @@
 package com.lycanclaw.backend.admin.dto;
 
+import com.lycanclaw.backend.common.model.HealthLevel;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Map;
@@ -26,8 +27,8 @@ public record AdminGovernanceSummaryDto(
         int thoughtPostCount,
         @Schema(description = "最新评论采样数量", example = "5")
         int recentCommentCount,
-        @Schema(description = "同步状态等级（green/yellow/red）", example = "green")
-        String syncLevel,
+        @Schema(description = "同步状态等级", allowableValues = {"green", "yellow", "red"}, example = "green")
+        HealthLevel syncLevel,
         @Schema(description = "同步状态检查时间", example = "2026-05-28T22:05:43+08:00")
         String syncCheckedAt,
         @Schema(description = "治理动作接口路径映射")

@@ -6,6 +6,7 @@ import com.lycanclaw.backend.admin.dto.AdminMusicStatusDto;
 import com.lycanclaw.backend.admin.dto.AdminOpsSummaryDto;
 import com.lycanclaw.backend.admin.dto.AdminRiskControlSummaryDto;
 import com.lycanclaw.backend.comment.service.CommentService;
+import com.lycanclaw.backend.common.model.HealthLevel;
 import com.lycanclaw.backend.common.time.AppTimeProvider;
 import com.lycanclaw.backend.music.dto.MusicLoginStatusDto;
 import com.lycanclaw.backend.music.service.MusicAuthService;
@@ -13,6 +14,8 @@ import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
 import com.lycanclaw.backend.recommendation.service.RecommendationManualConfigService;
 import com.lycanclaw.backend.tag.dto.ThoughtTagsResponseDto;
 import com.lycanclaw.backend.tag.service.TagService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -28,13 +31,14 @@ import java.util.Map;
 @Service
 public class AdminDashboardService {
 
+    private static final Logger log = LoggerFactory.getLogger(AdminDashboardService.class);
+
     private final MusicAuthService musicAuthService;
     private final RecommendationManualConfigService recommendationManualConfigService;
     private final TagService tagService;
     private final CommentService commentService;
     private final OpsCheckService opsCheckService;
     private final AdminGovernanceService adminGovernanceService;
-    private final AdminRiskControlService adminRiskControlService;
     private final AppTimeProvider appTimeProvider;
 
     @Value("${lycan.security.auth-rate-limit-per-minute}")
@@ -50,7 +54,6 @@ public class AdminDashboardService {
             CommentService commentService,
             OpsCheckService opsCheckService,
             AdminGovernanceService adminGovernanceService,
-            AdminRiskControlService adminRiskControlService,
             AppTimeProvider appTimeProvider
     ) {
         this.musicAuthService = musicAuthService;
@@ -59,12 +62,11 @@ public class AdminDashboardService {
         this.commentService = commentService;
         this.opsCheckService = opsCheckService;
         this.adminGovernanceService = adminGovernanceService;
-        this.adminRiskControlService = adminRiskControlService;
         this.appTimeProvider = appTimeProvider;
     }
 
     public AdminDashboardSummaryDto buildSummary() {
-        Map<String, Object> checks = null;
+        Map<String, Object> checks = Map.of();
         String opsError = "";
         try {
             checks = opsCheckService.collectChecks();
@@ -72,15 +74,14 @@ public class AdminDashboardService {
             opsError = errorMessage(ex);
         }
 
-        Map<String, Object> safeChecks = checks == null ? Map.of() : checks;
-        Map<String, Object> syncStatus = safeSyncStatus(safeChecks);
+        Map<String, Object> syncStatus = safeSyncStatus(checks);
 
         return new AdminDashboardSummaryDto(
                 appTimeProvider.nowOffsetString(),
                 musicSection(),
                 governanceSection(syncStatus),
                 riskSection(),
-                opsSection(safeChecks, opsError)
+                opsSection(checks, opsError)
         );
     }
 
@@ -117,7 +118,7 @@ public class AdminDashboardService {
                     tags.totalTags(),
                     tags.totalPosts(),
                     recent.size(),
-                    String.valueOf(syncStatus.getOrDefault("level", "yellow")),
+                    parseHealthLevel(syncStatus.get("level")),
                     String.valueOf(syncStatus.getOrDefault("checkedAt", "")),
                     actions()
             );
@@ -130,7 +131,7 @@ public class AdminDashboardService {
                     0,
                     0,
                     0,
-                    "red",
+                    HealthLevel.RED,
                     appTimeProvider.nowOffsetString(),
                     actions()
             );
@@ -144,11 +145,11 @@ public class AdminDashboardService {
         return new AdminRiskControlSummaryDto(
                 Math.max(1, authRateLimit),
                 Math.max(1, publicMusicRateLimit),
-                adminRiskControlService.whitelistSummary(),
+                "静态 token + Waline 会话 token",
                 List.of(
-                        "管理端统一使用管理员令牌（X-Lycan-Admin-Token）鉴权",
-                        "支持管理端 IP 白名单；不在名单内将被拒绝访问",
-                        "建议生产环境仅开放 80/443，容器内部端口不暴露公网"
+                        "管理端统一使用 X-Lycan-Admin-Token 鉴权（支持静态 token 与会话 token）",
+                        "管理员请求启用分钟级限流，降低暴力探测风险",
+                        "管理员请求会记录访问日志（IP / URI / 方法 / 结果）"
                 )
         );
     }
@@ -174,9 +175,10 @@ public class AdminDashboardService {
     private Map<String, Object> safeSyncStatus(Map<String, Object> checks) {
         try {
             return adminGovernanceService.syncStatus(checks);
-        } catch (Exception ignored) {
+        } catch (Exception ex) {
+            log.warn("Failed to build governance sync status", ex);
             return Map.of(
-                    "level", "red",
+                    "level", HealthLevel.RED,
                     "checkedAt", appTimeProvider.nowOffsetString()
             );
         }
@@ -184,6 +186,16 @@ public class AdminDashboardService {
 
     private String errorMessage(Exception ex) {
         return ex.getMessage() == null || ex.getMessage().isBlank() ? ex.getClass().getSimpleName() : ex.getMessage();
+    }
+
+    /**
+     * 兼容 level 既可能是枚举对象，也可能是字符串（green/Green/GREEN）。
+     */
+    private HealthLevel parseHealthLevel(Object value) {
+        if (value instanceof HealthLevel level) {
+            return level;
+        }
+        return HealthLevel.fromValue(value == null ? HealthLevel.YELLOW.value() : String.valueOf(value));
     }
 
     private Map<String, String> actions() {

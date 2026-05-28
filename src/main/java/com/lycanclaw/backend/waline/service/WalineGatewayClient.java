@@ -62,14 +62,27 @@ public class WalineGatewayClient {
         return parseInteger(node);
     }
 
+    /**
+     * 使用 Waline 登录 token 查询当前用户信息。
+     */
+    public JsonNode fetchTokenProfile(String walineToken) {
+        URI uri = buildUri("/token", new LinkedMultiValueMap<>());
+        HttpRequest request = buildGetRequest(uri)
+                .header("Authorization", "Bearer " + walineToken)
+                .build();
+        JsonNode node = send(request);
+        int errno = node.path("errno").asInt(0);
+        if (errno != 0) {
+            String message = node.path("errmsg").asText("Waline token 校验失败");
+            throw new IllegalArgumentException(message);
+        }
+        JsonNode data = node.path("data");
+        return (data.isMissingNode() || data.isNull()) ? node : data;
+    }
+
     private JsonNode get(String path, MultiValueMap<String, String> query) {
         URI uri = buildUri(path, query);
-        HttpRequest request = HttpRequest.newBuilder(uri)
-                .timeout(Duration.ofSeconds(12))
-                .header("Accept", "application/json")
-                .header("User-Agent", "LycanClawBackend/1.0")
-                .GET()
-                .build();
+        HttpRequest request = buildGetRequest(uri).build();
         return send(request);
     }
 
@@ -101,6 +114,14 @@ public class WalineGatewayClient {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Waline 请求被中断", e);
         }
+    }
+
+    private HttpRequest.Builder buildGetRequest(URI uri) {
+        return HttpRequest.newBuilder(uri)
+                .timeout(Duration.ofSeconds(12))
+                .header("Accept", "application/json")
+                .header("User-Agent", "LycanClawBackend/1.0")
+                .GET();
     }
 
     private URI buildUri(String path, MultiValueMap<String, String> query) {

@@ -3,6 +3,7 @@ package com.lycanclaw.backend.admin.service;
 import com.lycanclaw.backend.recommendation.service.RecommendationService;
 import com.lycanclaw.backend.tag.service.TagService;
 import com.lycanclaw.backend.common.time.AppTimeProvider;
+import com.lycanclaw.backend.common.model.HealthLevel;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
@@ -71,24 +72,18 @@ public class AdminGovernanceService {
      * 允许调用方复用同一份检查快照，避免重复探测上游服务。
      */
     public Map<String, Object> syncStatus(Map<String, Object> checks) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> services = (Map<String, Object>) checks.getOrDefault("services", Map.of());
-        @SuppressWarnings("unchecked")
-        Map<String, Object> sync = (Map<String, Object>) checks.getOrDefault("sync", Map.of());
+        Map<String, Object> services = asMap(checks.get("services"));
+        Map<String, Object> sync = asMap(checks.get("sync"));
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> waline = (Map<String, Object>) services.getOrDefault("waline", Map.of());
-        @SuppressWarnings("unchecked")
-        Map<String, Object> ncm = (Map<String, Object>) services.getOrDefault("ncmUpstream", Map.of());
-        @SuppressWarnings("unchecked")
-        Map<String, Object> posts = (Map<String, Object>) sync.getOrDefault("postsJson", Map.of());
-        @SuppressWarnings("unchecked")
-        Map<String, Object> tagPosts = (Map<String, Object>) sync.getOrDefault("tagPostsJson", Map.of());
+        Map<String, Object> waline = asMap(services.get("waline"));
+        Map<String, Object> ncm = asMap(services.get("ncmUpstream"));
+        Map<String, Object> posts = asMap(sync.get("postsJson"));
+        Map<String, Object> tagPosts = asMap(sync.get("tagPostsJson"));
 
         Map<String, Object> recommendationCache = recommendationService.cacheState();
         Map<String, Object> tagCache = tagService.cacheState();
 
-        String level = computeLevel(waline, ncm, posts, tagPosts, recommendationCache, tagCache);
+        HealthLevel level = computeLevel(waline, ncm, posts, tagPosts, recommendationCache, tagCache);
 
         return Map.of(
                 "level", level,
@@ -102,7 +97,7 @@ public class AdminGovernanceService {
         );
     }
 
-    private String computeLevel(
+    private HealthLevel computeLevel(
             Map<String, Object> waline,
             Map<String, Object> ncm,
             Map<String, Object> posts,
@@ -116,7 +111,7 @@ public class AdminGovernanceService {
         boolean tagPostsExists = asBoolean(tagPosts.get("exists"));
 
         if (!postsExists || !tagPostsExists || !walineOk) {
-            return "red";
+            return HealthLevel.RED;
         }
 
         boolean recommendationExpired = asBoolean(recommendationCache.get("expired"));
@@ -125,9 +120,9 @@ public class AdminGovernanceService {
         boolean tagMissing = !asBoolean(tagCache.get("hasCache"));
 
         if (!ncmOk || recommendationExpired || tagExpired || recommendationMissing || tagMissing) {
-            return "yellow";
+            return HealthLevel.YELLOW;
         }
-        return "green";
+        return HealthLevel.GREEN;
     }
 
     /**
@@ -135,5 +130,16 @@ public class AdminGovernanceService {
      */
     private boolean asBoolean(Object value) {
         return value instanceof Boolean b && b;
+    }
+
+    /**
+     * 聚合检查结果来自多模块 Map，类型不可信，统一做安全转换。
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> asMap(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
+        }
+        return Map.of();
     }
 }

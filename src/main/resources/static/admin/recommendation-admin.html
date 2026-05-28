@@ -10,8 +10,7 @@
     .card { background: #121a2f; border: 1px solid #24314f; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
     h1, h2 { margin: 0 0 12px; }
     .row { display: flex; gap: 12px; flex-wrap: wrap; }
-    input, button { border-radius: 8px; border: 1px solid #2f3d62; background: #0f172a; color: #e5ecff; padding: 8px 10px; }
-    input { min-width: 260px; }
+    button { border-radius: 8px; border: 1px solid #2f3d62; background: #0f172a; color: #e5ecff; padding: 8px 10px; }
     button { cursor: pointer; }
     button.primary { background: #2563eb; border-color: #2563eb; }
     button.ghost { background: transparent; }
@@ -38,9 +37,10 @@
   <h1>推荐管理（管理员）</h1>
   <div class="card">
     <div class="row">
-      <input id="adminToken" type="password" placeholder="管理员令牌（X-Lycan-Admin-Token）" />
+      <div id="meInfo" class="small">管理员：加载中...</div>
     </div>
     <div class="row">
+      <button onclick="logout()">退出登录</button>
       <button class="primary" onclick="loadAll()">加载数据</button>
       <button onclick="saveConfig()">保存手动推荐</button>
     </div>
@@ -81,6 +81,11 @@
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#39;')
+  }
+
+  function renderMe(me) {
+    const suffix = me?.qq ? `（QQ: ${escapeHtml(me.qq)}）` : ''
+    document.getElementById('meInfo').innerHTML = `管理员：<strong>${escapeHtml(me?.nickname || '未知')}</strong>${suffix} / 模式：${escapeHtml(me?.mode || '-')}`
   }
 
   function encodeActionArg(value) {
@@ -214,7 +219,23 @@
     }
   }
 
-  adminCommon.bindTokenInput('adminToken', (text) => setStatus(text))
+  async function logout() {
+    try {
+      await adminCommon.logout()
+    } finally {
+      location.href = '/admin/auth.html'
+    }
+  }
+
+  ;(async () => {
+    try {
+      const me = await adminCommon.ensureAuthenticated(true)
+      renderMe(me)
+      await loadAll()
+    } catch (_error) {
+      // ensureAuthenticated 已跳转
+    }
+  })()
 </script>
 </body>
 </html>

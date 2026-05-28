@@ -11,9 +11,9 @@
     .nav a { color: #7fb3ff; text-decoration: none; }
     .card { background: #101a30; border: 1px solid #263654; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
     h1, h2 { margin: 0 0 10px; }
+    .meta { color: #95a4c8; }
     .row { display: flex; gap: 10px; flex-wrap: wrap; }
-    input, button { border-radius: 8px; border: 1px solid #384b72; background: #0d1629; color: #dbe7ff; padding: 8px 10px; }
-    input { min-width: 320px; }
+    button { border-radius: 8px; border: 1px solid #384b72; background: #0d1629; color: #dbe7ff; padding: 8px 10px; }
     button { cursor: pointer; }
     button.primary { background: #2563eb; border-color: #2563eb; }
     .status { color: #60a5fa; min-height: 20px; margin-top: 8px; }
@@ -38,7 +38,10 @@
     <div class="card">
       <h1>运维检查项（管理员）</h1>
       <div class="row">
-        <input id="adminToken" type="password" placeholder="管理员令牌（X-Lycan-Admin-Token）" />
+        <div id="meInfo" class="meta">管理员：加载中...</div>
+      </div>
+      <div class="row">
+        <button onclick="logout()">退出登录</button>
       </div>
       <div class="row">
         <button class="primary" onclick="loadChecks()">刷新检查</button>
@@ -79,6 +82,20 @@
 
     async function requestChecks() {
       return adminCommon.requestJson('/api/admin/ops/checks', { method: 'GET' });
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function renderMe(me) {
+      const suffix = me?.qq ? `（QQ: ${escapeHtml(me.qq)}）` : '';
+      document.getElementById('meInfo').innerHTML = `管理员：<strong>${escapeHtml(me?.nickname || '未知')}</strong>${suffix} / 模式：${escapeHtml(me?.mode || '-')}`;
     }
 
     function renderServiceSummary(services) {
@@ -135,7 +152,23 @@
       }
     }
 
-    adminCommon.bindTokenInput('adminToken', (text) => setStatus(text));
+    async function logout() {
+      try {
+        await adminCommon.logout();
+      } finally {
+        location.href = '/admin/auth.html';
+      }
+    }
+
+    (async () => {
+      try {
+        const me = await adminCommon.ensureAuthenticated(true);
+        renderMe(me);
+      } catch (_error) {
+        return;
+      }
+      await loadChecks();
+    })();
   </script>
 </body>
 </html>

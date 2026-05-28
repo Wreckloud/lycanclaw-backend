@@ -9,8 +9,7 @@
     .wrap { max-width: 780px; margin: 40px auto; padding: 24px; background: #171b24; border: 1px solid #2a3140; border-radius: 10px; }
     h1 { font-size: 20px; margin: 0 0 16px; }
     .row { margin: 12px 0; display: flex; gap: 12px; flex-wrap: wrap; }
-    input, button { border-radius: 8px; border: 1px solid #38445b; background: #10141d; color: #d6d9e0; padding: 8px 10px; }
-    input { width: 320px; }
+    button { border-radius: 8px; border: 1px solid #38445b; background: #10141d; color: #d6d9e0; padding: 8px 10px; }
     button { cursor: pointer; background: #1f6feb; border-color: #1f6feb; }
     button.secondary { background: #2d333b; border-color: #49556a; }
     .status { margin-top: 14px; font-size: 14px; color: #9aa7bd; white-space: pre-wrap; }
@@ -33,12 +32,13 @@
     <h1>网易云音乐登录（管理员）</h1>
     <p class="hint">
       说明：本页面只用于你自己扫码授权。<br>
-      页面操作会请求 <code>/api/music/auth/*</code>，需携带管理员令牌（请求头 <code>X-Lycan-Admin-Token</code>）。
+      页面操作会请求 <code>/api/music/auth/*</code>，需携带管理会话（请求头 <code>X-Lycan-Admin-Token</code>）。
     </p>
     <div class="row">
-      <input id="adminToken" type="password" placeholder="管理员令牌（X-Lycan-Admin-Token）" />
+      <div id="meInfo" class="hint">管理员：加载中...</div>
     </div>
     <div class="row">
+      <button id="logoutAdmin" class="secondary">退出管理端登录</button>
       <button id="checkStatus" class="secondary">检查登录状态</button>
       <button id="logout" class="secondary">退出登录</button>
     </div>
@@ -64,6 +64,20 @@
 
     function setStatus(text) {
       statusBox.textContent = `状态：${text}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function renderMe(me) {
+      const suffix = me?.qq ? `（QQ: ${escapeHtml(me.qq)}）` : '';
+      document.getElementById('meInfo').innerHTML = `管理员：<strong>${escapeHtml(me?.nickname || '未知')}</strong>${suffix} / 模式：${escapeHtml(me?.mode || '-')}`;
     }
 
     async function callApi(path, method = 'GET') {
@@ -114,8 +128,6 @@
       setStatus('已停止轮询');
     }
 
-    adminCommon.bindTokenInput('adminToken', setStatus);
-
     document.getElementById('createQr').addEventListener('click', () => {
       createQr().catch((e) => setStatus(e.message));
     });
@@ -148,6 +160,23 @@
         setStatus(e.message);
       }
     });
+
+    document.getElementById('logoutAdmin').addEventListener('click', async () => {
+      try {
+        await adminCommon.logout();
+      } finally {
+        location.href = '/admin/auth.html';
+      }
+    });
+
+    (async () => {
+      try {
+        const me = await adminCommon.ensureAuthenticated(true);
+        renderMe(me);
+      } catch (_error) {
+        // ensureAuthenticated 已跳转
+      }
+    })();
   </script>
 </body>
 </html>

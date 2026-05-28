@@ -1,6 +1,7 @@
 package com.lycanclaw.backend.admin.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.lycanclaw.backend.common.api.ErrorCode;
 import com.lycanclaw.backend.music.service.NcmUpstreamClient;
 import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
 import com.lycanclaw.backend.recommendation.service.RecommendationManualConfigService;
@@ -97,6 +98,15 @@ public class OpsCheckService {
     private Map<String, Object> checkWaline() {
         try {
             JsonNode recent = walineGatewayClient.fetchRecentComments(1);
+            boolean validRecent = recent.isArray() || recent.path("data").isArray();
+            if (!validRecent) {
+                return Map.of(
+                        "ok", false,
+                        "baseUrl", walineProperties.getBaseUrl(),
+                        "errorCode", ErrorCode.INTERNAL_ERROR.code(),
+                        "error", "Waline recent comments response shape is invalid"
+                );
+            }
             int sampleRecent = recent.isArray() ? recent.size() : recent.path("data").size();
             int pageview = walineGatewayClient.fetchPageview("/");
             return Map.of(
@@ -106,11 +116,7 @@ public class OpsCheckService {
                     "samplePageview", Math.max(pageview, 0)
             );
         } catch (Exception ex) {
-            return Map.of(
-                    "ok", false,
-                    "baseUrl", walineProperties.getBaseUrl(),
-                    "error", ex.getMessage()
-            );
+            return failureWithBaseUrl(walineProperties.getBaseUrl(), ex);
         }
     }
 
@@ -120,14 +126,20 @@ public class OpsCheckService {
     private Map<String, Object> checkNcmUpstream() {
         try {
             JsonNode status = ncmUpstreamClient.get("/login/status", Map.of());
+            int code = status.path("code").asInt(-1);
+            boolean reachable = true;
+            boolean ok = code >= 0;
             return Map.of(
-                    "ok", true,
-                    "sampleStatusCode", status.path("code").asInt(-1)
+                    "reachable", reachable,
+                    "ok", ok,
+                    "sampleStatusCode", code
             );
         } catch (Exception ex) {
             return Map.of(
+                    "reachable", false,
                     "ok", false,
-                    "error", ex.getMessage()
+                    "errorCode", ErrorCode.INTERNAL_ERROR.code(),
+                    "error", errorMessage(ex)
             );
         }
     }
@@ -136,17 +148,38 @@ public class OpsCheckService {
      * 读取手动推荐配置的元数据，不返回完整内容。
      */
     private Map<String, Object> recommendationManualMeta() {
-        RecommendationManualConfigDto dto = recommendationManualConfigService.read();
-        return Map.of(
-                "updatedAt", dto.updatedAt() == null ? "" : dto.updatedAt(),
-                "manualCount", dto.manualUrls().size()
-        );
+        try {
+            RecommendationManualConfigDto dto = recommendationManualConfigService.read();
+            return Map.of(
+                    "ok", true,
+                    "updatedAt", dto.updatedAt() == null ? "" : dto.updatedAt(),
+                    "manualCount", dto.manualUrls() == null ? 0 : dto.manualUrls().size()
+            );
+        } catch (Exception ex) {
+            return Map.of(
+                    "ok", false,
+                    "updatedAt", "",
+                    "manualCount", 0,
+                    "errorCode", ErrorCode.INTERNAL_ERROR.code(),
+                    "error", errorMessage(ex)
+            );
+        }
     }
 
     /**
      * 返回索引文件存在性与体积，便于快速排查挂载或路径错误。
      */
     private Map<String, Object> postsJsonMeta(String pathValue) {
+        if (pathValue == null || pathValue.isBlank()) {
+            return Map.of(
+                    "path", "",
+                    "exists", false,
+                    "size", 0L,
+                    "errorCode", ErrorCode.BAD_REQUEST.code(),
+                    "error", "path is blank"
+            );
+        }
+
         Path path = Path.of(pathValue);
         boolean exists = Files.exists(path);
         long size = 0L;
@@ -154,14 +187,36 @@ public class OpsCheckService {
             if (exists) {
                 size = Files.size(path);
             }
-        } catch (Exception ignored) {
+        } catch (Exception ex) {
             size = -1L;
+            return Map.of(
+                    "path", pathValue,
+                    "exists", true,
+                    "size", size,
+                    "errorCode", ErrorCode.INTERNAL_ERROR.code(),
+                    "error", errorMessage(ex)
+            );
         }
 
         return Map.of(
                 "path", pathValue,
                 "exists", exists,
                 "size", size
+        );
+    }
+
+    private String errorMessage(Exception ex) {
+        return ex.getMessage() == null || ex.getMessage().isBlank()
+                ? ex.getClass().getSimpleName()
+                : ex.getMessage();
+    }
+
+    private Map<String, Object> failureWithBaseUrl(String baseUrl, Exception ex) {
+        return Map.of(
+                "ok", false,
+                "baseUrl", baseUrl,
+                "errorCode", ErrorCode.INTERNAL_ERROR.code(),
+                "error", errorMessage(ex)
         );
     }
 }
