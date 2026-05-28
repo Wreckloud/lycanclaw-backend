@@ -3,6 +3,7 @@ package com.lycanclaw.backend.recommendation.service;
 import com.lycanclaw.backend.recommendation.config.RecommendationProperties;
 import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
 import com.lycanclaw.backend.recommendation.dto.RecommendationPostDto;
+import com.lycanclaw.backend.waline.service.WalineGatewayClient;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -25,7 +26,7 @@ public class RecommendationService {
 
     private final RecommendationSourceService sourceService;
     private final RecommendationManualConfigService manualConfigService;
-    private final WalineStatsClient walineStatsClient;
+    private final WalineGatewayClient walineGatewayClient;
     private final RecommendationProperties properties;
 
     private volatile CachedHotSnapshot cachedHotSnapshot;
@@ -33,12 +34,12 @@ public class RecommendationService {
     public RecommendationService(
             RecommendationSourceService sourceService,
             RecommendationManualConfigService manualConfigService,
-            WalineStatsClient walineStatsClient,
+            WalineGatewayClient walineGatewayClient,
             RecommendationProperties properties
     ) {
         this.sourceService = sourceService;
         this.manualConfigService = manualConfigService;
-        this.walineStatsClient = walineStatsClient;
+        this.walineGatewayClient = walineGatewayClient;
         this.properties = properties;
     }
 
@@ -100,6 +101,44 @@ public class RecommendationService {
     public List<RecommendationPostDto> listCandidates(int limit) {
         int safeLimit = Math.max(1, Math.min(limit, Math.max(1, properties.getMaxCandidatePosts())));
         return getHotPosts().stream().limit(safeLimit).toList();
+    }
+
+    /**
+     * 手动触发推荐缓存重算，返回最新缓存快照。
+     */
+    public synchronized Map<String, Object> forceRebuildCache() {
+        List<RecommendationPostDto> rebuilt = rebuildHotPosts();
+        long now = Instant.now().toEpochMilli();
+        cachedHotSnapshot = new CachedHotSnapshot(now, rebuilt);
+
+        return Map.of(
+                "rebuiltAtEpochMilli", now,
+                "totalCandidates", rebuilt.size(),
+                "topUrls", rebuilt.stream().limit(5).map(RecommendationPostDto::url).toList()
+        );
+    }
+
+    /**
+     * 返回当前推荐缓存状态，供管理端展示。
+     */
+    public Map<String, Object> cacheState() {
+        CachedHotSnapshot snapshot = cachedHotSnapshot;
+        if (snapshot == null) {
+            return Map.of(
+                    "hasCache", false,
+                    "expired", true,
+                    "size", 0
+            );
+        }
+
+        boolean expired = isCacheExpired(snapshot.generatedAtEpochMilli());
+        return Map.of(
+                "hasCache", true,
+                "expired", expired,
+                "size", snapshot.posts().size(),
+                "generatedAtEpochMilli", snapshot.generatedAtEpochMilli(),
+                "ttlSeconds", Math.max(5, properties.getCacheSeconds())
+        );
     }
 
     private RecommendationPostDto toManualPinned(RecommendationPostDto post) {
@@ -178,7 +217,7 @@ public class RecommendationService {
 
     private int safeFetchPageview(String url) {
         try {
-            return Math.max(0, walineStatsClient.fetchPageviewCount(url));
+            return Math.max(0, walineGatewayClient.fetchPageview(url));
         } catch (Exception ignored) {
             return 0;
         }
@@ -186,7 +225,7 @@ public class RecommendationService {
 
     private int safeFetchComment(String url) {
         try {
-            return Math.max(0, walineStatsClient.fetchCommentCount(url));
+            return Math.max(0, walineGatewayClient.fetchCommentCount(url));
         } catch (Exception ignored) {
             return 0;
         }

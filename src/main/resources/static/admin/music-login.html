@@ -18,18 +18,27 @@
     .qr img { width: 240px; height: 240px; background: #fff; border-radius: 6px; }
     .qr a { display: inline-block; margin-top: 10px; font-size: 13px; color: #7fb3ff; }
     .hint { font-size: 13px; color: #8b96aa; line-height: 1.7; }
+    .nav { display: flex; gap: 12px; margin-bottom: 12px; font-size: 13px; flex-wrap: wrap; }
+    .nav a { color: #7fb3ff; text-decoration: none; }
   </style>
 </head>
 <body>
   <div class="wrap">
+    <div class="nav">
+      <a href="/admin/index.html">管理首页</a>
+      <a href="/admin/music-login.html">音乐登录管理</a>
+      <a href="/admin/recommendation-admin.html">推荐管理</a>
+      <a href="/admin/ops-checks.html">运维检查项</a>
+    </div>
     <h1>网易云音乐登录（管理员）</h1>
     <p class="hint">
       说明：本页面只用于你自己扫码授权。<br>
-      页面操作会请求 <code>/api/music/auth/*</code>，必须填写管理员令牌（请求头 <code>X-Lycan-Admin-Token</code>）。
+      页面操作会请求 <code>/api/music/auth/*</code>，需携带管理员令牌（请求头 <code>X-Lycan-Admin-Token</code>）。
     </p>
     <div class="row">
-      <input id="token" type="password" placeholder="管理员令牌" />
-      <button id="saveToken" class="secondary">保存令牌</button>
+      <input id="adminToken" type="password" placeholder="管理员令牌（X-Lycan-Admin-Token）" />
+    </div>
+    <div class="row">
       <button id="checkStatus" class="secondary">检查登录状态</button>
       <button id="logout" class="secondary">退出登录</button>
     </div>
@@ -45,41 +54,20 @@
     <div id="status" class="status">状态：未开始</div>
   </div>
 
+  <script src="/admin/admin-common.js"></script>
   <script>
-    const tokenInput = document.getElementById('token');
     const qrImg = document.getElementById('qrImg');
     const qrLink = document.getElementById('qrLink');
     const statusBox = document.getElementById('status');
     let qrKey = '';
     let timer = null;
 
-    const LS_KEY = 'lycan_admin_token';
-    tokenInput.value = localStorage.getItem(LS_KEY) || '';
-
     function setStatus(text) {
       statusBox.textContent = `状态：${text}`;
     }
 
-    function getToken() {
-      return tokenInput.value.trim();
-    }
-
     async function callApi(path, method = 'GET') {
-      const token = getToken();
-      if (!token) throw new Error('请先填写管理员令牌');
-
-      const resp = await fetch(path, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Lycan-Admin-Token': token
-        }
-      });
-      const data = await resp.json();
-      if (!resp.ok || !data.success) {
-        throw new Error(data?.error?.message || `请求失败: ${resp.status}`);
-      }
-      return data.data;
+      return adminCommon.requestJson(path, { method });
     }
 
     async function createQr() {
@@ -126,10 +114,7 @@
       setStatus('已停止轮询');
     }
 
-    document.getElementById('saveToken').addEventListener('click', () => {
-      localStorage.setItem(LS_KEY, getToken());
-      setStatus('令牌已保存到本地浏览器');
-    });
+    adminCommon.bindTokenInput('adminToken', setStatus);
 
     document.getElementById('createQr').addEventListener('click', () => {
       createQr().catch((e) => setStatus(e.message));

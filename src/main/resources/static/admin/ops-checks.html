@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>运维检查项（管理员）</title>
+  <style>
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", sans-serif; background: #0b1220; color: #dbe7ff; }
+    .wrap { max-width: 980px; margin: 28px auto; padding: 0 16px 24px; }
+    .nav { display: flex; gap: 12px; margin-bottom: 12px; font-size: 13px; flex-wrap: wrap; }
+    .nav a { color: #7fb3ff; text-decoration: none; }
+    .card { background: #101a30; border: 1px solid #263654; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+    h1, h2 { margin: 0 0 10px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    input, button { border-radius: 8px; border: 1px solid #384b72; background: #0d1629; color: #dbe7ff; padding: 8px 10px; }
+    input { min-width: 320px; }
+    button { cursor: pointer; }
+    button.primary { background: #2563eb; border-color: #2563eb; }
+    .status { color: #60a5fa; min-height: 20px; margin-top: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .ok { color: #22c55e; }
+    .bad { color: #ef4444; }
+    pre { white-space: pre-wrap; word-break: break-word; font-size: 12px; color: #9fb3d7; background: #0b1426; border: 1px solid #22324f; border-radius: 8px; padding: 10px; }
+    ul { margin: 8px 0 0; padding-left: 16px; }
+    li { margin: 6px 0; }
+    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav">
+      <a href="/admin/index.html">管理首页</a>
+      <a href="/admin/music-login.html">音乐登录管理</a>
+      <a href="/admin/recommendation-admin.html">推荐管理</a>
+      <a href="/admin/ops-checks.html">运维检查项</a>
+    </div>
+
+    <div class="card">
+      <h1>运维检查项（管理员）</h1>
+      <div class="row">
+        <input id="adminToken" type="password" placeholder="管理员令牌（X-Lycan-Admin-Token）" />
+      </div>
+      <div class="row">
+        <button class="primary" onclick="loadChecks()">刷新检查</button>
+      </div>
+      <div id="status" class="status">状态：等待执行</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>服务状态</h2>
+        <div id="serviceSummary"></div>
+      </div>
+
+      <div class="card">
+        <h2>同步状态</h2>
+        <div id="syncSummary"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>常见错误提示</h2>
+      <ul id="errorHints"></ul>
+    </div>
+
+    <div class="card">
+      <h2>原始返回</h2>
+      <pre id="rawOutput">{}</pre>
+    </div>
+  </div>
+
+  <script src="/admin/admin-common.js"></script>
+  <script>
+    function setStatus(text, isError = false) {
+      const el = document.getElementById('status');
+      el.textContent = `状态：${text}`;
+      el.style.color = isError ? '#ef4444' : '#60a5fa';
+    }
+
+    async function requestChecks() {
+      return adminCommon.requestJson('/api/admin/ops/checks', { method: 'GET' });
+    }
+
+    function renderServiceSummary(services) {
+      const waline = services?.waline || {};
+      const ncm = services?.ncmUpstream || {};
+      document.getElementById('serviceSummary').innerHTML = `
+        <p>Waline：<strong class="${waline.ok ? 'ok' : 'bad'}">${waline.ok ? '正常' : '异常'}</strong></p>
+        <p class="meta">地址：${waline.baseUrl || '-'}</p>
+        <p class="meta">采样最新评论数：${waline.sampleRecentCount ?? '-'}</p>
+        <p class="meta">首页采样阅读量：${waline.samplePageview ?? '-'}</p>
+        <p>NCM 上游：<strong class="${ncm.ok ? 'ok' : 'bad'}">${ncm.ok ? '正常' : '异常'}</strong></p>
+        <p class="meta">返回 code：${ncm.sampleStatusCode ?? '-'}</p>
+      `;
+    }
+
+    function renderSyncSummary(sync) {
+      const manual = sync?.recommendationManual || {};
+      const posts = sync?.postsJson || {};
+      const tagPosts = sync?.tagPostsJson || {};
+      document.getElementById('syncSummary').innerHTML = `
+        <p>推荐手动配置更新时间：${manual.updatedAt || '未设置'}</p>
+        <p>推荐手动条目数：${manual.manualCount ?? 0}</p>
+        <p>推荐 posts.json：${posts.exists ? '存在' : '缺失'}（${posts.path || '-'}）</p>
+        <p>tag posts.json：${tagPosts.exists ? '存在' : '缺失'}（${tagPosts.path || '-'}）</p>
+      `;
+    }
+
+    function renderErrorHints(hints) {
+      const el = document.getElementById('errorHints');
+      if (!Array.isArray(hints) || !hints.length) {
+        el.innerHTML = '<li>暂无</li>';
+        return;
+      }
+      el.innerHTML = hints.map((item) => `
+        <li>
+          <strong>${item.title || '问题'}</strong><br>
+          原因：${item.cause || '-'}<br>
+          建议：${item.suggestion || '-'}
+        </li>
+      `).join('');
+    }
+
+    async function loadChecks() {
+      try {
+        setStatus('检查中...');
+        const data = await requestChecks();
+        renderServiceSummary(data.services || {});
+        renderSyncSummary(data.sync || {});
+        renderErrorHints(data.commonErrors || []);
+        document.getElementById('rawOutput').textContent = JSON.stringify(data, null, 2);
+        setStatus(`完成：${data.checkedAt || ''}`);
+      } catch (error) {
+        setStatus(error.message || String(error), true);
+      }
+    }
+
+    adminCommon.bindTokenInput('adminToken', (text) => setStatus(text));
+  </script>
+</body>
+</html>

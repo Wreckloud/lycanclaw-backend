@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 @Schema(description = "错误信息")
 public record ApiError(
-        @Schema(description = "错误码", example = "参数错误")
+        @Schema(description = "错误码", example = "BAD_REQUEST")
         String code,
         @Schema(description = "错误说明", example = "id 参数不能为空")
         String message

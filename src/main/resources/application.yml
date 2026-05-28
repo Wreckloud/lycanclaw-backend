@@ -45,10 +45,14 @@ lycan:
   security:
     # 管理员令牌（必须改成你自己的随机值）
     admin-token: change-me-token
+    # 管理端 IP 白名单，支持前缀 *（如 10.0.*）
+    admin-ip-whitelist: 127.0.0.1,::1
     # 管理接口限流（每分钟）
     auth-rate-limit-per-minute: 30
     # 公开音乐接口限流（每分钟）
     music-rate-limit-per-minute: 120
+    # 是否信任代理头（反向代理后可开启，按 X-Forwarded-For 识别真实 IP）
+    trust-forwarded-headers: false
   analytics:
     # 博客仓库绝对路径（用于读取 git log）
     repo-path: D:/Portfolio/Website/LycanClaw
@@ -69,8 +73,6 @@ lycan:
   recommendation:
     # 前端 posts.json 路径（用于读取文章元信息）
     posts-json-path: D:/Portfolio/Website/LycanClaw/docs/public/posts.json
-    # Waline 服务地址（用于读取浏览量与评论数）
-    waline-base-url: http://127.0.0.1:8360
     # 手动推荐配置文件（管理员接口写入）
     manual-config-path: data/recommendation-manual.json
     # 热门推荐缓存秒数
@@ -82,3 +84,11 @@ lycan:
       pageview-weight: 1.0
       # 评论数权重
       comment-weight: 24.0
+  waline:
+    # Waline 服务地址（用于评论/阅读统计聚合）
+    base-url: http://127.0.0.1:8360
+  tag:
+    # 标签聚合读取的文章索引路径
+    posts-json-path: D:/Portfolio/Website/LycanClaw/docs/public/posts.json
+    # 标签数据缓存秒数
+    cache-seconds: 300

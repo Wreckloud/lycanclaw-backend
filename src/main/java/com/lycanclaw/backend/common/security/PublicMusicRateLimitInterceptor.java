@@ -26,6 +26,9 @@ public class PublicMusicRateLimitInterceptor implements HandlerInterceptor {
     @Value("${lycan.security.music-rate-limit-per-minute}")
     private int rateLimitPerMinute;
 
+    @Value("${lycan.security.trust-forwarded-headers:false}")
+    private boolean trustForwardedHeaders;
+
     private final Map<String, ArrayDeque<Long>> buckets = new ConcurrentHashMap<>();
 
     /**
@@ -62,11 +65,13 @@ public class PublicMusicRateLimitInterceptor implements HandlerInterceptor {
      * 反向代理场景优先使用 X-Forwarded-For 首 IP，避免所有请求被算成同一个反代地址。
      */
     private String resolveClientIp(HttpServletRequest request) {
-        String forwardedFor = request.getHeader(FORWARDED_FOR_HEADER);
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            String first = forwardedFor.split(",")[0].trim();
-            if (!first.isBlank()) {
-                return normalizeIp(first);
+        if (trustForwardedHeaders) {
+            String forwardedFor = request.getHeader(FORWARDED_FOR_HEADER);
+            if (forwardedFor != null && !forwardedFor.isBlank()) {
+                String first = forwardedFor.split(",")[0].trim();
+                if (!first.isBlank()) {
+                    return normalizeIp(first);
+                }
             }
         }
         return normalizeIp(request.getRemoteAddr());

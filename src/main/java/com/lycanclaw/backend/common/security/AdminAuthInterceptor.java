@@ -34,6 +34,9 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
     @Value("${lycan.security.auth-rate-limit-per-minute}")
     private int rateLimitPerMinute;
 
+    @Value("${lycan.security.trust-forwarded-headers:false}")
+    private boolean trustForwardedHeaders;
+
     private final Map<String, ArrayDeque<Long>> rateBuckets = new ConcurrentHashMap<>();
 
     public AdminAuthInterceptor(AdminRiskControlService adminRiskControlService) {
@@ -73,11 +76,13 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
      * 若部署在反向代理后，优先读取 X-Forwarded-For 的首个地址。
      */
     private String extractClientIp(HttpServletRequest request) {
-        String forwardedFor = request.getHeader(FORWARDED_FOR_HEADER);
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            String first = forwardedFor.split(",")[0].trim();
-            if (!first.isBlank()) {
-                return adminRiskControlService.normalizeIp(first);
+        if (trustForwardedHeaders) {
+            String forwardedFor = request.getHeader(FORWARDED_FOR_HEADER);
+            if (forwardedFor != null && !forwardedFor.isBlank()) {
+                String first = forwardedFor.split(",")[0].trim();
+                if (!first.isBlank()) {
+                    return adminRiskControlService.normalizeIp(first);
+                }
             }
         }
         return adminRiskControlService.normalizeIp(request.getRemoteAddr());

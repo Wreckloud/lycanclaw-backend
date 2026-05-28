@@ -20,7 +20,7 @@ import org.springframework.context.annotation.Configuration;
         type = SecuritySchemeType.APIKEY,
         in = SecuritySchemeIn.HEADER,
         paramName = "X-Lycan-Admin-Token",
-        description = "管理员令牌（仅 /api/music/auth/* 需要）"
+        description = "管理员令牌（用于 /api/music/auth/*、/api/admin/*、/api/recommendations/admin/*）"
 )
 public class OpenApiConfig {
 
@@ -38,4 +38,3 @@ public class OpenApiConfig {
                         .url("https://www.wreckloud.com")));
     }
 }
-

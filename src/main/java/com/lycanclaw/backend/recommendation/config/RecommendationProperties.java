@@ -16,11 +16,6 @@ public class RecommendationProperties {
     private String postsJsonPath = "D:/Portfolio/Website/LycanClaw/docs/public/posts.json";
 
     /**
-     * Waline 服务根地址，用于读取浏览量与评论数。
-     */
-    private String walineBaseUrl = "http://127.0.0.1:8360";
-
-    /**
      * 手动推荐配置持久化路径（相对后端启动目录）。
      */
     private String manualConfigPath = "data/recommendation-manual.json";
@@ -43,14 +38,6 @@ public class RecommendationProperties {
 
     public void setPostsJsonPath(String postsJsonPath) {
         this.postsJsonPath = postsJsonPath;
-    }
-
-    public String getWalineBaseUrl() {
-        return walineBaseUrl;
-    }
-
-    public void setWalineBaseUrl(String walineBaseUrl) {
-        this.walineBaseUrl = walineBaseUrl;
     }
 
     public String getManualConfigPath() {

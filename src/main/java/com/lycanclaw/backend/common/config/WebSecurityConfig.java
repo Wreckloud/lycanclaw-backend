@@ -27,13 +27,19 @@ public class WebSecurityConfig implements WebMvcConfigurer {
 
     /**
      * 注册拦截器：
-     * - /api/music/auth/** 与 /api/recommendations/admin/** 需要管理员令牌；
+     * - 管理员 API 需要管理员令牌；
      * - 公开音乐接口应用限流规则。
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(adminAuthInterceptor)
-                .addPathPatterns("/api/music/auth/**", "/api/recommendations/admin/**");
+                .addPathPatterns(
+                        "/api/music/auth/**",
+                        "/api/recommendations/admin/**",
+                        "/api/admin/ops/**",
+                        "/api/admin/dashboard/**",
+                        "/api/admin/governance/**"
+                );
 
         registry.addInterceptor(publicMusicRateLimitInterceptor)
                 .addPathPatterns("/api/music/ranking/**", "/api/music/track/**", "/api/music/queue/**");

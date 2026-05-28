@@ -1,0 +1,107 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: lycan-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${WALINE_DB_NAME}
+      MYSQL_USER: ${WALINE_DB_USER}
+      MYSQL_PASSWORD: ${WALINE_DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - lycan_net
+
+  waline:
+    image: lizheming/waline:latest
+    container_name: lycan-waline
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DB: ${WALINE_DB_NAME}
+      MYSQL_USER: ${WALINE_DB_USER}
+      MYSQL_PASSWORD: ${WALINE_DB_PASSWORD}
+      MYSQL_PREFIX: wl_
+      MYSQL_CHARSET: utf8mb4
+      JWT_TOKEN: ${WALINE_JWT_TOKEN}
+      SITE_NAME: ${SITE_NAME}
+      SITE_URL: https://${DOMAIN}
+      SERVER_URL: https://${DOMAIN}/waline
+      SECURE_DOMAINS: https://${DOMAIN},https://www.${DOMAIN}
+      LOGIN: force
+      COMMENT_AUDIT: ${WALINE_COMMENT_AUDIT}
+      OAUTH_URL: ${WALINE_OAUTH_URL}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - lycan_net
+
+  ncm-api:
+    image: binaryify/netease_cloud_music_api:latest
+    container_name: lycan-ncm-api
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+    networks:
+      - lycan_net
+
+  backend:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: lycanclaw-backend:latest
+    container_name: lycan-backend
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8080
+      LYCAN_CORS_ALLOWED_ORIGINS: https://${DOMAIN},https://www.${DOMAIN}
+      LYCAN_SECURITY_ADMIN_TOKEN: ${BACKEND_ADMIN_TOKEN}
+      LYCAN_SECURITY_ADMIN_IP_WHITELIST: ${BACKEND_ADMIN_IP_WHITELIST}
+      LYCAN_ANALYTICS_REPO_PATH: /workspace/blog
+      LYCAN_MUSIC_UPSTREAM_BASE_URL: http://ncm-api:3000
+      LYCAN_RECOMMENDATION_POSTS_JSON_PATH: /data/posts.json
+      LYCAN_WALINE_BASE_URL: http://waline:8360
+      LYCAN_TAG_POSTS_JSON_PATH: /data/posts.json
+    volumes:
+      - ${BLOG_REPO_HOST_PATH}:/workspace/blog:ro
+      - ${POSTS_JSON_HOST_PATH}:/data/posts.json:ro
+      - backend_data:/app/data
+    depends_on:
+      - ncm-api
+      - waline
+    networks:
+      - lycan_net
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: lycan-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ${FRONTEND_DIST_HOST_PATH}:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+      - waline
+    networks:
+      - lycan_net
+
+volumes:
+  mysql_data:
+  backend_data:
+
+networks:
+  lycan_net:
+    driver: bridge

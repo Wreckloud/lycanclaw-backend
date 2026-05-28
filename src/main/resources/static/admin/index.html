@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LycanClaw 管理端</title>
+  <style>
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", sans-serif; background: #0a1120; color: #dce8ff; }
+    .wrap { max-width: 1160px; margin: 22px auto; padding: 0 16px 26px; }
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+    h1 { margin: 0; font-size: 26px; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .token-input { min-width: 260px; border-radius: 8px; border: 1px solid #365287; background: #0f1a32; color: #dce8ff; padding: 8px 12px; }
+    button, a.btn { border-radius: 8px; border: 1px solid #365287; background: #0f1a32; color: #dce8ff; padding: 8px 12px; text-decoration: none; cursor: pointer; }
+    a.primary, button.primary { background: #2563eb; border-color: #2563eb; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .card { background: #101a31; border: 1px solid #26395d; border-radius: 12px; padding: 14px; }
+    .card h2 { margin: 0 0 10px; font-size: 19px; }
+    .meta { color: #91a9d3; font-size: 13px; }
+    .ok { color: #22c55e; }
+    .bad { color: #ef4444; }
+    .warn { color: #f59e0b; }
+    .line { margin: 7px 0; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .status { margin: 8px 0 12px; color: #60a5fa; min-height: 20px; }
+    ul { margin: 8px 0 0; padding-left: 18px; }
+    li { margin: 6px 0; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>LycanClaw 管理端</h1>
+    <div class="actions">
+      <input id="adminToken" class="token-input" type="password" placeholder="管理员令牌（X-Lycan-Admin-Token）" />
+      <button id="refreshBtn" class="primary">刷新总览</button>
+      <button id="clearTokenBtn">清空令牌</button>
+    </div>
+  </div>
+
+  <div id="status" class="status">状态：初始化中...</div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>音乐账号与播放器链路</h2>
+      <div id="musicStatus"></div>
+      <div class="tools">
+        <a class="btn primary" href="/admin/music-login.html">网易云扫码登录</a>
+        <a class="btn" href="/admin/ops-checks.html">查看上游健康</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>评论与数据展示</h2>
+      <div id="commentStatus"></div>
+      <div class="tools">
+        <a class="btn primary" href="/admin/ops-checks.html">运维检查项</a>
+        <a class="btn" href="/waline/">打开 Waline</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>内容治理</h2>
+      <div id="governanceStatus"></div>
+      <div class="tools">
+        <button class="btn" id="rebuildRecommendationBtn">重算推荐缓存</button>
+        <button class="btn" id="refreshTagBtn">刷新标签缓存</button>
+        <a class="btn primary" href="/admin/recommendation-admin.html">推荐管理</a>
+        <a class="btn" href="/api/tags/thoughts" target="_blank" rel="noopener">查看标签接口</a>
+      </div>
+      <div id="governanceActionStatus" class="meta" style="margin-top: 10px;">治理动作状态：未执行</div>
+    </section>
+
+    <section class="card">
+      <h2>风控与安全基线</h2>
+      <div id="riskStatus"></div>
+    </section>
+  </div>
+</div>
+
+<script src="/admin/admin-common.js"></script>
+<script>
+  const statusEl = document.getElementById('status');
+  const musicEl = document.getElementById('musicStatus');
+  const commentEl = document.getElementById('commentStatus');
+  const governanceEl = document.getElementById('governanceStatus');
+  const riskEl = document.getElementById('riskStatus');
+  const governanceActionStatusEl = document.getElementById('governanceActionStatus');
+
+  function setStatus(text, isError = false) {
+    statusEl.textContent = `状态：${text}`;
+    statusEl.style.color = isError ? '#ef4444' : '#60a5fa';
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  async function requestSummary() {
+    return adminCommon.requestJson('/api/admin/dashboard/summary', { method: 'GET' });
+  }
+
+  function renderMusic(music) {
+    const ok = Boolean(music?.ok);
+    const loggedIn = Boolean(music?.loggedIn);
+    musicEl.innerHTML = `
+      <div class="line">链路状态：<strong class="${ok ? 'ok' : 'bad'}">${ok ? '正常' : '异常'}</strong></div>
+      <div class="line">登录状态：<strong class="${loggedIn ? 'ok' : 'bad'}">${loggedIn ? '已登录' : '未登录'}</strong></div>
+      <div class="meta">${music?.nickname ? `当前账号：${escapeHtml(music.nickname)}` : escapeHtml(music?.message || '未获取到账号信息')}</div>
+    `;
+  }
+
+  function renderCommentAndOps(governance, ops) {
+    const waline = ops?.services?.waline || {};
+    const ncm = ops?.services?.ncmUpstream || {};
+    commentEl.innerHTML = `
+      <div class="line">Waline 服务：<strong class="${waline.ok ? 'ok' : 'bad'}">${waline.ok ? '正常' : '异常'}</strong></div>
+      <div class="line">NCM 上游：<strong class="${ncm.ok ? 'ok' : 'bad'}">${ncm.ok ? '正常' : '异常'}</strong></div>
+      <div class="meta">最近评论采样：${governance?.recentCommentCount ?? 0}</div>
+      <div class="meta">上次检查：${escapeHtml(ops?.checkedAt || '-')}</div>
+    `;
+  }
+
+  function renderGovernance(governance) {
+    const level = String(governance?.syncLevel || 'yellow');
+    const levelClass = level === 'green' ? 'ok' : (level === 'red' ? 'bad' : 'warn');
+    governanceEl.innerHTML = `
+      <div class="line">手动推荐条目：<strong>${governance?.manualRecommendationCount ?? 0}</strong></div>
+      <div class="line">随想标签数：<strong>${governance?.thoughtTagCount ?? 0}</strong>（文章 ${governance?.thoughtPostCount ?? 0}）</div>
+      <div class="line">数据同步状态：<strong class="${levelClass}">${level.toUpperCase()}</strong></div>
+      <div class="meta">推荐配置更新时间：${escapeHtml(governance?.manualRecommendationUpdatedAt || '未设置')}</div>
+      <div class="meta">同步检查时间：${escapeHtml(governance?.syncCheckedAt || '-')}</div>
+    `;
+  }
+
+  function renderRisk(risk) {
+    const notes = Array.isArray(risk?.notes) ? risk.notes : [];
+    riskEl.innerHTML = `
+      <div class="line">管理接口限流：${risk?.adminApiRateLimitPerMinute ?? '-'} 次/分钟</div>
+      <div class="line">公开音乐接口限流：${risk?.publicMusicRateLimitPerMinute ?? '-'} 次/分钟</div>
+      <div class="line">IP 白名单：${escapeHtml(risk?.ipWhitelist || '-')}</div>
+      <div class="meta">当前策略说明：</div>
+      <ul>${notes.map(item => `<li>${item}</li>`).join('')}</ul>
+    `;
+  }
+
+  async function governanceAction(path, actionName) {
+    governanceActionStatusEl.textContent = `治理动作状态：${actionName} 执行中...`;
+    governanceActionStatusEl.style.color = '#60a5fa';
+    try {
+      const payload = await adminCommon.requestJson(path, { method: 'POST' });
+      governanceActionStatusEl.textContent = `治理动作状态：${actionName} 成功（${payload?.checkedAt || ''}）`;
+      governanceActionStatusEl.style.color = '#22c55e';
+      await loadSummary();
+    } catch (error) {
+      governanceActionStatusEl.textContent = `治理动作状态：${actionName} 失败：${error.message || String(error)}`;
+      governanceActionStatusEl.style.color = '#ef4444';
+    }
+  }
+
+  async function loadSummary() {
+    try {
+      setStatus('加载中...');
+      const data = await requestSummary();
+      renderMusic(data.music || {});
+      renderGovernance(data.governance || {});
+      renderCommentAndOps(data.governance || {}, data.ops || {});
+      renderRisk(data.riskControl || {});
+      setStatus(`已完成（${data.checkedAt || ''}）`);
+    } catch (error) {
+      setStatus(error.message || String(error), true);
+    }
+  }
+
+  function clearToken() {
+    adminCommon.clearToken();
+    const input = document.getElementById('adminToken');
+    if (input) input.value = '';
+    setStatus('管理员令牌已清空');
+  }
+
+  adminCommon.bindTokenInput('adminToken', (text) => setStatus(text));
+  document.getElementById('refreshBtn').addEventListener('click', loadSummary);
+  document.getElementById('clearTokenBtn').addEventListener('click', clearToken);
+  document.getElementById('rebuildRecommendationBtn').addEventListener('click', () =>
+    governanceAction('/api/admin/governance/recommendations/rebuild', '重算推荐缓存')
+  );
+  document.getElementById('refreshTagBtn').addEventListener('click', () =>
+    governanceAction('/api/admin/governance/tags/refresh', '刷新标签缓存')
+  );
+  loadSummary();
+</script>
+</body>
+</html>
