@@ -14,10 +14,11 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 管理端会话服务（内存实现）。
+ * AdminSessionService：
+ * 提供AdminSession相关业务能力。
  *
  * @author Wreckloud
- * @since 2026-05-28
+ * @since 2026-05-15
  */
 @Service
 public class AdminSessionService {

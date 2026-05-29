@@ -14,7 +14,8 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * 推荐文章源数据读取服务
+ * RecommendationSourceService：
+ * 提供RecommendationSource相关业务能力。
  *
  * @author Wreckloud
  * @since 2026-05-15

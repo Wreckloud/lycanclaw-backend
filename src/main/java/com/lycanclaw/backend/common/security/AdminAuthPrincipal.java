@@ -3,10 +3,11 @@ package com.lycanclaw.backend.common.security;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 管理员鉴权后的主体信息。
+ * AdminAuthPrincipal：
+ * 负责AdminAuthPrincipal相关的安全控制。
  *
  * @author Wreckloud
- * @since 2026-05-28
+ * @since 2026-05-15
  */
 @Schema(description = "管理员鉴权主体")
 public record AdminAuthPrincipal(

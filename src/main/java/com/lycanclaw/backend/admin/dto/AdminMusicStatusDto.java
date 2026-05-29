@@ -3,7 +3,8 @@ package com.lycanclaw.backend.admin.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 管理端音乐登录状态
+ * AdminMusicStatusDto：
+ * AdminMusicStatus的数据传输模型。
  *
  * @author Wreckloud
  * @since 2026-05-15

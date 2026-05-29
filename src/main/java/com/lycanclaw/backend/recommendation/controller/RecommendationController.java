@@ -19,7 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * 推荐阅读接口控制器
+ * RecommendationController：
+ * 处理Recommendation相关接口请求。
  *
  * @author Wreckloud
  * @since 2026-05-15

@@ -17,7 +17,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 /**
- * Waline HTTP 网关客户端
+ * WalineGatewayClient：
+ * 提供WalineGatewayClient相关业务能力。
  *
  * @author Wreckloud
  * @since 2026-05-15

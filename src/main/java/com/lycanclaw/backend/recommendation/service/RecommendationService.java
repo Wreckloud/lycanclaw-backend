@@ -17,7 +17,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 推荐阅读聚合服务
+ * RecommendationService：
+ * 提供Recommendation相关业务能力。
  *
  * @author Wreckloud
  * @since 2026-05-15

@@ -3,10 +3,11 @@ package com.lycanclaw.backend.admin.auth.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 管理端会话信息响应。
+ * AdminAuthSessionDto：
+ * AdminAuthSession的数据传输模型。
  *
  * @author Wreckloud
- * @since 2026-05-28
+ * @since 2026-05-15
  */
 @Schema(description = "管理端会话信息")
 public record AdminAuthSessionDto(

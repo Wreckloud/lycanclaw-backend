@@ -5,7 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * 手动推荐配置 DTO
+ * RecommendationManualConfigDto：
+ * RecommendationManualConfig的数据传输模型。
  *
  * @author Wreckloud
  * @since 2026-05-15

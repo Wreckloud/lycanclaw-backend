@@ -3,7 +3,8 @@ package com.lycanclaw.backend.tag.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 标签计数项
+ * ThoughtTagItemDto：
+ * ThoughtTagItem的数据传输模型。
  *
  * @author Wreckloud
  * @since 2026-05-15

@@ -11,7 +11,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
- * 拦截器统一错误响应写入器
+ * ApiErrorResponseWriter：
+ * 负责ApiErrorResponseWriter相关的安全控制。
  *
  * @author Wreckloud
  * @since 2026-05-15

@@ -3,7 +3,8 @@ package com.lycanclaw.backend.waline.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Waline 网关配置项
+ * WalineProperties：
+ * 定义WalineProperties相关配置。
  *
  * @author Wreckloud
  * @since 2026-05-15

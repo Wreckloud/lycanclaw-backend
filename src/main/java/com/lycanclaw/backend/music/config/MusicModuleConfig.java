@@ -4,7 +4,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 
 /**
- * 音乐模块装配配置
+ * MusicModuleConfig：
+ * 定义MusicModule相关配置。
  *
  * @author Wreckloud
  * @since 2026-05-15

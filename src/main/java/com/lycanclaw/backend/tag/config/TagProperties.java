@@ -3,7 +3,8 @@ package com.lycanclaw.backend.tag.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * 标签模块配置项
+ * TagProperties：
+ * 定义TagProperties相关配置。
  *
  * @author Wreckloud
  * @since 2026-05-15

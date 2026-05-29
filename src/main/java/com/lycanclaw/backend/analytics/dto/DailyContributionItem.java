@@ -3,7 +3,8 @@ package com.lycanclaw.backend.analytics.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 单日贡献条目模型
+ * DailyContributionItem：
+ * DailyContributionItem的数据传输模型。
  *
  * @author Wreckloud
  * @since 2026-05-15

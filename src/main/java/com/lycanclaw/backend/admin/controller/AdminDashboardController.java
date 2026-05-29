@@ -10,7 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 管理端首页数据接口
+ * AdminDashboardController：
+ * 处理AdminDashboard相关接口请求。
  *
  * @author Wreckloud
  * @since 2026-05-15

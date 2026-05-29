@@ -1,6 +1,7 @@
 package com.lycanclaw.backend.common.config;
 
 import com.lycanclaw.backend.common.security.AdminAuthInterceptor;
+import com.lycanclaw.backend.common.security.MusicQueueWriteAuthInterceptor;
 import com.lycanclaw.backend.common.security.PublicAccessLogInterceptor;
 import com.lycanclaw.backend.common.security.PublicMusicRateLimitInterceptor;
 import org.springframework.context.annotation.Configuration;
@@ -8,7 +9,8 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Web 安全拦截器注册配置
+ * WebSecurityConfig：
+ * 定义WebSecurity相关配置。
  *
  * @author Wreckloud
  * @since 2026-05-15
@@ -19,15 +21,18 @@ public class WebSecurityConfig implements WebMvcConfigurer {
     private final AdminAuthInterceptor adminAuthInterceptor;
     private final PublicMusicRateLimitInterceptor publicMusicRateLimitInterceptor;
     private final PublicAccessLogInterceptor publicAccessLogInterceptor;
+    private final MusicQueueWriteAuthInterceptor musicQueueWriteAuthInterceptor;
 
     public WebSecurityConfig(
             AdminAuthInterceptor adminAuthInterceptor,
             PublicMusicRateLimitInterceptor publicMusicRateLimitInterceptor,
-            PublicAccessLogInterceptor publicAccessLogInterceptor
+            PublicAccessLogInterceptor publicAccessLogInterceptor,
+            MusicQueueWriteAuthInterceptor musicQueueWriteAuthInterceptor
     ) {
         this.adminAuthInterceptor = adminAuthInterceptor;
         this.publicMusicRateLimitInterceptor = publicMusicRateLimitInterceptor;
         this.publicAccessLogInterceptor = publicAccessLogInterceptor;
+        this.musicQueueWriteAuthInterceptor = musicQueueWriteAuthInterceptor;
     }
 
     /**
@@ -53,6 +58,13 @@ public class WebSecurityConfig implements WebMvcConfigurer {
                         "/api/music/ranking/**",  // 排行榜接口
                         "/api/music/track/**",    // 歌曲信息接口
                         "/api/music/queue/**"     // 播放队列接口
+                );
+
+        registry.addInterceptor(musicQueueWriteAuthInterceptor)
+                .addPathPatterns(
+                        "/api/music/queue/enqueue",
+                        "/api/music/queue/next",
+                        "/api/music/queue/clear"
                 );
 
         registry.addInterceptor(publicAccessLogInterceptor)

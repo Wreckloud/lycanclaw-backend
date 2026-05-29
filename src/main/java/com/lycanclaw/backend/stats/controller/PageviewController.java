@@ -15,7 +15,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 阅读量统计接口
+ * PageviewController：
+ * 处理Pageview相关接口请求。
  *
  * @author Wreckloud
  * @since 2026-05-15

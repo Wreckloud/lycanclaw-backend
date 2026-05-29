@@ -9,7 +9,6 @@ import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,13 +16,19 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * 播放队列管理服务
+ * MusicQueueService：
+ * 管理当前播放和等待队列，只向前播放。
  *
  * @author Wreckloud
  * @since 2026-05-15
  */
 @Service
 public class MusicQueueService {
+
+    private static final String ACTION_SET_CURRENT = "设为当前播放";
+    private static final String ACTION_ALREADY_CURRENT = "已是当前播放";
+    private static final String ACTION_ENQUEUED = "加入队列";
+    private static final String ACTION_NEXT = "已切到下一首";
 
     private final MusicDataService musicDataService;
     private final Deque<MusicQueueItemDto> queue = new ArrayDeque<>();
@@ -33,133 +38,43 @@ public class MusicQueueService {
         this.musicDataService = musicDataService;
     }
 
-    // 入队核心逻辑：支持去重策略、插队、以及打断后恢复。
-    public synchronized Map<String, Object> enqueue(QueueEnqueueRequest request) {
+    // 入队核心逻辑：固定追加到队尾，不支持插队/打断，保持“只向前播放”。
+    public Map<String, Object> enqueue(QueueEnqueueRequest request) {
         if (request == null || request.id() == null || request.id().isBlank()) {
             throw new IllegalArgumentException("入队失败：歌曲 id 不能为空");
         }
 
         String source = request.source() == null || request.source().isBlank() ? "unknown" : request.source().trim();
-        int priority = request.priority() == null ? 1 : Math.max(1, request.priority());
-        boolean insertFront = Boolean.TRUE.equals(request.insertFront());
-        boolean interruptCurrent = Boolean.TRUE.equals(request.interruptCurrent());
-        boolean resumeCurrent = request.resumeCurrent() == null || request.resumeCurrent();
-        String dedupeMode = normalizeDedupeMode(request.dedupeMode());
-
         Map<String, Object> detail = musicDataService.getTrackDetailWithUrl(request.id().trim(), request.level());
-        MusicQueueItemDto item = buildItem(detail, source, priority);
+        MusicQueueItemDto item = buildItem(detail, source, 1);
+        return enqueueResolvedItem(item);
+    }
 
-        if ("skip".equals(dedupeMode)) {
-            if (current != null && Objects.equals(current.id(), item.id())) {
-                return Map.of(
-                        "action", "已在播放中，跳过",
-                        "item", current,
-                        "snapshot", snapshot(30)
-                );
-            }
-            MusicQueueItemDto duplicated = findInQueueBySongId(item.id());
-            if (duplicated != null) {
-                return Map.of(
-                        "action", "队列中已有同曲目，跳过",
-                        "item", duplicated,
-                        "snapshot", snapshot(30)
-                );
-            }
-        }
-
-        if (!"allow".equals(dedupeMode)) {
-            queue.removeIf(existing -> Objects.equals(existing.id(), item.id()));
-        }
-
+    // 只在内存状态变更阶段加锁，避免网络 IO 占用队列锁。
+    private synchronized Map<String, Object> enqueueResolvedItem(MusicQueueItemDto item) {
         if (current == null) {
             current = item;
-            return Map.of(
-                    "action", "设为当前播放",
-                    "item", item,
-                    "snapshot", snapshot(30)
-            );
+            return response(ACTION_SET_CURRENT, item);
         }
 
         if (Objects.equals(current.id(), item.id())) {
-            return Map.of(
-                    "action", "已是当前播放",
-                    "item", current,
-                    "snapshot", snapshot(30)
-            );
+            return response(ACTION_ALREADY_CURRENT, current);
         }
 
-        if (interruptCurrent) {
-            MusicQueueItemDto interrupted = current;
-            current = item;
-            if (resumeCurrent) {
-                queue.addFirst(interrupted);
-            }
-            return Map.of(
-                    "action", "打断当前播放并插队",
-                    "item", item,
-                    "snapshot", snapshot(30)
-            );
-        }
-
-        if (insertFront) {
-            queue.addFirst(item);
-        } else {
-            queue.addLast(item);
-        }
-
-        return Map.of(
-                "action", "加入队列",
-                "item", item,
-                "snapshot", snapshot(30)
-        );
+        // 同曲目替换旧等待项，避免队列无限重复堆积。
+        queue.removeIf(existing -> Objects.equals(existing.id(), item.id()));
+        queue.addLast(item);
+        return response(ACTION_ENQUEUED, item);
     }
 
-    // 按 queueId 把队列中的歌曲提为当前播放（可选择恢复被替换的当前歌曲）。
-    public synchronized Map<String, Object> setCurrentByQueueId(String queueId, boolean resumeCurrent) {
-        if (queueId == null || queueId.isBlank()) {
-            throw new IllegalArgumentException("切换失败：queueId 不能为空");
-        }
-
-        MusicQueueItemDto target = removeByQueueIdInternal(queueId.trim());
-        if (target == null) {
-            throw new IllegalArgumentException("切换失败：队列中未找到对应 queueId");
-        }
-
-        MusicQueueItemDto previous = current;
-        current = target;
-        if (resumeCurrent && previous != null && !Objects.equals(previous.queueId(), target.queueId())) {
-            queue.addFirst(previous);
-        }
-
-        return Map.of(
-                "action", "已切换当前播放",
-                "current", current,
-                "previous", previous,
-                "snapshot", snapshot(30)
-        );
-    }
-
-    // 从等待队列移除一个元素，不影响 current。
-    public synchronized Map<String, Object> removeByQueueId(String queueId) {
-        if (queueId == null || queueId.isBlank()) {
-            throw new IllegalArgumentException("移除失败：queueId 不能为空");
-        }
-        MusicQueueItemDto removed = removeByQueueIdInternal(queueId.trim());
-        return Map.of(
-                "removed", removed,
-                "snapshot", snapshot(30)
-        );
-    }
-
-    // 切到下一首：current 出队，队首补位为新 current。
+    // 切到下一首：当前项丢弃，队首补位为新 current。
     public synchronized Map<String, Object> playNext() {
-        MusicQueueItemDto previous = current;
         current = queue.pollFirst();
-        return Map.of(
-                "previous", previous,
-                "current", current,
-                "snapshot", snapshot(30)
-        );
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("action", ACTION_NEXT);
+        data.put("current", current);
+        data.put("snapshot", snapshot(3));
+        return data;
     }
 
     // 清空等待队列；可配置是否保留当前播放项。
@@ -168,25 +83,25 @@ public class MusicQueueService {
         if (!keepCurrent) {
             current = null;
         }
-        return Map.of(
-                "keepCurrent", keepCurrent,
-                "snapshot", snapshot(30)
-        );
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("keepCurrent", keepCurrent);
+        data.put("snapshot", snapshot(3));
+        return data;
     }
 
-    // 给前端返回当前快照（current + 队列长度 + 截断后的队列内容）。
+    // 给前端返回当前快照（current + 队列长度 + 最多 3 首预览）。
     public synchronized MusicQueueSnapshotDto snapshot(int limit) {
-        int safeLimit = Math.max(1, Math.min(limit, 200));
-        List<MusicQueueItemDto> items = new ArrayList<>(safeLimit);
+        int safeLimit = Math.max(1, Math.min(limit, 3));
+        List<MusicQueueItemDto> preview = new ArrayList<>(safeLimit);
         int count = 0;
         for (MusicQueueItemDto item : queue) {
-            items.add(item);
+            preview.add(item);
             count++;
             if (count >= safeLimit) {
                 break;
             }
         }
-        return new MusicQueueSnapshotDto(current, queue.size(), items);
+        return new MusicQueueSnapshotDto(current, queue.size(), preview);
     }
 
     private MusicQueueItemDto buildItem(Map<String, Object> detail, String source, int priority) {
@@ -218,35 +133,11 @@ public class MusicQueueService {
         return String.valueOf(value).trim();
     }
 
-    private String normalizeDedupeMode(String dedupeMode) {
-        if (dedupeMode == null || dedupeMode.isBlank()) {
-            return "replace";
-        }
-        String mode = dedupeMode.trim().toLowerCase();
-        return switch (mode) {
-            case "replace", "skip", "allow" -> mode;
-            default -> "replace";
-        };
-    }
-
-    private MusicQueueItemDto findInQueueBySongId(String songId) {
-        for (MusicQueueItemDto item : queue) {
-            if (Objects.equals(item.id(), songId)) {
-                return item;
-            }
-        }
-        return null;
-    }
-
-    private MusicQueueItemDto removeByQueueIdInternal(String queueId) {
-        Iterator<MusicQueueItemDto> iterator = queue.iterator();
-        while (iterator.hasNext()) {
-            MusicQueueItemDto item = iterator.next();
-            if (Objects.equals(item.queueId(), queueId)) {
-                iterator.remove();
-                return item;
-            }
-        }
-        return null;
+    private Map<String, Object> response(String action, MusicQueueItemDto item) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("action", action);
+        data.put("item", item);
+        data.put("snapshot", snapshot(3));
+        return data;
     }
 }

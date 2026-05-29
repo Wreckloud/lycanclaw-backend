@@ -59,7 +59,11 @@ lycan:
     # 管理接口限流（每分钟）
     auth-rate-limit-per-minute: 30
     # 公开音乐接口限流（每分钟）
-    music-rate-limit-per-minute: 120
+    music-rate-limit-per-minute: 30
+    # 是否要求管理员凭证才能修改音乐队列（建议生产环境开启）
+    music-queue-write-require-admin: true
+    # 会员登录 cookie 请求上游播放 URL 的全局限流（每分钟）
+    music-login-url-global-limit-per-minute: 60
     # 管理接口访问日志开关（记录 IP / URI / method / 放行或拒绝）
     admin-auth-log-enabled: true
     # 公共 API 访问日志开关（记录访客 IP / URI / UA）
@@ -78,8 +82,8 @@ lycan:
   music:
     # 未登录时的回退网易云 uid（如不需要可置空：""）
     fallback-uid: 629126546
-    # 默认目标音质（会自动降级尝试）
-    preferred-level: jymaster
+    # 默认目标音质（公开链路降级顺序：exhigh -> higher -> standard）
+    preferred-level: exhigh
     upstream:
       # 上游网易云 API 服务地址（api-enhanced）
       base-url: http://127.0.0.1:3000

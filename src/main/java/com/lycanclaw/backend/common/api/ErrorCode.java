@@ -1,7 +1,8 @@
 package com.lycanclaw.backend.common.api;
 
 /**
- * 统一错误码定义（错误码 + 默认提示）
+ * ErrorCode：
+ * 定义统一 API 协议与响应结构。
  *
  * @author Wreckloud
  * @since 2026-05-15

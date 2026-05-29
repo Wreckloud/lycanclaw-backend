@@ -4,7 +4,8 @@ import com.lycanclaw.backend.waline.service.WalineGatewayClient;
 import org.springframework.stereotype.Service;
 
 /**
- * 阅读量统计服务（后端统一入口）
+ * PageviewService：
+ * 提供Pageview相关业务能力。
  *
  * @author Wreckloud
  * @since 2026-05-15

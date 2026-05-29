@@ -1,18 +1,23 @@
 package com.lycanclaw.backend.music.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.lycanclaw.backend.common.json.JsonNodeExtractors;
+import com.lycanclaw.backend.common.security.InMemorySlidingWindowRateLimiter;
 import com.lycanclaw.backend.music.dto.MusicTrackDto;
+import com.lycanclaw.backend.music.model.MusicQualityLevel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 音乐数据聚合服务
+ * MusicDataService：
+ * 获取歌曲数据和播放 URL，决策 public/login 并处理缓存与限流。
  *
  * @author Wreckloud
  * @since 2026-05-15
@@ -20,26 +25,38 @@ import java.util.Optional;
 @Service
 public class MusicDataService {
 
-    private static final List<String> LEVEL_FALLBACK_ORDER = List.of(
-            "jymaster",
-            "exhigh",
-            "lossless",
-            "hires",
-            "standard"
-    );
+    private static final String LOGIN_URL_GLOBAL_RATE_LIMIT_KEY = "music:login-url:global";
+    private static final long SONG_DETAIL_CACHE_TTL_MS = 12L * 60 * 60 * 1000;
+    private static final long TRACK_URL_PUBLIC_CACHE_TTL_MS = 5L * 60 * 1000;
+    private static final long TRACK_URL_LOGIN_CACHE_TTL_MS = 3L * 60 * 1000;
+    private static final long TRACK_URL_FAILURE_CACHE_TTL_MS = 30L * 1000;
 
     @Value("${lycan.music.fallback-uid}")
     private String fallbackUid;
 
-    @Value("${lycan.music.preferred-level}")
+    @Value("${lycan.music.preferred-level:exhigh}")
     private String preferredLevel;
+
+    @Value("${lycan.security.music-login-url-global-limit-per-minute:60}")
+    private int loginUrlGlobalLimitPerMinute;
 
     private final NcmUpstreamClient upstreamClient;
     private final MusicAuthSessionService sessionService;
+    private final JsonNodeExtractors jsonNodeExtractors;
+    private final InMemorySlidingWindowRateLimiter rateLimiter;
+    private final Map<String, CacheEntry<SongDetail>> songDetailCache = new ConcurrentHashMap<>();
+    private final Map<String, CacheEntry<TrackUrlResolveResult>> resolvedTrackUrlCache = new ConcurrentHashMap<>();
 
-    public MusicDataService(NcmUpstreamClient upstreamClient, MusicAuthSessionService sessionService) {
+    public MusicDataService(
+            NcmUpstreamClient upstreamClient,
+            MusicAuthSessionService sessionService,
+            JsonNodeExtractors jsonNodeExtractors,
+            InMemorySlidingWindowRateLimiter rateLimiter
+    ) {
         this.upstreamClient = upstreamClient;
         this.sessionService = sessionService;
+        this.jsonNodeExtractors = jsonNodeExtractors;
+        this.rateLimiter = rateLimiter;
     }
 
     /**
@@ -56,21 +73,25 @@ public class MusicDataService {
         appendCookie(query);
 
         JsonNode node = upstreamClient.get("/user/record", query);
-        int code = findInt(node, "code").orElse(-1);
+        int code = jsonNodeExtractors.findInt(node, "code").orElse(-1);
         if (code != 200) {
             throw new IllegalStateException("拉取周听歌榜失败，返回码: " + code);
         }
 
-        JsonNode weekData = findArray(node, "weekData")
+        JsonNode weekData = jsonNodeExtractors.findArray(node, "weekData")
                 .orElseThrow(() -> new IllegalStateException("周听歌榜数据结构异常，缺少 weekData"));
 
         List<MusicTrackDto> tracks = new ArrayList<>();
         for (JsonNode item : weekData) {
             JsonNode song = item.has("song") ? item.get("song") : item;
-            if (song == null || song.isNull()) continue;
+            if (song == null || song.isNull()) {
+                continue;
+            }
             String id = safeText(song, "id");
             String name = safeText(song, "name");
-            if (id.isBlank() || name.isBlank()) continue;
+            if (id.isBlank() || name.isBlank()) {
+                continue;
+            }
             tracks.add(new MusicTrackDto(
                     id,
                     name,
@@ -86,48 +107,62 @@ public class MusicDataService {
         data.put("limit", safeLimit);
         data.put("uid", uid);
         data.put("tracks", tracks);
-        data.put("来源", sessionService.hasCookie() ? "当前登录账号" : "配置回退账号");
+        data.put("source", sessionService.hasCookie() ? "login" : "fallback");
         return data;
     }
 
     /**
-     * 获取歌曲播放地址：按指定音质和预设降级顺序尝试。
+     * 获取歌曲播放地址：
+     * 1) 先用公开模式尝试（不带 cookie）；
+     * 2) 公开全部失败后，再尝试登录模式（带 cookie）。
      */
     public Map<String, Object> getTrackUrl(String id, String level) {
         String safeId = validateSongId(id);
         String preferred = normalizeLevel(level);
         boolean hasLoginCookie = sessionService.hasCookie();
+        String cacheKey = safeId + "|" + preferred + "|" + (hasLoginCookie ? "auth" : "anon");
+
+        cleanupCaches();
+        TrackUrlResolveResult cached = getCachedTrackUrl(cacheKey);
+        if (cached != null) {
+            return toTrackUrlResponse(safeId, preferred, cached);
+        }
 
         List<String> levels = buildLevelAttempts(preferred);
-        for (String attemptLevel : levels) {
-            String publicUrl = fetchTrackUrlWithLevel(safeId, attemptLevel, false);
-            if (!publicUrl.isBlank()) {
-                return Map.of(
-                        "id", safeId,
-                        "url", publicUrl,
-                        "level", attemptLevel,
-                        "source", "public"
-                );
-            }
 
-            if (!hasLoginCookie) continue;
-            String authUrl = fetchTrackUrlWithLevel(safeId, attemptLevel, true);
-            if (!authUrl.isBlank()) {
-                return Map.of(
-                        "id", safeId,
-                        "url", authUrl,
-                        "level", attemptLevel,
-                        "source", "login"
-                );
+        for (String attemptLevel : levels) {
+            TrackUrlFetchResult publicResult = fetchTrackUrlWithLevel(safeId, attemptLevel, false);
+            if (!publicResult.url().isBlank()) {
+                TrackUrlResolveResult resolved = TrackUrlResolveResult.success(publicResult.url(), attemptLevel, "public");
+                cacheTrackUrl(cacheKey, resolved, TRACK_URL_PUBLIC_CACHE_TTL_MS);
+                return toTrackUrlResponse(safeId, preferred, resolved);
             }
         }
 
-        return Map.of(
-                "id", safeId,
-                "url", "",
-                "level", preferred,
-                "source", hasLoginCookie ? "login_fallback_failed" : "public_only"
-        );
+        if (!hasLoginCookie) {
+            TrackUrlResolveResult failed = TrackUrlResolveResult.failure(preferred, "public_only");
+            cacheTrackUrl(cacheKey, failed, TRACK_URL_FAILURE_CACHE_TTL_MS);
+            return toTrackUrlResponse(safeId, preferred, failed);
+        }
+
+        boolean loginRateLimited = false;
+        for (String attemptLevel : levels) {
+            TrackUrlFetchResult authResult = fetchTrackUrlWithLevel(safeId, attemptLevel, true);
+            if (authResult.rateLimited()) {
+                loginRateLimited = true;
+                continue;
+            }
+            if (!authResult.url().isBlank()) {
+                TrackUrlResolveResult resolved = TrackUrlResolveResult.success(authResult.url(), attemptLevel, "login");
+                cacheTrackUrl(cacheKey, resolved, TRACK_URL_LOGIN_CACHE_TTL_MS);
+                return toTrackUrlResponse(safeId, preferred, resolved);
+            }
+        }
+
+        String failureSource = loginRateLimited ? "login_rate_limited" : "login_fallback_failed";
+        TrackUrlResolveResult failed = TrackUrlResolveResult.failure(preferred, failureSource);
+        cacheTrackUrl(cacheKey, failed, TRACK_URL_FAILURE_CACHE_TTL_MS);
+        return toTrackUrlResponse(safeId, preferred, failed);
     }
 
     /**
@@ -135,22 +170,17 @@ public class MusicDataService {
      */
     public Map<String, Object> getTrackDetailWithUrl(String id, String level) {
         String safeId = validateSongId(id);
-        JsonNode detailNode = upstreamClient.get("/song/detail", Map.of("ids", safeId));
-
-        JsonNode songs = detailNode.path("songs");
-        if (!songs.isArray() || songs.isEmpty()) {
-            throw new IllegalStateException("未找到歌曲详情");
-        }
-        JsonNode song = songs.get(0);
+        SongDetail detail = getSongDetail(safeId);
         Map<String, Object> urlInfo = getTrackUrl(safeId, level);
 
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("id", safeId);
-        data.put("name", safeText(song, "name"));
-        data.put("artist", parseArtists(song.get("ar")));
-        data.put("cover", safeText(song.path("al"), "picUrl"));
+        data.put("id", detail.id());
+        data.put("name", detail.name());
+        data.put("artist", detail.artist());
+        data.put("cover", detail.cover());
         data.put("url", urlInfo.get("url"));
         data.put("level", urlInfo.get("level"));
+        data.put("source", urlInfo.get("source"));
         return data;
     }
 
@@ -160,7 +190,9 @@ public class MusicDataService {
     private String resolveUid() {
         if (sessionService.hasCookie()) {
             String uid = resolveUidFromLoginStatus(sessionService.getCookie());
-            if (!uid.isBlank()) return uid;
+            if (!uid.isBlank()) {
+                return uid;
+            }
         }
         if (fallbackUid != null && !fallbackUid.isBlank()) {
             return fallbackUid.trim();
@@ -176,13 +208,17 @@ public class MusicDataService {
                 "cookie", cookie,
                 "timestamp", String.valueOf(System.currentTimeMillis())
         ));
-        return findText(node, "id").orElse("");
+        return jsonNodeExtractors.findText(node, "id").orElse("");
     }
 
     /**
      * 带音质参数请求上游 URL 接口，返回可播放地址。
      */
-    private String fetchTrackUrlWithLevel(String id, String level, boolean withCookie) {
+    private TrackUrlFetchResult fetchTrackUrlWithLevel(String id, String level, boolean withCookie) {
+        if (withCookie && !allowLoginUrlRequest()) {
+            return TrackUrlFetchResult.limited();
+        }
+
         Map<String, String> query = new LinkedHashMap<>();
         query.put("id", id);
         query.put("level", level);
@@ -192,11 +228,79 @@ public class MusicDataService {
 
         JsonNode dataArray = node.path("data");
         if (!dataArray.isArray() || dataArray.isEmpty()) {
-            return "";
+            return TrackUrlFetchResult.empty();
         }
         JsonNode first = dataArray.get(0);
         String url = safeText(first, "url");
-        return url.startsWith("http:") ? url.replace("http:", "https:") : url;
+        String normalized = url.startsWith("http:") ? url.replace("http:", "https:") : url;
+        return TrackUrlFetchResult.success(normalized);
+    }
+
+    private Map<String, Object> toTrackUrlResponse(String songId, String preferred, TrackUrlResolveResult resolved) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("id", songId);
+        data.put("url", resolved.url());
+        data.put("level", resolved.level().isBlank() ? preferred : resolved.level());
+        data.put("source", resolved.source());
+        return data;
+    }
+
+    private boolean allowLoginUrlRequest() {
+        return rateLimiter.allow(
+                LOGIN_URL_GLOBAL_RATE_LIMIT_KEY,
+                Math.max(1, loginUrlGlobalLimitPerMinute)
+        );
+    }
+
+    private SongDetail getSongDetail(String songId) {
+        CacheEntry<SongDetail> cached = songDetailCache.get(songId);
+        long now = System.currentTimeMillis();
+        if (cached != null && !cached.expired(now)) {
+            return cached.value();
+        }
+
+        JsonNode detailNode = upstreamClient.get("/song/detail", Map.of("ids", songId));
+        JsonNode songs = detailNode.path("songs");
+        if (!songs.isArray() || songs.isEmpty()) {
+            throw new IllegalStateException("未找到歌曲详情");
+        }
+        JsonNode song = songs.get(0);
+        SongDetail detail = new SongDetail(
+                songId,
+                safeText(song, "name"),
+                parseArtists(song.get("ar")),
+                safeText(song.path("al"), "picUrl")
+        );
+        songDetailCache.put(songId, new CacheEntry<>(detail, now + SONG_DETAIL_CACHE_TTL_MS));
+        return detail;
+    }
+
+    private TrackUrlResolveResult getCachedTrackUrl(String cacheKey) {
+        CacheEntry<TrackUrlResolveResult> cached = resolvedTrackUrlCache.get(cacheKey);
+        if (cached == null || cached.expired(System.currentTimeMillis())) {
+            return null;
+        }
+        return cached.value();
+    }
+
+    private void cacheTrackUrl(String cacheKey, TrackUrlResolveResult value, long ttlMs) {
+        resolvedTrackUrlCache.put(cacheKey, new CacheEntry<>(value, System.currentTimeMillis() + ttlMs));
+    }
+
+    private void cleanupCaches() {
+        long now = System.currentTimeMillis();
+        cleanupExpired(songDetailCache, now);
+        cleanupExpired(resolvedTrackUrlCache, now);
+    }
+
+    private <T> void cleanupExpired(Map<String, CacheEntry<T>> cache, long now) {
+        Iterator<Map.Entry<String, CacheEntry<T>>> iterator = cache.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, CacheEntry<T>> entry = iterator.next();
+            if (entry.getValue().expired(now)) {
+                iterator.remove();
+            }
+        }
     }
 
     /**
@@ -208,7 +312,7 @@ public class MusicDataService {
 
     private void appendCookie(Map<String, String> query, boolean enabled) {
         if (enabled && sessionService.hasCookie()) {
-            query.put("cookie", sessionService.getCookie());
+            query.put("cookie", sessionService.getRequiredCookie());
         }
     }
 
@@ -220,76 +324,18 @@ public class MusicDataService {
     }
 
     private String normalizeLevel(String level) {
+        MusicQualityLevel configuredDefault = MusicQualityLevel.parseOrDefault(preferredLevel, MusicQualityLevel.EXHIGH);
         if (level == null || level.isBlank()) {
-            return preferredLevel;
+            return configuredDefault.value();
         }
-        return level.trim();
+        return MusicQualityLevel.parseOrDefault(level, configuredDefault).value();
     }
 
     /**
      * 构建音质尝试顺序：优先传入值，再补齐默认降级链路。
      */
     private List<String> buildLevelAttempts(String preferred) {
-        List<String> levels = new ArrayList<>();
-        levels.add(preferred);
-        for (String fallback : LEVEL_FALLBACK_ORDER) {
-            if (!levels.contains(fallback)) {
-                levels.add(fallback);
-            }
-        }
-        return levels;
-    }
-
-    private Optional<String> findText(JsonNode node, String key) {
-        if (node == null || node.isNull()) return Optional.empty();
-        if (node.has(key) && !node.get(key).isNull()) {
-            return Optional.of(node.get(key).asText(""));
-        }
-        if (node.isObject()) {
-            var fields = node.fields();
-            while (fields.hasNext()) {
-                Map.Entry<String, JsonNode> entry = fields.next();
-                Optional<String> child = findText(entry.getValue(), key);
-                if (child.isPresent() && !child.get().isBlank()) return child;
-            }
-        } else if (node.isArray()) {
-            for (JsonNode child : node) {
-                Optional<String> parsed = findText(child, key);
-                if (parsed.isPresent() && !parsed.get().isBlank()) return parsed;
-            }
-        }
-        return Optional.empty();
-    }
-
-    private Optional<Integer> findInt(JsonNode node, String key) {
-        Optional<String> text = findText(node, key);
-        if (text.isEmpty()) return Optional.empty();
-        try {
-            return Optional.of(Integer.parseInt(text.get()));
-        } catch (NumberFormatException ignored) {
-            return Optional.empty();
-        }
-    }
-
-    private Optional<JsonNode> findArray(JsonNode node, String key) {
-        if (node == null || node.isNull()) return Optional.empty();
-        if (node.has(key) && node.get(key).isArray()) {
-            return Optional.of(node.get(key));
-        }
-        if (node.isObject()) {
-            var fields = node.fields();
-            while (fields.hasNext()) {
-                Map.Entry<String, JsonNode> entry = fields.next();
-                Optional<JsonNode> child = findArray(entry.getValue(), key);
-                if (child.isPresent()) return child;
-            }
-        } else if (node.isArray()) {
-            for (JsonNode child : node) {
-                Optional<JsonNode> parsed = findArray(child, key);
-                if (parsed.isPresent()) return parsed;
-            }
-        }
-        return Optional.empty();
+        return MusicQualityLevel.buildPublicAttemptOrder(preferred);
     }
 
     private String safeText(JsonNode node, String field) {
@@ -300,12 +346,49 @@ public class MusicDataService {
     }
 
     private String parseArtists(JsonNode artistsNode) {
-        if (artistsNode == null || !artistsNode.isArray()) return "";
+        if (artistsNode == null || !artistsNode.isArray()) {
+            return "";
+        }
         List<String> names = new ArrayList<>();
         for (JsonNode artistNode : artistsNode) {
             String name = safeText(artistNode, "name");
-            if (!name.isBlank()) names.add(name);
+            if (!name.isBlank()) {
+                names.add(name);
+            }
         }
         return String.join("/", names);
+    }
+
+    private record SongDetail(String id, String name, String artist, String cover) {
+    }
+
+    private record TrackUrlResolveResult(String url, String level, String source) {
+        private static TrackUrlResolveResult success(String url, String level, String source) {
+            return new TrackUrlResolveResult(url, level, source);
+        }
+
+        private static TrackUrlResolveResult failure(String level, String source) {
+            return new TrackUrlResolveResult("", level, source);
+        }
+    }
+
+    private record TrackUrlFetchResult(String url, boolean rateLimited) {
+        private static TrackUrlFetchResult success(String url) {
+            return new TrackUrlFetchResult(url, false);
+        }
+
+        private static TrackUrlFetchResult empty() {
+            return new TrackUrlFetchResult("", false);
+        }
+
+        private static TrackUrlFetchResult limited() {
+            return new TrackUrlFetchResult("", true);
+        }
+    }
+
+    private record CacheEntry<T>(T value, long expireAtMs) {
+        private boolean expired(long now) {
+            return now >= expireAtMs;
+        }
     }
 }

@@ -19,7 +19,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 运维检查项聚合服务
+ * OpsCheckService：
+ * 提供OpsCheck相关业务能力。
  *
  * @author Wreckloud
  * @since 2026-05-15

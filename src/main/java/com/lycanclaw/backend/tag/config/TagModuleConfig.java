@@ -4,7 +4,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 
 /**
- * 标签模块装配配置
+ * TagModuleConfig：
+ * 定义TagModule相关配置。
  *
  * @author Wreckloud
  * @since 2026-05-15

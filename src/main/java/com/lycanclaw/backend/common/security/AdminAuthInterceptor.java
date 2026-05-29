@@ -11,7 +11,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * 管理员接口鉴权与限流拦截器
+ * AdminAuthInterceptor：
+ * 负责AdminAuth相关的安全控制。
  *
  * @author Wreckloud
  * @since 2026-05-15

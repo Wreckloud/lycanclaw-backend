@@ -11,7 +11,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 评论聚合服务（后端统一入口）
+ * CommentService：
+ * 提供Comment相关业务能力。
  *
  * @author Wreckloud
  * @since 2026-05-15

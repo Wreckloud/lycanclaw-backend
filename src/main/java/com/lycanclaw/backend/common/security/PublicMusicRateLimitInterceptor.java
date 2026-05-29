@@ -9,7 +9,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * 公共音乐接口限流拦截器
+ * PublicMusicRateLimitInterceptor：
+ * 负责PublicMusicRateLimit相关的安全控制。
  *
  * @author Wreckloud
  * @since 2026-05-15

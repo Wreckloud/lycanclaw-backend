@@ -5,7 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * 推荐文章数据传输对象
+ * RecommendationPostDto：
+ * RecommendationPost的数据传输模型。
  *
  * @author Wreckloud
  * @since 2026-05-15

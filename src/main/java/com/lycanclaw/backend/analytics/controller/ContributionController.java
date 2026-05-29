@@ -12,7 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 日贡献查询接口控制器
+ * ContributionController：
+ * 处理Contribution相关接口请求。
  *
  * @author Wreckloud
  * @since 2026-05-15

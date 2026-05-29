@@ -18,10 +18,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 管理员登录服务（Waline 身份 -> 后端会话）。
+ * AdminAuthService：
+ * 提供AdminAuth相关业务能力。
  *
  * @author Wreckloud
- * @since 2026-05-28
+ * @since 2026-05-15
  */
 @Service
 public class AdminAuthService {

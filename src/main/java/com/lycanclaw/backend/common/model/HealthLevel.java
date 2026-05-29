@@ -5,10 +5,11 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Locale;
 
 /**
- * 系统健康状态等级（统一管理端 red/yellow/green 语义）。
+ * HealthLevel：
+ * 定义系统固定枚举值。
  *
  * @author Wreckloud
- * @since 2026-05-28
+ * @since 2026-05-15
  */
 public enum HealthLevel {
     GREEN("green"),

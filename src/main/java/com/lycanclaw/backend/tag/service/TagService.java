@@ -28,7 +28,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 标签数据聚合服务
+ * TagService：
+ * 提供Tag相关业务能力。
  *
  * @author Wreckloud
  * @since 2026-05-15

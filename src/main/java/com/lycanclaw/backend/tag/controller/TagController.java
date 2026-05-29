@@ -13,7 +13,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 标签模块控制器
+ * TagController：
+ * 处理Tag相关接口请求。
  *
  * @author Wreckloud
  * @since 2026-05-15

@@ -9,10 +9,11 @@ import java.security.MessageDigest;
 import java.util.Optional;
 
 /**
- * 管理员凭证校验服务（静态令牌 + 会话令牌）。
+ * AdminTokenAuthService：
+ * 负责AdminTokenAuthService相关的安全控制。
  *
  * @author Wreckloud
- * @since 2026-05-28
+ * @since 2026-05-15
  */
 @Service
 public class AdminTokenAuthService {

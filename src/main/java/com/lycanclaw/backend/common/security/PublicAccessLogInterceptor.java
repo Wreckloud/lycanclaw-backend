@@ -10,10 +10,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * 公共接口访问日志拦截器。
+ * PublicAccessLogInterceptor：
+ * 负责PublicAccessLog相关的安全控制。
  *
  * @author Wreckloud
- * @since 2026-05-28
+ * @since 2026-05-15
  */
 @Component
 public class PublicAccessLogInterceptor implements HandlerInterceptor {

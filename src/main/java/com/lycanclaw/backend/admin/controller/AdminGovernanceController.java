@@ -12,7 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * 管理端内容治理接口
+ * AdminGovernanceController：
+ * 处理AdminGovernance相关接口请求。
  *
  * @author Wreckloud
  * @since 2026-05-15

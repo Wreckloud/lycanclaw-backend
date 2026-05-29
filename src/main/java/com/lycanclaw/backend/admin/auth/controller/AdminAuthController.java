@@ -23,10 +23,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * 管理员会话鉴权接口。
+ * AdminAuthController：
+ * 处理AdminAuth相关接口请求。
  *
  * @author Wreckloud
- * @since 2026-05-28
+ * @since 2026-05-15
  */
 @RestController
 @RequestMapping("/api/admin/auth")

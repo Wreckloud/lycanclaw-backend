@@ -11,7 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * 运维检查项控制器
+ * OpsController：
+ * 处理Ops相关接口请求。
  *
  * @author Wreckloud
  * @since 2026-05-15

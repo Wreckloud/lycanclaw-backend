@@ -11,7 +11,8 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * 系统健康检查接口
+ * HealthController：
+ * 处理Health相关接口请求。
  *
  * @author Wreckloud
  * @since 2026-05-15

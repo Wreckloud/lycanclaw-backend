@@ -20,7 +20,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Git 日贡献统计服务
+ * ContributionService：
+ * 提供Contribution相关业务能力。
  *
  * @author Wreckloud
  * @since 2026-05-15

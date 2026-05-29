@@ -24,6 +24,14 @@ import org.springframework.context.annotation.Configuration;
         paramName = AdminAuthConstants.ADMIN_TOKEN_HEADER,
         description = "管理员凭证（静态 token 或 /api/admin/auth/waline/exchange 返回的会话 token）"
 )
+
+/**
+ * OpenApiConfig：
+ * 定义OpenApi相关配置。
+ *
+ * @author Wreckloud
+ * @since 2026-05-15
+ */
 public class OpenApiConfig {
 
     /**

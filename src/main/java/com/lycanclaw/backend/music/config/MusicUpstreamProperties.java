@@ -3,7 +3,8 @@ package com.lycanclaw.backend.music.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * 音乐上游配置模型
+ * MusicUpstreamProperties：
+ * 定义MusicUpstreamProperties相关配置。
  *
  * @author Wreckloud
  * @since 2026-05-15

@@ -23,7 +23,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 管理端首页聚合服务
+ * AdminDashboardService：
+ * 提供AdminDashboard相关业务能力。
  *
  * @author Wreckloud
  * @since 2026-05-15

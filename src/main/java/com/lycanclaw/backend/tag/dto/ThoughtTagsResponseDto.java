@@ -5,7 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * 随想标签列表响应
+ * ThoughtTagsResponseDto：
+ * ThoughtTagsResponse的数据传输模型。
  *
  * @author Wreckloud
  * @since 2026-05-15

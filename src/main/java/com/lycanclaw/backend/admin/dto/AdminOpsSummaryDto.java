@@ -3,7 +3,8 @@ package com.lycanclaw.backend.admin.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 管理端运维检查摘要
+ * AdminOpsSummaryDto：
+ * AdminOpsSummary的数据传输模型。
  *
  * @author Wreckloud
  * @since 2026-05-15

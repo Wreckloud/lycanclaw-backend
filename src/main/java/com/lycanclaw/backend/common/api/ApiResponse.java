@@ -3,7 +3,8 @@ package com.lycanclaw.backend.common.api;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 统一响应体模型
+ * ApiResponse：
+ * 定义统一 API 协议与响应结构。
  *
  * @author Wreckloud
  * @since 2026-05-15

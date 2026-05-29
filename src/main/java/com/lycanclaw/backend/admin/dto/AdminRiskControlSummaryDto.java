@@ -5,7 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * 管理端风控摘要
+ * AdminRiskControlSummaryDto：
+ * AdminRiskControlSummary的数据传输模型。
  *
  * @author Wreckloud
  * @since 2026-05-15

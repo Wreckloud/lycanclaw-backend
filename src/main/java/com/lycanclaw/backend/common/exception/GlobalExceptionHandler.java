@@ -8,7 +8,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * 全局异常处理器
+ * GlobalExceptionHandler：
+ * 定义统一异常处理逻辑。
  *
  * @author Wreckloud
  * @since 2026-05-15

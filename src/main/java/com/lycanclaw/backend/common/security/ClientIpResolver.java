@@ -7,7 +7,8 @@ import org.springframework.stereotype.Component;
 import java.util.Locale;
 
 /**
- * 客户端 IP 解析器（支持反向代理场景）
+ * ClientIpResolver：
+ * 负责ClientIpResolver相关的安全控制。
  *
  * @author Wreckloud
  * @since 2026-05-15

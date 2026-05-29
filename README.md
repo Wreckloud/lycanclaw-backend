@@ -83,19 +83,17 @@
 - `GET /api/music/queue?limit=30`
 - `POST /api/music/queue/enqueue`
 - `POST /api/music/queue/next`
-- `POST /api/music/queue/current`
-- `POST /api/music/queue/remove`
 - `POST /api/music/queue/clear?keepCurrent=true`
 
 说明：
 
 - 排行榜优先使用当前登录账号；未登录时回退 `lycan.music.fallback-uid`。
-- 播放地址会按音质降级尝试（`jymaster -> exhigh -> lossless -> hires -> standard`）。
-- 队列接口支持“插队并恢复被打断歌曲”的基础语义（通过入队参数控制）。
-- 入队参数支持 `dedupeMode`：
-  - `replace`（默认）：替换掉同歌曲旧队列项
-  - `skip`：若已在播放或队列中存在则跳过
-  - `allow`：允许重复入队
+- 周榜响应里的 `source` 字段为 `login` 或 `fallback`，用于标记数据来源。
+- 播放地址默认先尝试公开链路（`exhigh -> higher -> standard`），全部失败后才尝试登录链路。
+- 会员登录链路有全局限流保护（`lycan.security.music-login-url-global-limit-per-minute`）。
+- 歌曲详情与 URL 解析结果在内存做短缓存，减少上游请求。
+- 队列策略为“只向前播放”，`snapshot` 仅返回预览（最多 3 首），不返回完整等待队列。
+- 入队请求仅保留 `id/source/level` 三个字段，历史扩展字段会被忽略。
 
 ## 推荐阅读接口（已落地）
 
@@ -187,11 +185,13 @@ mvn spring-boot:run
 - `lycan.security.admin-session-max-size`：内存会话最大数量
 - `lycan.security.auth-rate-limit-per-minute`：登录接口限流阈值
 - `lycan.security.music-rate-limit-per-minute`：公开音乐接口限流阈值
+- `lycan.security.music-queue-write-require-admin`：是否要求管理员凭证才能修改音乐队列
+- `lycan.security.music-login-url-global-limit-per-minute`：会员 cookie 调用上游 URL 的全局限流
 - `lycan.security.admin-auth-log-enabled`：管理端鉴权访问日志开关
 - `lycan.security.public-access-log-enabled`：公共 API 访问日志开关
 - `lycan.music.upstream.base-url`：api-enhanced 服务地址
 - `lycan.music.fallback-uid`：未登录时排行榜回退账号
-- `lycan.music.preferred-level`：默认音质级别
+- `lycan.music.preferred-level`：默认音质级别（建议 `exhigh`）
 - `lycan.recommendation.posts-json-path`：前端 posts.json 路径
 - `lycan.recommendation.manual-config-path`：手动推荐持久化文件路径
 - `lycan.recommendation.score.*`：热门分权重配置

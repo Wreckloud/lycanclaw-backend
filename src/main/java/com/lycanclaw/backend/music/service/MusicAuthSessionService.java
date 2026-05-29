@@ -5,7 +5,8 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * 音乐登录会话存储服务
+ * MusicAuthSessionService：
+ * 保存网易云登录 Cookie。
  *
  * @author Wreckloud
  * @since 2026-05-15
@@ -30,6 +31,17 @@ public class MusicAuthSessionService {
      */
     public String getCookie() {
         return musicCookie.get();
+    }
+
+    /**
+     * 获取必需登录态；当未登录时直接抛出异常，避免调用方重复判空。
+     */
+    public String getRequiredCookie() {
+        String value = musicCookie.get();
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("当前未登录，无法获取登录 Cookie");
+        }
+        return value;
     }
 
     /**

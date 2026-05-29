@@ -3,8 +3,6 @@ package com.lycanclaw.backend.music.controller;
 import com.lycanclaw.backend.common.api.ApiResponse;
 import com.lycanclaw.backend.music.dto.MusicQueueSnapshotDto;
 import com.lycanclaw.backend.music.dto.QueueEnqueueRequest;
-import com.lycanclaw.backend.music.dto.QueueRemoveRequest;
-import com.lycanclaw.backend.music.dto.QueueSetCurrentRequest;
 import com.lycanclaw.backend.music.service.MusicDataService;
 import com.lycanclaw.backend.music.service.MusicQueueService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,7 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * 音乐数据与队列接口
+ * MusicController：
+ * 处理Music相关接口请求。
  *
  * @author Wreckloud
  * @since 2026-05-15
@@ -79,19 +78,19 @@ public class MusicController {
     }
 
     /**
-     * 获取播放队列快照（当前播放 + 待播放列表）。
+     * 获取播放队列快照（当前播放 + 下一批预览）。
      */
     @Operation(summary = "获取播放队列快照")
     @GetMapping("/queue")
     public ApiResponse<MusicQueueSnapshotDto> queueSnapshot(
-            @Parameter(description = "返回队列明细最大条数，范围 1-200")
-            @RequestParam(name = "limit", defaultValue = "30") int limit
+            @Parameter(description = "返回预览条数，范围 1-3")
+            @RequestParam(name = "limit", defaultValue = "3") int limit
     ) {
         return ApiResponse.ok(musicQueueService.snapshot(limit));
     }
 
     /**
-     * 入队，可通过请求体控制插队、去重、是否打断当前播放。
+     * 歌曲入队：当前版本仅支持追加到队尾。
      */
     @Operation(summary = "歌曲入队")
     @PostMapping("/queue/enqueue")
@@ -106,25 +105,6 @@ public class MusicController {
     @PostMapping("/queue/next")
     public ApiResponse<Map<String, Object>> playNext() {
         return ApiResponse.ok(musicQueueService.playNext());
-    }
-
-    /**
-     * 按 queueId 指定当前播放项。
-     */
-    @Operation(summary = "切换当前播放项")
-    @PostMapping("/queue/current")
-    public ApiResponse<Map<String, Object>> setCurrent(@RequestBody QueueSetCurrentRequest request) {
-        boolean resumeCurrent = request.resumeCurrent() == null || request.resumeCurrent();
-        return ApiResponse.ok(musicQueueService.setCurrentByQueueId(request.queueId(), resumeCurrent));
-    }
-
-    /**
-     * 从等待队列中移除指定项。
-     */
-    @Operation(summary = "移除队列项")
-    @PostMapping("/queue/remove")
-    public ApiResponse<Map<String, Object>> removeQueueItem(@RequestBody QueueRemoveRequest request) {
-        return ApiResponse.ok(musicQueueService.removeByQueueId(request.queueId()));
     }
 
     /**

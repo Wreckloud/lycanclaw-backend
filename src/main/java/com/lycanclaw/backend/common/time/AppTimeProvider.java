@@ -8,7 +8,8 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 
 /**
- * 应用统一时间提供器
+ * AppTimeProvider：
+ * 提供该模块的核心能力。
  *
  * @author Wreckloud
  * @since 2026-05-15

@@ -16,7 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * 音乐登录管理接口
+ * MusicAuthController：
+ * 处理MusicAuth相关接口请求。
  *
  * @author Wreckloud
  * @since 2026-05-15

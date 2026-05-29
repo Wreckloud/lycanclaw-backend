@@ -4,7 +4,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Waline 模块装配配置
+ * WalineModuleConfig：
+ * 定义WalineModule相关配置。
  *
  * @author Wreckloud
  * @since 2026-05-15

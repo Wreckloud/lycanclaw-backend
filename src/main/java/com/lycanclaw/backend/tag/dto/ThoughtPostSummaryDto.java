@@ -5,7 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * 随想文章摘要
+ * ThoughtPostSummaryDto：
+ * ThoughtPostSummary的数据传输模型。
  *
  * @author Wreckloud
  * @since 2026-05-15

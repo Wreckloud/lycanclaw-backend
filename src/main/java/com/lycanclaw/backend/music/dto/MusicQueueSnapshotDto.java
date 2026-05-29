@@ -5,7 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * 队列快照模型
+ * MusicQueueSnapshotDto：
+ * MusicQueueSnapshot的数据传输模型。
  *
  * @author Wreckloud
  * @since 2026-05-15
@@ -16,7 +17,7 @@ public record MusicQueueSnapshotDto(
         MusicQueueItemDto current,
         @Schema(description = "等待队列总长度")
         int queueSize,
-        @Schema(description = "返回的队列明细")
-        List<MusicQueueItemDto> queue
+        @Schema(description = "下一批预览项（最多 3 首）")
+        List<MusicQueueItemDto> nextPreview
 ) {
 }
