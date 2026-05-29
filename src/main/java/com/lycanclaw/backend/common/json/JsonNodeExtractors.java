@@ -7,8 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * JsonNodeExtractors：
- * 提供 JSON 节点解析与提取能力。
+ * 模块定义。
  *
  * @author Wreckloud
  * @since 2026-05-15

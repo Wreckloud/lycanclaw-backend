@@ -10,8 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * PublicAccessLogInterceptor：
- * 负责PublicAccessLog相关的安全控制。
+ * 安全组件。
  *
  * @author Wreckloud
  * @since 2026-05-15

@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * CommentService：
  * 提供Comment相关业务能力。
  *
  * @author Wreckloud
@@ -27,6 +26,9 @@ public class CommentService {
         this.walineGatewayClient = walineGatewayClient;
         this.objectMapper = objectMapper;
     }
+    /**
+     * 处理recent comments业务逻辑。
+     */
 
     public List<Map<String, Object>> recentComments(int limit) {
         JsonNode node = walineGatewayClient.fetchRecentComments(limit);
@@ -49,6 +51,9 @@ public class CommentService {
 
         return result;
     }
+    /**
+     * 处理comment count业务逻辑。
+     */
 
     public int commentCount(String path) {
         String normalizedPath = normalizePath(path);

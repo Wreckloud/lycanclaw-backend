@@ -26,8 +26,7 @@ import org.springframework.context.annotation.Configuration;
 )
 
 /**
- * OpenApiConfig：
- * 定义OpenApi相关配置。
+ * 配置定义。
  *
  * @author Wreckloud
  * @since 2026-05-15

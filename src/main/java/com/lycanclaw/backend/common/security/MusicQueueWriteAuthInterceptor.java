@@ -9,8 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * MusicQueueWriteAuthInterceptor：
- * 负责MusicQueueWriteAuth相关的安全控制。
+ * 安全组件。
  *
  * @author Wreckloud
  * @since 2026-05-15

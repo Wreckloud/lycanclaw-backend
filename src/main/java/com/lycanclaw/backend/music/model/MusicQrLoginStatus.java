@@ -3,8 +3,7 @@ package com.lycanclaw.backend.music.model;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * MusicQrLoginStatus：
- * 定义系统固定枚举值。
+ * 领域模型定义。
  *
  * @author Wreckloud
  * @since 2026-05-15

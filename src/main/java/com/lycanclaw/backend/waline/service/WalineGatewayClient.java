@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 /**
- * WalineGatewayClient：
  * 提供WalineGatewayClient相关业务能力。
  *
  * @author Wreckloud
@@ -35,6 +34,9 @@ public class WalineGatewayClient {
         this.objectMapper = objectMapper;
         this.properties = properties;
     }
+    /**
+     * 处理fetch recent comments业务逻辑。
+     */
 
     public JsonNode fetchRecentComments(int limit) {
         MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
@@ -42,6 +44,9 @@ public class WalineGatewayClient {
         query.add("count", Integer.toString(Math.max(1, Math.min(limit, 50))));
         return get("/comment", query);
     }
+    /**
+     * 处理fetch comment count业务逻辑。
+     */
 
     public int fetchCommentCount(String path) {
         MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
@@ -50,6 +55,9 @@ public class WalineGatewayClient {
         JsonNode node = get("/comment", query);
         return parseCommentCount(node, path);
     }
+    /**
+     * 处理fetch pageview业务逻辑。
+     */
 
     public int fetchPageview(String path) {
         MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
@@ -57,6 +65,9 @@ public class WalineGatewayClient {
         JsonNode node = get("/article", query);
         return parseInteger(node);
     }
+    /**
+     * 处理increase pageview业务逻辑。
+     */
 
     public int increasePageview(String path) {
         JsonNode node = postJson("/article", "{\"path\":\"" + escapeJson(path) + "\"}");

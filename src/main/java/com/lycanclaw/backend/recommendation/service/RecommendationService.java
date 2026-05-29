@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * RecommendationService：
  * 提供Recommendation相关业务能力。
  *
  * @author Wreckloud
@@ -89,16 +88,25 @@ public class RecommendationService {
 
         return result;
     }
+    /**
+     * 获取manual config。
+     */
 
     public RecommendationManualConfigDto getManualConfig() {
         return manualConfigService.read();
     }
+    /**
+     * 执行update manual config操作。
+     */
 
     public RecommendationManualConfigDto updateManualConfig(List<String> manualUrls) {
         RecommendationManualConfigDto config = manualConfigService.update(manualUrls);
         cachedHotSnapshot = null;
         return config;
     }
+    /**
+     * 查询candidates。
+     */
 
     public List<RecommendationPostDto> listCandidates(int limit) {
         int safeLimit = Math.max(1, Math.min(limit, Math.max(1, properties.getMaxCandidatePosts())));

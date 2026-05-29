@@ -18,7 +18,6 @@ import java.time.Duration;
 import java.util.Map;
 
 /**
- * NcmUpstreamClient：
  * 统一请求网易云上游接口。
  *
  * @author Wreckloud
@@ -38,6 +37,9 @@ public class NcmUpstreamClient {
     }
 
     // 统一上游 GET 调用入口：拼接 base-url + path + query，然后解析为 JsonNode。
+    /**
+     * 获取数据。
+     */
     public JsonNode get(String path, Map<String, String> queryParams) {
         URI uri = UriComponentsBuilder
                 .fromHttpUrl(normalizeBaseUrl(properties.getBaseUrl()) + path)

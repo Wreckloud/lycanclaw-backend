@@ -6,8 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 /**
- * RecommendationManualConfigUpdateRequest：
- * RecommendationManualConfigUpdateRequest的数据传输模型。
+ * 数据传输模型。
  *
  * @author Wreckloud
  * @since 2026-05-15

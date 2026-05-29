@@ -9,8 +9,7 @@ import java.security.MessageDigest;
 import java.util.Optional;
 
 /**
- * AdminTokenAuthService：
- * 负责AdminTokenAuthService相关的安全控制。
+ * 安全组件。
  *
  * @author Wreckloud
  * @since 2026-05-15

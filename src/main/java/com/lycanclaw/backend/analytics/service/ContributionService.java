@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * ContributionService：
  * 提供Contribution相关业务能力。
  *
  * @author Wreckloud

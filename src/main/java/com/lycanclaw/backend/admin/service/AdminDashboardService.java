@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * AdminDashboardService：
  * 提供AdminDashboard相关业务能力。
  *
  * @author Wreckloud
@@ -65,6 +64,9 @@ public class AdminDashboardService {
         this.adminGovernanceService = adminGovernanceService;
         this.appTimeProvider = appTimeProvider;
     }
+    /**
+     * 处理build summary业务逻辑。
+     */
 
     public AdminDashboardSummaryDto buildSummary() {
         Map<String, Object> checks = Map.of();

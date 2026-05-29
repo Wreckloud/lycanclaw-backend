@@ -3,8 +3,7 @@ package com.lycanclaw.backend.admin.auth.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * AdminAuthMeDto：
- * AdminAuthMe的数据传输模型。
+ * 数据传输模型。
  *
  * @author Wreckloud
  * @since 2026-05-15

@@ -8,8 +8,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import java.util.Arrays;
 
 /**
- * CorsConfig：
- * 定义Cors相关配置。
+ * 配置定义。
  *
  * @author Wreckloud
  * @since 2026-05-15

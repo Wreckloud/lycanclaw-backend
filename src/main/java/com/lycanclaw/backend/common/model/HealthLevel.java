@@ -5,8 +5,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Locale;
 
 /**
- * HealthLevel：
- * 定义系统固定枚举值。
+ * 领域模型定义。
  *
  * @author Wreckloud
  * @since 2026-05-15

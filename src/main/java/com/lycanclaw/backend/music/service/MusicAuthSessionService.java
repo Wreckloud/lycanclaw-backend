@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * MusicAuthSessionService：
  * 保存网易云登录 Cookie。
  *
  * @author Wreckloud

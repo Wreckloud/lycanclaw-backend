@@ -11,8 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * AdminAuthInterceptor：
- * 负责AdminAuth相关的安全控制。
+ * 安全组件。
  *
  * @author Wreckloud
  * @since 2026-05-15

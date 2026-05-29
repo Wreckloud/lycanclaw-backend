@@ -6,8 +6,7 @@ import java.util.Locale;
 import java.util.Optional;
 
 /**
- * MusicQualityLevel：
- * 定义系统固定枚举值。
+ * 领域模型定义。
  *
  * @author Wreckloud
  * @since 2026-05-15

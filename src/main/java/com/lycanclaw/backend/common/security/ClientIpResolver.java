@@ -7,8 +7,7 @@ import org.springframework.stereotype.Component;
 import java.util.Locale;
 
 /**
- * ClientIpResolver：
- * 负责ClientIpResolver相关的安全控制。
+ * 安全组件。
  *
  * @author Wreckloud
  * @since 2026-05-15

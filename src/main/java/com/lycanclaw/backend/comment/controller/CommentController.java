@@ -14,8 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * CommentController：
- * 处理Comment相关接口请求。
+ * 接口控制器。
  *
  * @author Wreckloud
  * @since 2026-05-15

@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * OpsCheckService：
  * 提供OpsCheck相关业务能力。
  *
  * @author Wreckloud

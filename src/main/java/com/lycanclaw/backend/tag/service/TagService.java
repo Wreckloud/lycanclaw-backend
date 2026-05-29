@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * TagService：
  * 提供Tag相关业务能力。
  *
  * @author Wreckloud
@@ -46,6 +45,9 @@ public class TagService {
         this.objectMapper = objectMapper;
         this.properties = properties;
     }
+    /**
+     * 查询thought tags。
+     */
 
     public ThoughtTagsResponseDto listThoughtTags() {
         List<ThoughtPostSummaryDto> posts = loadPublishedThoughts();
@@ -65,6 +67,9 @@ public class TagService {
 
         return new ThoughtTagsResponseDto(tags, tags.size(), posts.size());
     }
+    /**
+     * 处理filter thoughts by tag业务逻辑。
+     */
 
     public ThoughtTagFilterResponseDto filterThoughtsByTag(String tag, int page, int pageSize) {
         String normalizedTag = tag == null ? "" : tag.trim();

@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * RecommendationManualConfigService：
  * 提供RecommendationManualConfig相关业务能力。
  *
  * @author Wreckloud
@@ -40,6 +39,9 @@ public class RecommendationManualConfigService {
         this.properties = properties;
         this.appTimeProvider = appTimeProvider;
     }
+    /**
+     * 处理read业务逻辑。
+     */
 
     public synchronized RecommendationManualConfigDto read() {
         Path path = resolveConfigPath();
@@ -64,6 +66,9 @@ public class RecommendationManualConfigService {
             throw new IllegalStateException("读取手动推荐配置失败", e);
         }
     }
+    /**
+     * 执行update操作。
+     */
 
     public synchronized RecommendationManualConfigDto update(List<String> manualUrls) {
         List<String> sanitized = sanitizeManualUrls(manualUrls);

@@ -10,7 +10,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * AdminGovernanceService：
  * 提供AdminGovernance相关业务能力。
  *
  * @author Wreckloud

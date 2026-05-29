@@ -4,8 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * QueueEnqueueRequest：
- * QueueEnqueueRequest的数据传输模型。
+ * 数据传输模型。
  *
  * @author Wreckloud
  * @since 2026-05-15

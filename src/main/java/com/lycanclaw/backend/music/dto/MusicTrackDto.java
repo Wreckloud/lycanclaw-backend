@@ -3,8 +3,7 @@ package com.lycanclaw.backend.music.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * MusicTrackDto：
- * MusicTrack的数据传输模型。
+ * 数据传输模型。
  *
  * @author Wreckloud
  * @since 2026-05-15

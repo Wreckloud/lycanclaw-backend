@@ -18,7 +18,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * AdminAuthService：
  * 提供AdminAuth相关业务能力。
  *
  * @author Wreckloud

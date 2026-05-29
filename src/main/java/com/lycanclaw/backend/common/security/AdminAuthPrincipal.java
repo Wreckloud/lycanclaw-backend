@@ -3,8 +3,7 @@ package com.lycanclaw.backend.common.security;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * AdminAuthPrincipal：
- * 负责AdminAuthPrincipal相关的安全控制。
+ * 安全组件。
  *
  * @author Wreckloud
  * @since 2026-05-15

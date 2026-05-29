@@ -14,7 +14,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * AdminSessionService：
  * 提供AdminSession相关业务能力。
  *
  * @author Wreckloud

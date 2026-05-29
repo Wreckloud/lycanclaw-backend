@@ -6,8 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
 
 /**
- * AdminGovernanceSummaryDto：
- * AdminGovernanceSummary的数据传输模型。
+ * 数据传输模型。
  *
  * @author Wreckloud
  * @since 2026-05-15

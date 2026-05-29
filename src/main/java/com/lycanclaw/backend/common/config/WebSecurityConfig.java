@@ -9,8 +9,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * WebSecurityConfig：
- * 定义WebSecurity相关配置。
+ * 配置定义。
  *
  * @author Wreckloud
  * @since 2026-05-15
