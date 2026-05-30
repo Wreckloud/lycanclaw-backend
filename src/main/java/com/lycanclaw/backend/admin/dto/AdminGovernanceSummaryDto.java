@@ -6,8 +6,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
 
 /**
- * 数据传输模型。
- *
+ * 管理治理摘要数据模型。
+ * 用于在管理治理摘要业务链路中传递结构化数据。
  * @author Wreckloud
  * @since 2026-05-15
  */

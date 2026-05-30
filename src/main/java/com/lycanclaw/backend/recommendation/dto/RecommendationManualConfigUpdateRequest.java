@@ -6,8 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 /**
- * 数据传输模型。
- *
+ * 推荐手动配置Update请求参数。
+ * 用于接收推荐手动配置Update业务链路输入数据。
  * @author Wreckloud
  * @since 2026-05-15
  */

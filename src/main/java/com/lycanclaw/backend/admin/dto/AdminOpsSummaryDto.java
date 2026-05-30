@@ -3,8 +3,8 @@ package com.lycanclaw.backend.admin.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 数据传输模型。
- *
+ * 管理运维摘要数据模型。
+ * 用于在管理运维摘要业务链路中传递结构化数据。
  * @author Wreckloud
  * @since 2026-05-15
  */

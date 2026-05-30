@@ -18,8 +18,8 @@ import java.time.Duration;
 import java.util.Map;
 
 /**
+ * 网易云上游客户端。
  * 统一请求网易云上游接口。
- *
  * @author Wreckloud
  * @since 2026-05-15
  */

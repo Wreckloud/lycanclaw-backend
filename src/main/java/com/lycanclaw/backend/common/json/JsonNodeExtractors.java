@@ -7,8 +7,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 模块定义。
- *
+ * JSON 节点提取工具。
+ * 用于从不稳定的上游响应结构中安全提取文本、数字和数组字段。
  * @author Wreckloud
  * @since 2026-05-15
  */

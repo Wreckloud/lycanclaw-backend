@@ -12,7 +12,6 @@ import com.lycanclaw.backend.music.dto.MusicLoginStatusDto;
 import com.lycanclaw.backend.music.service.MusicAuthService;
 import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
 import com.lycanclaw.backend.recommendation.service.RecommendationManualConfigService;
-import com.lycanclaw.backend.tag.dto.ThoughtTagsResponseDto;
 import com.lycanclaw.backend.tag.service.TagService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,8 +22,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 提供AdminDashboard相关业务能力。
- *
+ * 管理首页聚合服务。
+ * 聚合管理首页所需的音乐、治理、风控与运维摘要数据。
  * @author Wreckloud
  * @since 2026-05-15
  */
@@ -111,15 +110,17 @@ public class AdminDashboardService {
     private AdminGovernanceSummaryDto governanceSection(Map<String, Object> syncStatus) {
         try {
             RecommendationManualConfigDto config = recommendationManualConfigService.read();
-            ThoughtTagsResponseDto tags = tagService.listThoughtTags();
+            Map<String, Object> tagSummary = tagService.summary();
+            int tagCount = toInt(tagSummary.get("tagCount"));
+            int thoughtPostCount = toInt(tagSummary.get("thoughtPostCount"));
             List<Map<String, Object>> recent = commentService.recentComments(5);
             return new AdminGovernanceSummaryDto(
                     true,
                     "",
                     config.manualUrls().size(),
                     config.updatedAt() == null ? "" : config.updatedAt(),
-                    tags.totalTags(),
-                    tags.totalPosts(),
+                    tagCount,
+                    thoughtPostCount,
                     recent.size(),
                     parseHealthLevel(syncStatus.get("level")),
                     String.valueOf(syncStatus.getOrDefault("checkedAt", "")),
@@ -189,6 +190,16 @@ public class AdminDashboardService {
 
     private String errorMessage(Exception ex) {
         return ex.getMessage() == null || ex.getMessage().isBlank() ? ex.getClass().getSimpleName() : ex.getMessage();
+    }
+
+    /**
+     * 把摘要映射中的数字安全转换为 int。
+     */
+    private int toInt(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        return 0;
     }
 
     /**

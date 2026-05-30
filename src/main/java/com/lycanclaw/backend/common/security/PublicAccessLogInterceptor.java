@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * 安全组件。
- *
+ * 公共接口访问日志拦截器。
+ * 用于记录公开 API 的来源 IP、路径和 User-Agent。
  * @author Wreckloud
  * @since 2026-05-15
  */

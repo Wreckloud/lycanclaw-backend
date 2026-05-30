@@ -3,8 +3,8 @@ package com.lycanclaw.backend.waline.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * 配置定义。
- *
+ * Waline配置属性。
+ * 用于承载Waline相关外部配置项。
  * @author Wreckloud
  * @since 2026-05-15
  */

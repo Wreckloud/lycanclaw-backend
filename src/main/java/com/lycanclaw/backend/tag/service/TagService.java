@@ -3,10 +3,6 @@ package com.lycanclaw.backend.tag.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lycanclaw.backend.tag.config.TagProperties;
-import com.lycanclaw.backend.tag.dto.ThoughtPostSummaryDto;
-import com.lycanclaw.backend.tag.dto.ThoughtTagFilterResponseDto;
-import com.lycanclaw.backend.tag.dto.ThoughtTagItemDto;
-import com.lycanclaw.backend.tag.dto.ThoughtTagsResponseDto;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -20,7 +16,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -28,8 +23,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 提供Tag相关业务能力。
- *
+ * 标签索引观察服务。
+ * 主要用于管理端读取 VitePress 构建产物 posts.json，统计 thoughts 文章与标签状态，并提供缓存刷新能力。前台标签筛选仍由静态博客侧完成。
  * @author Wreckloud
  * @since 2026-05-15
  */
@@ -38,92 +33,40 @@ public class TagService {
 
     private final ObjectMapper objectMapper;
     private final TagProperties properties;
-
     private volatile CachedThoughts cache;
 
     public TagService(ObjectMapper objectMapper, TagProperties properties) {
         this.objectMapper = objectMapper;
         this.properties = properties;
     }
+
     /**
-     * 查询thought tags。
+     * 返回管理端需要的标签索引摘要（thoughts 数量与标签总数）。
      */
-
-    public ThoughtTagsResponseDto listThoughtTags() {
-        List<ThoughtPostSummaryDto> posts = loadPublishedThoughts();
-        Map<String, Integer> counter = new LinkedHashMap<>();
-        for (ThoughtPostSummaryDto post : posts) {
-            for (String tag : post.tags()) {
-                counter.merge(tag, 1, Integer::sum);
-            }
-        }
-
-        List<ThoughtTagItemDto> tags = counter.entrySet().stream()
-                .sorted(Comparator
-                        .comparing(Map.Entry<String, Integer>::getValue, Comparator.reverseOrder())
-                        .thenComparing(Map.Entry::getKey, Comparator.naturalOrder()))
-                .map(entry -> new ThoughtTagItemDto(entry.getKey(), entry.getValue()))
-                .toList();
-
-        return new ThoughtTagsResponseDto(tags, tags.size(), posts.size());
-    }
-    /**
-     * 处理filter thoughts by tag业务逻辑。
-     */
-
-    public ThoughtTagFilterResponseDto filterThoughtsByTag(String tag, int page, int pageSize) {
-        String normalizedTag = tag == null ? "" : tag.trim();
-        int safePage = Math.max(1, page);
-        int safePageSize = Math.max(1, Math.min(pageSize, 50));
-
-        List<ThoughtPostSummaryDto> source = loadPublishedThoughts();
-        List<ThoughtPostSummaryDto> matched;
-        if (normalizedTag.isBlank()) {
-            matched = source;
-        } else {
-            matched = source.stream()
-                    .filter(post -> post.tags().contains(normalizedTag))
-                    .toList();
-        }
-
-        int total = matched.size();
-        int totalPages = total == 0 ? 0 : (int) Math.ceil(total / (double) safePageSize);
-        int offset = (safePage - 1) * safePageSize;
-
-        List<ThoughtPostSummaryDto> pagedPosts;
-        if (offset >= total) {
-            pagedPosts = List.of();
-        } else {
-            int end = Math.min(offset + safePageSize, total);
-            pagedPosts = matched.subList(offset, end);
-        }
-
-        return new ThoughtTagFilterResponseDto(
-                normalizedTag,
-                safePage,
-                safePageSize,
-                total,
-                totalPages,
-                pagedPosts
+    public Map<String, Object> summary() {
+        CachedThoughts current = loadCachedThoughts();
+        return Map.of(
+                "thoughtPostCount", current.posts().size(),
+                "tagCount", current.tagCount()
         );
     }
 
     /**
-     * 手动刷新标签缓存并返回状态。
+     * 手动刷新标签缓存并返回最新状态。
      */
     public synchronized Map<String, Object> refreshCache() {
-        List<ThoughtPostSummaryDto> rebuilt = readPostsJson();
-        long now = System.currentTimeMillis();
-        cache = new CachedThoughts(now, rebuilt);
+        CachedThoughts rebuilt = buildCacheSnapshot();
+        cache = rebuilt;
         return Map.of(
-                "refreshedAtEpochMilli", now,
-                "postCount", rebuilt.size(),
+                "refreshedAtEpochMilli", rebuilt.loadedAtEpochMilli(),
+                "thoughtPostCount", rebuilt.posts().size(),
+                "tagCount", rebuilt.tagCount(),
                 "ttlSeconds", Math.max(5, properties.getCacheSeconds())
         );
     }
 
     /**
-     * 查询当前标签缓存状态。
+     * 查询当前缓存状态，供管理端健康检查展示。
      */
     public Map<String, Object> cacheState() {
         CachedThoughts current = cache;
@@ -131,7 +74,8 @@ public class TagService {
             return Map.of(
                     "hasCache", false,
                     "expired", true,
-                    "size", 0
+                    "thoughtPostCount", 0,
+                    "tagCount", 0
             );
         }
 
@@ -139,36 +83,57 @@ public class TagService {
         return Map.of(
                 "hasCache", true,
                 "expired", expired,
-                "size", current.posts().size(),
+                "thoughtPostCount", current.posts().size(),
+                "tagCount", current.tagCount(),
                 "loadedAtEpochMilli", current.loadedAtEpochMilli(),
                 "ttlSeconds", Math.max(5, properties.getCacheSeconds())
         );
     }
 
-    private List<ThoughtPostSummaryDto> loadPublishedThoughts() {
+    /**
+     * 加载缓存快照；过期或未命中时自动重建。
+     */
+    private CachedThoughts loadCachedThoughts() {
         CachedThoughts current = cache;
-        if (current != null && !isExpired(current.loadedAtEpochMilli)) {
-            return current.posts;
+        if (current != null && !isExpired(current.loadedAtEpochMilli())) {
+            return current;
         }
 
         synchronized (this) {
             CachedThoughts latest = cache;
-            if (latest != null && !isExpired(latest.loadedAtEpochMilli)) {
-                return latest.posts;
+            if (latest != null && !isExpired(latest.loadedAtEpochMilli())) {
+                return latest;
             }
-
-            List<ThoughtPostSummaryDto> rebuilt = readPostsJson();
-            cache = new CachedThoughts(System.currentTimeMillis(), rebuilt);
+            CachedThoughts rebuilt = buildCacheSnapshot();
+            cache = rebuilt;
             return rebuilt;
         }
     }
 
+    /**
+     * 读取 posts.json 并重建缓存快照。
+     */
+    private CachedThoughts buildCacheSnapshot() {
+        List<ThoughtPostSummary> posts = readPostsJson();
+        Set<String> tags = new LinkedHashSet<>();
+        for (ThoughtPostSummary post : posts) {
+            tags.addAll(post.tags());
+        }
+        return new CachedThoughts(System.currentTimeMillis(), posts, tags.size());
+    }
+
+    /**
+     * 判断缓存是否过期。
+     */
     private boolean isExpired(long loadedAtEpochMilli) {
         long ttlMillis = Math.max(5, properties.getCacheSeconds()) * 1000L;
         return System.currentTimeMillis() - loadedAtEpochMilli > ttlMillis;
     }
 
-    private List<ThoughtPostSummaryDto> readPostsJson() {
+    /**
+     * 读取构建产物 posts.json 并提取已发布 thoughts 文章。
+     */
+    private List<ThoughtPostSummary> readPostsJson() {
         Path postsPath = Path.of(properties.getPostsJsonPath());
         if (!Files.exists(postsPath)) {
             throw new IllegalStateException("未找到 posts.json: " + postsPath);
@@ -177,27 +142,30 @@ public class TagService {
         try {
             JsonNode root = objectMapper.readTree(Files.readString(postsPath));
             if (!root.isArray()) {
-                return List.of();
+                throw new IllegalStateException("posts.json 数据结构异常，根节点不是数组");
             }
 
-            List<ThoughtPostSummaryDto> posts = new ArrayList<>();
+            List<ThoughtPostSummary> posts = new ArrayList<>();
             for (JsonNode postNode : root) {
-                ThoughtPostSummaryDto post = parsePost(postNode);
+                ThoughtPostSummary post = parsePost(postNode);
                 if (post != null) {
                     posts.add(post);
                 }
             }
 
             posts.sort(Comparator
-                    .comparingLong((ThoughtPostSummaryDto item) -> parseDateEpoch(item.date())).reversed()
-                    .thenComparing(ThoughtPostSummaryDto::title, String.CASE_INSENSITIVE_ORDER));
+                    .comparingLong((ThoughtPostSummary item) -> parseDateEpoch(item.date())).reversed()
+                    .thenComparing(ThoughtPostSummary::title, String.CASE_INSENSITIVE_ORDER));
             return posts;
         } catch (IOException e) {
             throw new IllegalStateException("读取 posts.json 失败", e);
         }
     }
 
-    private ThoughtPostSummaryDto parsePost(JsonNode postNode) {
+    /**
+     * 从单篇文章节点中提取用于统计的 thoughts 摘要。
+     */
+    private ThoughtPostSummary parsePost(JsonNode postNode) {
         JsonNode frontmatter = postNode.path("frontmatter");
         if (!frontmatter.path("publish").asBoolean(false)) {
             return null;
@@ -214,18 +182,13 @@ public class TagService {
             return null;
         }
 
-        String description = frontmatter.path("description").asText("").trim();
-        if (description.isEmpty()) {
-            description = postNode.path("excerpt").asText("").trim();
-        }
-
-        String excerpt = postNode.path("excerpt").asText("").trim();
         List<String> tags = normalizeTags(frontmatter.path("tags"));
-
-        int readMinutes = estimateReadMinutes(postNode.path("content").asText(""));
-        return new ThoughtPostSummaryDto(url, title, description, date, tags, excerpt, readMinutes);
+        return new ThoughtPostSummary(url, title, date, tags);
     }
 
+    /**
+     * 仅保留 /thoughts/ 下的真实文章页，排除导航页面。
+     */
     private boolean isThoughtPostUrl(String url) {
         if (url == null || url.isBlank()) {
             return false;
@@ -236,11 +199,13 @@ public class TagService {
         return !url.endsWith("/index.html") && !url.endsWith("/tags.html");
     }
 
+    /**
+     * 规范化标签数组：去空值、去重、保留输入顺序。
+     */
     private List<String> normalizeTags(JsonNode tagsNode) {
         if (tagsNode == null || !tagsNode.isArray()) {
             return List.of();
         }
-
         Set<String> uniqueTags = new LinkedHashSet<>();
         for (JsonNode tagNode : tagsNode) {
             String tag = tagNode.asText("").trim();
@@ -251,11 +216,13 @@ public class TagService {
         return new ArrayList<>(uniqueTags);
     }
 
+    /**
+     * 解析多种日期格式，统一转为毫秒时间戳供排序使用。
+     */
     private long parseDateEpoch(String value) {
         if (value == null || value.isBlank()) {
             return 0L;
         }
-
         String trimmed = value.trim();
         try {
             return OffsetDateTime.parse(trimmed).toInstant().toEpochMilli();
@@ -280,34 +247,9 @@ public class TagService {
         }
     }
 
-    private int estimateReadMinutes(String content) {
-        if (content == null || content.isBlank()) {
-            return 1;
-        }
-
-        // 与前端保持一致：按 300 词/分钟估算，至少 1 分钟。
-        int words = countWords(content);
-        return Math.max(1, (int) Math.ceil(words / 300.0));
+    private record ThoughtPostSummary(String url, String title, String date, List<String> tags) {
     }
 
-    private int countWords(String content) {
-        int count = 0;
-        String[] tokens = content.split("[^\\p{IsAlphabetic}\\p{IsDigit}\\u4E00-\\u9FFF]+");
-        for (String token : tokens) {
-            if (token == null || token.isBlank()) {
-                continue;
-            }
-
-            // CJK 按字符计数；其他按词计数。
-            if (token.codePointAt(0) >= 0x4E00 && token.codePointAt(0) <= 0x9FFF) {
-                count += token.length();
-            } else {
-                count += 1;
-            }
-        }
-        return Math.max(count, 0);
-    }
-
-    private record CachedThoughts(long loadedAtEpochMilli, List<ThoughtPostSummaryDto> posts) {
+    private record CachedThoughts(long loadedAtEpochMilli, List<ThoughtPostSummary> posts, int tagCount) {
     }
 }

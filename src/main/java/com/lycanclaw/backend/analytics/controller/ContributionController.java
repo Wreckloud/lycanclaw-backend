@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 接口控制器。
- *
+ * 贡献接口控制器。
+ * 用于提供贡献相关 REST 接口。
  * @author Wreckloud
  * @since 2026-05-15
  */

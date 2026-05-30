@@ -2,7 +2,6 @@ package com.lycanclaw.backend.common.security;
 
 /**
  * 管理员鉴权常量。
- *
  * @author Wreckloud
  * @since 2026-05-28
  */

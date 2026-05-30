@@ -3,8 +3,8 @@ package com.lycanclaw.backend.recommendation.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * 配置定义。
- *
+ * 推荐配置属性。
+ * 用于承载推荐相关外部配置项。
  * @author Wreckloud
  * @since 2026-05-15
  */

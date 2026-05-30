@@ -5,8 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * 数据传输模型。
- *
+ * 推荐手动配置数据模型。
+ * 用于在推荐手动配置业务链路中传递结构化数据。
  * @author Wreckloud
  * @since 2026-05-15
  */

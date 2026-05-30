@@ -8,8 +8,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import java.util.Arrays;
 
 /**
- * 配置定义。
- *
+ * 跨域访问配置。
+ * 用于统一配置前端可访问的来源域名与请求方法。
  * @author Wreckloud
  * @since 2026-05-15
  */

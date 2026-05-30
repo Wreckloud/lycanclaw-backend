@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * 安全组件。
- *
+ * 管理接口鉴权拦截器。
+ * 用于管理端请求的鉴权、限流与访问日志记录。
  * @author Wreckloud
  * @since 2026-05-15
  */

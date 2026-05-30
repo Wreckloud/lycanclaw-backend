@@ -19,8 +19,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 提供OpsCheck相关业务能力。
- *
+ * 运维检查服务。
+ * 执行依赖服务、索引文件与缓存状态的运维健康检查。
  * @author Wreckloud
  * @since 2026-05-15
  */

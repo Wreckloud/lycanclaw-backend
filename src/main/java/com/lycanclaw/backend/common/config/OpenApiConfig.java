@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * OpenAPI 与 Knife4j 文档配置
- *
  * @author Wreckloud
  * @since 2026-05-15
  */
@@ -26,8 +25,8 @@ import org.springframework.context.annotation.Configuration;
 )
 
 /**
- * 配置定义。
- *
+ * OpenAPI 文档配置。
+ * 用于配置 Swagger 与 Knife4j 文档展示信息。
  * @author Wreckloud
  * @since 2026-05-15
  */

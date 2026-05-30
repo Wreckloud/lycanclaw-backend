@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 接口控制器。
- *
+ * 管理首页接口控制器。
+ * 用于提供管理首页相关 REST 接口。
  * @author Wreckloud
  * @since 2026-05-15
  */

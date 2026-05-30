@@ -17,8 +17,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 提供Recommendation相关业务能力。
- *
+ * 推荐计算服务。
+ * 计算推荐文章、维护推荐缓存并提供刷新能力。
  * @author Wreckloud
  * @since 2026-05-15
  */

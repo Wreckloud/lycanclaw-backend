@@ -11,8 +11,8 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * 接口控制器。
- *
+ * 健康接口控制器。
+ * 用于提供健康相关 REST 接口。
  * @author Wreckloud
  * @since 2026-05-15
  */

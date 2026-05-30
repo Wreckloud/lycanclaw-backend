@@ -6,8 +6,8 @@ import java.util.Locale;
 import java.util.Optional;
 
 /**
- * 领域模型定义。
- *
+ * 音乐播放音质等级。
+ * 封装上游接口使用的音质参数，并提供默认播放降级顺序。
  * @author Wreckloud
  * @since 2026-05-15
  */

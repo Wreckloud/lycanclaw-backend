@@ -10,8 +10,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 提供AdminGovernance相关业务能力。
- *
+ * 管理治理服务。
+ * 提供推荐重算、标签缓存刷新与治理同步状态分级能力。
  * @author Wreckloud
  * @since 2026-05-15
  */

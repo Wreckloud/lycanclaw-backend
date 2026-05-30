@@ -7,8 +7,8 @@ import org.springframework.stereotype.Component;
 import java.util.Locale;
 
 /**
- * 安全组件。
- *
+ * 客户端 IP 解析器。
+ * 用于在直连或反向代理场景下提取真实来源 IP。
  * @author Wreckloud
  * @since 2026-05-15
  */

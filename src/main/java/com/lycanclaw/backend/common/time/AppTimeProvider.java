@@ -8,8 +8,8 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 
 /**
- * 模块定义。
- *
+ * 系统时间提供器。
+ * 用于统一输出带时区的当前时间，避免散落时间实现。
  * @author Wreckloud
  * @since 2026-05-15
  */

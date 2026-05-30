@@ -9,8 +9,8 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * 配置定义。
- *
+ * Web 安全拦截配置。
+ * 用于注册管理鉴权、访问限流与公共日志拦截器。
  * @author Wreckloud
  * @since 2026-05-15
  */
@@ -71,7 +71,6 @@ public class WebSecurityConfig implements WebMvcConfigurer {
                         "/api/comments/**",
                         "/api/stats/**",
                         "/api/recommendations/**",
-                        "/api/tags/**",
                         "/api/contributions/**",
                         "/api/music/**"
                 )

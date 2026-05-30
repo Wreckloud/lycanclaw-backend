@@ -8,8 +8,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 安全组件。
- *
+ * 内存滑动窗口限流器。
+ * 用于按 key 执行分钟级请求频率控制。
  * @author Wreckloud
  * @since 2026-05-15
  */

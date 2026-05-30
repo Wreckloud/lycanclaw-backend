@@ -3,8 +3,8 @@ package com.lycanclaw.backend.music.model;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * 领域模型定义。
- *
+ * 二维码登录状态。
+ * 对应网易云扫码登录接口返回的状态码。
  * @author Wreckloud
  * @since 2026-05-15
  */

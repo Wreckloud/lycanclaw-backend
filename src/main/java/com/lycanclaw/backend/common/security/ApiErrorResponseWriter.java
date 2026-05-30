@@ -11,8 +11,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
- * 安全组件。
- *
+ * 错误响应写入器。
+ * 用于把标准错误码写入 HTTP 响应体。
  * @author Wreckloud
  * @since 2026-05-15
  */

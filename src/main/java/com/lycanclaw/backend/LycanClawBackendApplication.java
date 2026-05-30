@@ -4,8 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * 应用启动入口。
- *
+ * 后端应用启动入口。
+ * 用于启动 Spring Boot 服务。
  * @author Wreckloud
  * @since 2026-05-15
  */

@@ -1,8 +1,8 @@
 package com.lycanclaw.backend.common.api;
 
 /**
- * 统一接口模型。
- *
+ * 统一错误码定义。
+ * 用于描述接口错误类型及默认提示文案，便于拦截器和异常处理复用。
  * @author Wreckloud
  * @since 2026-05-15
  */

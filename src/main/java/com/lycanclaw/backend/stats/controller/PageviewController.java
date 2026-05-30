@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 接口控制器。
- *
+ * 阅读量接口控制器。
+ * 用于提供阅读量相关 REST 接口。
  * @author Wreckloud
  * @since 2026-05-15
  */

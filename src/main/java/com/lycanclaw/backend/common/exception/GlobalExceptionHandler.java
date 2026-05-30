@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * 异常处理定义。
- *
+ * 全局异常处理器。
+ * 用于把业务异常和系统异常转换为统一响应结构。
  * @author Wreckloud
  * @since 2026-05-15
  */

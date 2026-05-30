@@ -3,8 +3,8 @@ package com.lycanclaw.backend.music.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 数据传输模型。
- *
+ * 音乐账号登录状态。
+ * 用于返回当前网易云登录态、账号昵称、用户 ID 和头像信息。
  * @author Wreckloud
  * @since 2026-05-15
  */

@@ -9,8 +9,8 @@ import java.security.MessageDigest;
 import java.util.Optional;
 
 /**
- * 安全组件。
- *
+ * 管理员令牌认证服务。
+ * 用于统一校验静态 token 与会话 token。
  * @author Wreckloud
  * @since 2026-05-15
  */

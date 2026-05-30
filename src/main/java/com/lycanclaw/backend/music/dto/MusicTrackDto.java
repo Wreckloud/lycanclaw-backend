@@ -3,8 +3,8 @@ package com.lycanclaw.backend.music.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 数据传输模型。
- *
+ * 音乐歌曲条目。
+ * 用于返回歌曲 ID、名称、歌手和封面。
  * @author Wreckloud
  * @since 2026-05-15
  */

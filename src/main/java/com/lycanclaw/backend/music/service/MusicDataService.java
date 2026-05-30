@@ -16,8 +16,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * 音乐数据聚合服务。
  * 获取歌曲数据和播放 URL，决策 public/login 并处理缓存与限流。
- *
  * @author Wreckloud
  * @since 2026-05-15
  */

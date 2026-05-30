@@ -4,8 +4,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 
 /**
- * 配置定义。
- *
+ * 推荐模块配置类。
+ * 用于注册推荐模块相关 Bean 与运行配置。
  * @author Wreckloud
  * @since 2026-05-15
  */

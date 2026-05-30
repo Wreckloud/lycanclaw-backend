@@ -18,8 +18,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 提供RecommendationManualConfig相关业务能力。
- *
+ * 手动推荐配置服务。
+ * 维护手动推荐配置的读写、校验与持久化。
  * @author Wreckloud
  * @since 2026-05-15
  */

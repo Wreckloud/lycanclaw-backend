@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * 安全组件。
- *
+ * 公开音乐接口限流拦截器。
+ * 用于限制公开音乐接口的访问频率。
  * @author Wreckloud
  * @since 2026-05-15
  */

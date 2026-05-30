@@ -11,8 +11,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
+ * 音乐登录服务。
  * 处理扫码登录、状态查询和刷新登录。
- *
  * @author Wreckloud
  * @since 2026-05-15
  */

@@ -19,8 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * 接口控制器。
- *
+ * 推荐接口控制器。
+ * 用于提供推荐相关 REST 接口。
  * @author Wreckloud
  * @since 2026-05-15
  */

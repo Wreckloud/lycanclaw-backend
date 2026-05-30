@@ -5,8 +5,8 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
+ * 音乐登录会话服务。
  * 保存网易云登录 Cookie。
- *
  * @author Wreckloud
  * @since 2026-05-15
  */

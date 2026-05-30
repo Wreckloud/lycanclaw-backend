@@ -20,8 +20,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 提供Contribution相关业务能力。
- *
+ * 贡献统计服务。
+ * 读取 Git 贡献记录并生成热力图统计结果。
  * @author Wreckloud
  * @since 2026-05-15
  */

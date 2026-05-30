@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 数据传输模型。
- *
+ * 音乐入队请求参数。
+ * 用于接收前端提交的歌曲 ID、来源和期望音质等信息。
  * @author Wreckloud
  * @since 2026-05-15
  */

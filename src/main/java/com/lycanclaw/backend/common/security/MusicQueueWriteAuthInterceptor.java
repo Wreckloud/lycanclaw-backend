@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * 安全组件。
- *
+ * 音乐队列写入鉴权拦截器。
+ * 用于保护队列写操作接口，避免被匿名请求改写播放状态。
  * @author Wreckloud
  * @since 2026-05-15
  */

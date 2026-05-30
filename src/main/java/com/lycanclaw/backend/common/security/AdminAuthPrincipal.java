@@ -3,8 +3,8 @@ package com.lycanclaw.backend.common.security;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 安全组件。
- *
+ * 管理员认证主体。
+ * 用于表示当前管理请求的认证来源与身份信息。
  * @author Wreckloud
  * @since 2026-05-15
  */

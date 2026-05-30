@@ -5,8 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * 数据传输模型。
- *
+ * 每日贡献响应对象。
+ * 用于返回每日贡献业务链路输出数据。
  * @author Wreckloud
  * @since 2026-05-15
  */

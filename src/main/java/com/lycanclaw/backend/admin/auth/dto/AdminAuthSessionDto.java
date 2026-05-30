@@ -3,8 +3,8 @@ package com.lycanclaw.backend.admin.auth.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 数据传输模型。
- *
+ * 管理鉴权会话数据模型。
+ * 用于在管理鉴权会话业务链路中传递结构化数据。
  * @author Wreckloud
  * @since 2026-05-15
  */

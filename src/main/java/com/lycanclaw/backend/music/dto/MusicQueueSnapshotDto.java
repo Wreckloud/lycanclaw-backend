@@ -5,8 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * 数据传输模型。
- *
+ * 音乐播放队列快照。
+ * 用于返回当前播放项、等待队列数量以及后续歌曲预览。
  * @author Wreckloud
  * @since 2026-05-15
  */

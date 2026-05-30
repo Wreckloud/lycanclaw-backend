@@ -3,8 +3,8 @@ package com.lycanclaw.backend.common.api;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 统一接口模型。
- *
+ * 统一接口响应结构。
+ * 用于封装业务数据、错误码与提示信息，保持前后端响应格式一致。
  * @author Wreckloud
  * @since 2026-05-15
  */

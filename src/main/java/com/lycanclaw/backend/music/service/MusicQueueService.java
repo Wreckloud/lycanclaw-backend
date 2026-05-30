@@ -16,8 +16,8 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
+ * 音乐队列服务。
  * 管理当前播放和等待队列，只向前播放。
- *
  * @author Wreckloud
  * @since 2026-05-15
  */

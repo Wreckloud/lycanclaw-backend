@@ -3,8 +3,8 @@ package com.lycanclaw.backend.admin.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 数据传输模型。
- *
+ * 管理端首页概览响应。
+ * 用于聚合音乐状态、内容治理状态、风控配置和运维检查结果。
  * @author Wreckloud
  * @since 2026-05-15
  */

@@ -4,8 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 
 /**
- * 数据传输模型。
- *
+ * 阅读量Update请求参数。
+ * 用于接收阅读量Update业务链路输入数据。
  * @author Wreckloud
  * @since 2026-05-15
  */

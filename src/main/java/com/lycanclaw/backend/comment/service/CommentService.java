@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 提供Comment相关业务能力。
- *
+ * 评论聚合服务。
+ * 聚合 Waline 评论查询能力并提供最新评论摘要。
  * @author Wreckloud
  * @since 2026-05-15
  */

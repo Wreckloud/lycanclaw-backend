@@ -5,8 +5,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Locale;
 
 /**
- * 领域模型定义。
- *
+ * 健康等级枚举。
+ * 用于定义健康等级相关固定取值。
  * @author Wreckloud
  * @since 2026-05-15
  */

@@ -18,8 +18,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 提供AdminAuth相关业务能力。
- *
+ * 管理鉴权服务。
+ * 处理 Waline 会话换取、管理员登录态校验与注销流程。
  * @author Wreckloud
  * @since 2026-05-15
  */
