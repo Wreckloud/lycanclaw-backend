@@ -39,7 +39,7 @@ public class MusicQueueService {
 
     // 入队核心逻辑：固定追加到队尾，不支持插队/打断，保持“只向前播放”。
     /**
-     * 处理enqueue业务逻辑。
+     * 添加歌曲到播放队列。
      */
     public Map<String, Object> enqueue(QueueEnqueueRequest request) {
         if (request == null || request.id() == null || request.id().isBlank()) {
@@ -71,7 +71,7 @@ public class MusicQueueService {
 
     // 切到下一首：当前项丢弃，队首补位为新 current。
     /**
-     * 处理play next业务逻辑。
+     * 切换到下一首歌曲。
      */
     public synchronized Map<String, Object> playNext() {
         current = queue.pollFirst();
@@ -84,7 +84,7 @@ public class MusicQueueService {
 
     // 清空等待队列；可配置是否保留当前播放项。
     /**
-     * 执行clear操作。
+     * 清空等待队列，可选保留当前播放项。
      */
     public synchronized Map<String, Object> clear(boolean keepCurrent) {
         queue.clear();
@@ -99,7 +99,7 @@ public class MusicQueueService {
 
     // 给前端返回当前快照（current + 队列长度 + 最多 3 首预览）。
     /**
-     * 处理snapshot业务逻辑。
+     * 获取当前播放快照（当前项 + 队列长度 + 预览）。
      */
     public synchronized MusicQueueSnapshotDto snapshot(int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 3));

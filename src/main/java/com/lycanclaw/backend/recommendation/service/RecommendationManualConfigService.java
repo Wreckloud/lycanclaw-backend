@@ -138,6 +138,9 @@ public class RecommendationManualConfigService {
         if (!value.endsWith(THOUGHT_URL_SUFFIX)) {
             return false;
         }
+        if (value.endsWith("/index.html") || value.endsWith("/tags.html")) {
+            return false;
+        }
         return value.length() > (THOUGHT_URL_PREFIX.length() + THOUGHT_URL_SUFFIX.length());
     }
 

@@ -5,6 +5,7 @@ import com.lycanclaw.backend.admin.dto.AdminGovernanceSummaryDto;
 import com.lycanclaw.backend.admin.dto.AdminMusicStatusDto;
 import com.lycanclaw.backend.admin.dto.AdminOpsSummaryDto;
 import com.lycanclaw.backend.admin.dto.AdminRiskControlSummaryDto;
+import com.lycanclaw.backend.comment.dto.RecentCommentDto;
 import com.lycanclaw.backend.comment.service.CommentService;
 import com.lycanclaw.backend.common.model.HealthLevel;
 import com.lycanclaw.backend.common.time.AppTimeProvider;
@@ -63,10 +64,10 @@ public class AdminDashboardService {
         this.adminGovernanceService = adminGovernanceService;
         this.appTimeProvider = appTimeProvider;
     }
-    /**
-     * 处理build summary业务逻辑。
-     */
 
+    /**
+     * 构建管理首页聚合摘要。
+     */
     public AdminDashboardSummaryDto buildSummary() {
         Map<String, Object> checks = Map.of();
         String opsError = "";
@@ -113,7 +114,7 @@ public class AdminDashboardService {
             Map<String, Object> tagSummary = tagService.summary();
             int tagCount = toInt(tagSummary.get("tagCount"));
             int thoughtPostCount = toInt(tagSummary.get("thoughtPostCount"));
-            List<Map<String, Object>> recent = commentService.recentComments(5);
+            List<RecentCommentDto> recent = commentService.recentComments(5);
             return new AdminGovernanceSummaryDto(
                     true,
                     "",

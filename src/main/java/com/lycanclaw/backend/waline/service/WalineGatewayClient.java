@@ -2,6 +2,7 @@ package com.lycanclaw.backend.waline.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lycanclaw.backend.waline.config.WalineProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
@@ -18,7 +19,7 @@ import java.time.Duration;
 
 /**
  * Waline 网关客户端。
- * 统一访问 Waline 服务并返回评论与统计原始数据。
+ * 负责统一访问 Waline HTTP 接口并返回原始响应。
  * @author Wreckloud
  * @since 2026-05-15
  */
@@ -34,43 +35,48 @@ public class WalineGatewayClient {
         this.objectMapper = objectMapper;
         this.properties = properties;
     }
-    /**
-     * 处理fetch recent comments业务逻辑。
-     */
 
+    /**
+     * 拉取 Waline 最新评论原始响应。
+     */
     public JsonNode fetchRecentComments(int limit) {
         MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
         query.add("type", "recent");
         query.add("count", Integer.toString(Math.max(1, Math.min(limit, 50))));
         return get("/comment", query);
     }
-    /**
-     * 处理fetch comment count业务逻辑。
-     */
 
+    /**
+     * 查询指定文章路径的评论数量。
+     */
     public int fetchCommentCount(String path) {
+        String normalizedPath = normalizePath(path);
         MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
         query.add("type", "count");
-        query.add("url", path);
+        query.add("url", normalizedPath);
         JsonNode node = get("/comment", query);
-        return parseCommentCount(node, path);
+        return parseCommentCount(node, normalizedPath);
     }
-    /**
-     * 处理fetch pageview业务逻辑。
-     */
 
+    /**
+     * 查询指定文章路径的阅读量。
+     */
     public int fetchPageview(String path) {
+        String normalizedPath = normalizePath(path);
         MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
-        query.add("path", path);
+        query.add("path", normalizedPath);
         JsonNode node = get("/article", query);
         return parseInteger(node);
     }
-    /**
-     * 处理increase pageview业务逻辑。
-     */
 
+    /**
+     * 增加指定文章路径的阅读量。
+     */
     public int increasePageview(String path) {
-        JsonNode node = postJson("/article", "{\"path\":\"" + escapeJson(path) + "\"}");
+        String normalizedPath = normalizePath(path);
+        ObjectNode body = objectMapper.createObjectNode();
+        body.put("path", normalizedPath);
+        JsonNode node = postJson("/article", body);
         return parseInteger(node);
     }
 
@@ -78,9 +84,12 @@ public class WalineGatewayClient {
      * 使用 Waline 登录 token 查询当前用户信息。
      */
     public JsonNode fetchTokenProfile(String walineToken) {
+        if (walineToken == null || walineToken.isBlank()) {
+            throw new IllegalArgumentException("Waline token 不能为空");
+        }
         URI uri = buildUri("/token", new LinkedMultiValueMap<>());
         HttpRequest request = buildGetRequest(uri)
-                .header("Authorization", "Bearer " + walineToken)
+                .header("Authorization", "Bearer " + walineToken.trim())
                 .build();
         JsonNode node = send(request);
         int errno = node.path("errno").asInt(0);
@@ -98,14 +107,14 @@ public class WalineGatewayClient {
         return send(request);
     }
 
-    private JsonNode postJson(String path, String jsonBody) {
+    private JsonNode postJson(String path, JsonNode jsonBody) {
         URI uri = buildUri(path, new LinkedMultiValueMap<>());
         HttpRequest request = HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofSeconds(12))
                 .header("Accept", "application/json")
                 .header("Content-Type", "application/json")
                 .header("User-Agent", "LycanClawBackend/1.0")
-                .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody.toString(), StandardCharsets.UTF_8))
                 .build();
         return send(request);
     }
@@ -156,6 +165,17 @@ public class WalineGatewayClient {
         return baseUrl;
     }
 
+    private String normalizePath(String path) {
+        if (path == null || path.isBlank()) {
+            throw new IllegalArgumentException("path 参数不能为空");
+        }
+        String trimmed = path.trim();
+        return trimmed.startsWith("/") ? trimmed : "/" + trimmed;
+    }
+
+    /**
+     * 兼容 Waline count 接口可能返回的数字、数组或路径映射结构。
+     */
     private int parseCommentCount(JsonNode node, String path) {
         if (node == null || node.isNull()) return 0;
         if (node.isNumber()) return Math.max(0, node.asInt(0));
@@ -179,11 +199,5 @@ public class WalineGatewayClient {
         if (node.isNumber()) return Math.max(0, node.asInt(0));
         if (node.has("data") && node.get("data").isNumber()) return Math.max(0, node.get("data").asInt(0));
         return 0;
-    }
-
-    private String escapeJson(String value) {
-        return value
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"");
     }
 }

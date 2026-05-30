@@ -120,9 +120,11 @@ cd D:\Portfolio\Website\LycanClawBackend\deploy\scripts
 
 - `/admin/index.html`
 
-建议开启：
+当前默认策略：
 
-- `BACKEND_ADMIN_IP_WHITELIST`：仅允许你的固定出口 IP
+- 管理接口使用管理员令牌 + 会话令牌鉴权
+- 管理接口分钟级限流
+- 管理接口访问日志
 
 ## 5. HTTPS
 
@@ -148,6 +150,16 @@ bash restore.sh /path/to/LycanClawBackend/deploy/backups/<timestamp>
 - Waline MySQL 数据（`waline.sql`）
 - 后端运行目录（`backend-data.tar.gz`，含推荐手动配置等）
 - 当次 `compose` 环境快照（`compose.env.snapshot`）
+
+## 6.1 本地测试数据库初始化（可选）
+
+如果你准备把“文章索引 / 推荐管理 / 评论快照 / 阅读统计”逐步迁到本地 MySQL，可先执行：
+
+```sql
+SOURCE D:/Portfolio/Website/LycanClawBackend/deploy/sql/local-test-init.sql;
+```
+
+脚本会创建数据库 `lycanclaw_local_test` 及基础表结构，供本地联调使用。
 
 ## 7. 常见问题
 

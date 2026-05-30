@@ -85,7 +85,7 @@ public class RecommendationSourceService {
         }
 
         String url = postNode.path("url").asText("").trim();
-        if (url.isEmpty() || !url.startsWith("/thoughts/") || url.endsWith("/index.html")) {
+        if (url.isEmpty() || !url.startsWith("/thoughts/") || url.endsWith("/index.html") || url.endsWith("/tags.html")) {
             return null;
         }
 

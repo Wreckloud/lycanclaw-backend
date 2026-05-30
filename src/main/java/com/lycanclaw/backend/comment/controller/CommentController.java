@@ -1,5 +1,6 @@
 package com.lycanclaw.backend.comment.controller;
 
+import com.lycanclaw.backend.comment.dto.RecentCommentDto;
 import com.lycanclaw.backend.comment.service.CommentService;
 import com.lycanclaw.backend.common.api.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 评论接口控制器。
@@ -32,12 +32,11 @@ public class CommentController {
 
     @Operation(summary = "获取最新评论")
     @GetMapping("/recent")
-    public ApiResponse<List<Map<String, Object>>> recent(
-            @Parameter(description = "返回条数，默认 5，最大 50")
+    public ApiResponse<List<RecentCommentDto>> recent(
+            @Parameter(description = "返回条数，默认 5，最大 20")
             @RequestParam(value = "limit", defaultValue = "5") int limit
     ) {
-        int safeLimit = Math.max(1, Math.min(limit, 50));
-        return ApiResponse.ok(commentService.recentComments(safeLimit));
+        return ApiResponse.ok(commentService.recentComments(limit));
     }
 
     @Operation(summary = "获取文章评论数")

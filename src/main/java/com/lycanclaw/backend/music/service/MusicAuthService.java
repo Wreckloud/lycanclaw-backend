@@ -35,7 +35,7 @@ public class MusicAuthService {
 
     // 第一步：向上游申请二维码 key（unikey）。
     /**
-     * 处理create qr key业务逻辑。
+     * 创建二维码登录 key（unikey）。
      */
     public Map<String, Object> createQrKey() {
         JsonNode node = upstreamClient.get("/login/qr/key", Map.of("timestamp", String.valueOf(System.currentTimeMillis())));
@@ -50,7 +50,7 @@ public class MusicAuthService {
 
     // 第二步：根据 key 生成二维码图片/链接，前端直接展示 qrimg。
     /**
-     * 处理create qr image业务逻辑。
+     * 根据 key 生成二维码图片与登录链接。
      */
     public Map<String, Object> createQrImage(String key) {
         if (key == null || key.isBlank()) {
@@ -71,7 +71,7 @@ public class MusicAuthService {
 
     // 第三步：轮询扫码状态；803 时写入本地 cookie 会话。
     /**
-     * 处理check qr status业务逻辑。
+     * 轮询二维码登录状态；登录成功后写入本地会话。
      */
     public Map<String, Object> checkQrStatus(String key) {
         if (key == null || key.isBlank()) {
@@ -101,7 +101,7 @@ public class MusicAuthService {
 
     // 使用已保存 cookie 查询当前登录账号信息。
     /**
-     * 处理login status业务逻辑。
+     * 查询当前音乐账号登录状态。
      */
     public MusicLoginStatusDto loginStatus() {
         if (!sessionService.hasCookie()) {
@@ -127,7 +127,7 @@ public class MusicAuthService {
 
     // 保活登录态，避免 cookie 过快失效。
     /**
-     * 执行refresh login操作。
+     * 刷新当前登录态。
      */
     public Map<String, Object> refreshLogin() {
         if (!sessionService.hasCookie()) {
@@ -147,7 +147,7 @@ public class MusicAuthService {
 
     // 仅清理本地会话，不主动调用上游退出接口。
     /**
-     * 处理logout业务逻辑。
+     * 退出登录并清除本地会话。
      */
     public Map<String, Object> logout() {
         sessionService.clear();

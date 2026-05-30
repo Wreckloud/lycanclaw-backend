@@ -1,14 +1,13 @@
 package com.lycanclaw.backend.comment.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lycanclaw.backend.comment.dto.RecentCommentDto;
+import com.lycanclaw.backend.common.json.JsonNodeExtractors;
 import com.lycanclaw.backend.waline.service.WalineGatewayClient;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 评论聚合服务。
@@ -19,20 +18,23 @@ import java.util.Map;
 @Service
 public class CommentService {
 
+    private static final int MAX_RECENT_COMMENT_LIMIT = 20;
+
     private final WalineGatewayClient walineGatewayClient;
-    private final ObjectMapper objectMapper;
+    private final JsonNodeExtractors jsonNodeExtractors;
 
-    public CommentService(WalineGatewayClient walineGatewayClient, ObjectMapper objectMapper) {
+    public CommentService(WalineGatewayClient walineGatewayClient, JsonNodeExtractors jsonNodeExtractors) {
         this.walineGatewayClient = walineGatewayClient;
-        this.objectMapper = objectMapper;
+        this.jsonNodeExtractors = jsonNodeExtractors;
     }
-    /**
-     * 处理recent comments业务逻辑。
-     */
 
-    public List<Map<String, Object>> recentComments(int limit) {
-        JsonNode node = walineGatewayClient.fetchRecentComments(limit);
-        List<Map<String, Object>> result = new ArrayList<>();
+    /**
+     * 查询最新评论摘要。
+     */
+    public List<RecentCommentDto> recentComments(int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, MAX_RECENT_COMMENT_LIMIT));
+        JsonNode node = walineGatewayClient.fetchRecentComments(safeLimit);
+        List<RecentCommentDto> result = new ArrayList<>();
 
         if (node == null || node.isNull()) {
             return result;
@@ -44,27 +46,39 @@ public class CommentService {
         }
 
         for (JsonNode item : arrayNode) {
-            Map<String, Object> row = objectMapper.convertValue(item, new TypeReference<>() {
-            });
-            result.add(row);
+            result.add(parseRecentComment(item));
         }
 
         return result;
     }
-    /**
-     * 处理comment count业务逻辑。
-     */
 
+    /**
+     * 查询指定文章路径的评论数量。
+     */
     public int commentCount(String path) {
-        String normalizedPath = normalizePath(path);
-        return walineGatewayClient.fetchCommentCount(normalizedPath);
+        return walineGatewayClient.fetchCommentCount(path);
     }
 
-    private String normalizePath(String path) {
-        if (path == null || path.isBlank()) {
-            throw new IllegalArgumentException("path 参数不能为空");
+    private RecentCommentDto parseRecentComment(JsonNode item) {
+        String url = firstText(item, "url", "path");
+        String path = firstText(item, "path", "url");
+        return new RecentCommentDto(
+                firstText(item, "objectId", "id"),
+                firstText(item, "nick", "name"),
+                firstText(item, "comment", "content"),
+                url,
+                path,
+                firstText(item, "createdAt", "insertedAt")
+        );
+    }
+
+    private String firstText(JsonNode node, String... fields) {
+        for (String field : fields) {
+            String value = jsonNodeExtractors.findText(node, field).orElse("").trim();
+            if (!value.isEmpty()) {
+                return value;
+            }
         }
-        String trimmed = path.trim();
-        return trimmed.startsWith("/") ? trimmed : "/" + trimmed;
+        return "";
     }
 }

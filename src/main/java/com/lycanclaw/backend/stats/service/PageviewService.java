@@ -17,26 +17,18 @@ public class PageviewService {
     public PageviewService(WalineGatewayClient walineGatewayClient) {
         this.walineGatewayClient = walineGatewayClient;
     }
-    /**
-     * 获取pageview。
-     */
 
+    /**
+     * 查询指定文章路径的阅读量。
+     */
     public int getPageview(String path) {
-        return walineGatewayClient.fetchPageview(normalizePath(path));
+        return walineGatewayClient.fetchPageview(path);
     }
+
     /**
-     * 执行update pageview操作。
+     * 增加指定文章路径的阅读量。
      */
-
     public int updatePageview(String path) {
-        return walineGatewayClient.increasePageview(normalizePath(path));
-    }
-
-    private String normalizePath(String path) {
-        if (path == null || path.isBlank()) {
-            throw new IllegalArgumentException("path 参数不能为空");
-        }
-        String trimmed = path.trim();
-        return trimmed.startsWith("/") ? trimmed : "/" + trimmed;
+        return walineGatewayClient.increasePageview(path);
     }
 }
