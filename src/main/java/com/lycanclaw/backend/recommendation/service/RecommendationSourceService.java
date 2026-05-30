@@ -34,6 +34,17 @@ public class RecommendationSourceService {
      * 从 posts.json 读取候选文章（仅返回已发布的 thoughts 文章）。
      */
     public List<RecommendationCandidate> loadCandidates() {
+        return limitCandidates(readCandidates(), Math.max(1, properties.getMaxCandidatePosts()));
+    }
+
+    /**
+     * 从 posts.json 读取完整候选池（不裁剪数量）。
+     */
+    public List<RecommendationCandidate> loadAllCandidates() {
+        return readCandidates();
+    }
+
+    private List<RecommendationCandidate> readCandidates() {
         Path postsPath = Path.of(properties.getPostsJsonPath());
         if (!Files.exists(postsPath)) {
             throw new IllegalStateException("未找到 posts.json: " + postsPath);
@@ -54,15 +65,17 @@ public class RecommendationSourceService {
                     result.add(candidate);
                 }
             }
-
-            int max = Math.max(1, properties.getMaxCandidatePosts());
-            if (result.size() > max) {
-                return result.subList(0, max);
-            }
             return result;
         } catch (IOException e) {
             throw new IllegalStateException("读取推荐候选文章失败", e);
         }
+    }
+
+    private List<RecommendationCandidate> limitCandidates(List<RecommendationCandidate> candidates, int max) {
+        if (candidates.size() <= max) {
+            return candidates;
+        }
+        return candidates.subList(0, max);
     }
 
     private RecommendationCandidate parseCandidate(JsonNode postNode) {

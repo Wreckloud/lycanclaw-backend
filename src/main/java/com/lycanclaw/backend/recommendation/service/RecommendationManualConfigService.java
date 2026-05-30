@@ -26,6 +26,9 @@ import java.util.Set;
 @Service
 public class RecommendationManualConfigService {
 
+    private static final String THOUGHT_URL_PREFIX = "/thoughts/";
+    private static final String THOUGHT_URL_SUFFIX = ".html";
+
     private final ObjectMapper objectMapper;
     private final RecommendationProperties properties;
     private final AppTimeProvider appTimeProvider;
@@ -40,9 +43,8 @@ public class RecommendationManualConfigService {
         this.appTimeProvider = appTimeProvider;
     }
     /**
-     * 处理read业务逻辑。
+     * 读取当前手动推荐配置。
      */
-
     public synchronized RecommendationManualConfigDto read() {
         Path path = resolveConfigPath();
         if (!Files.exists(path)) {
@@ -67,9 +69,8 @@ public class RecommendationManualConfigService {
         }
     }
     /**
-     * 执行update操作。
+     * 更新手动推荐 URL 列表，并写入配置文件。
      */
-
     public synchronized RecommendationManualConfigDto update(List<String> manualUrls) {
         List<String> sanitized = sanitizeManualUrls(manualUrls);
         String updatedAt = appTimeProvider.nowOffsetString();
@@ -103,9 +104,13 @@ public class RecommendationManualConfigService {
         List<String> normalized = new ArrayList<>();
         for (String raw : manualUrls) {
             String value = normalizeUrl(raw);
-            if (value != null && value.startsWith("/thoughts/")) {
-                normalized.add(value);
+            if (value == null) {
+                continue;
             }
+            if (!isValidThoughtPostUrl(value)) {
+                throw new IllegalArgumentException("手动推荐链接格式无效，仅支持 /thoughts/*.html");
+            }
+            normalized.add(value);
         }
         return deduplicate(normalized);
     }
@@ -124,6 +129,16 @@ public class RecommendationManualConfigService {
     private List<String> deduplicate(List<String> values) {
         Set<String> unique = new LinkedHashSet<>(values);
         return new ArrayList<>(unique);
+    }
+
+    private boolean isValidThoughtPostUrl(String value) {
+        if (!value.startsWith(THOUGHT_URL_PREFIX)) {
+            return false;
+        }
+        if (!value.endsWith(THOUGHT_URL_SUFFIX)) {
+            return false;
+        }
+        return value.length() > (THOUGHT_URL_PREFIX.length() + THOUGHT_URL_SUFFIX.length());
     }
 
     private Path resolveConfigPath() {

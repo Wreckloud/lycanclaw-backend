@@ -44,8 +44,12 @@
       <button class="primary" onclick="loadAll()">加载数据</button>
       <button onclick="saveConfig()">保存手动推荐</button>
     </div>
+    <div class="row">
+      <input id="manualInput" type="text" placeholder="可选手填：/thoughts/文章.html" style="flex: 1; min-width: 280px; border-radius: 8px; border: 1px solid #2f3d62; background: #0f172a; color: #e5ecff; padding: 8px 10px;" />
+      <button onclick="addManualFromInput()">加入手动列表</button>
+    </div>
     <div class="status" id="status"></div>
-    <div class="small">手动推荐优先展示；顺序即首页展示优先级。</div>
+    <div class="small">手动推荐优先展示；顺序即首页展示优先级。手填仅做格式校验，不保证链接一定存在。</div>
   </div>
 
   <div class="columns">
@@ -133,6 +137,32 @@
 
   function moveManualByEncoded(encodedUrl, direction) {
     moveManual(decodeActionArg(encodedUrl), direction)
+  }
+
+  function normalizeManualUrl(value) {
+    const raw = String(value || '').trim()
+    if (!raw) return ''
+    return raw.startsWith('/') ? raw : `/${raw}`
+  }
+
+  function isThoughtPostUrl(value) {
+    return /^\/thoughts\/.+\.html$/i.test(value)
+  }
+
+  function addManualFromInput() {
+    const input = document.getElementById('manualInput')
+    const normalized = normalizeManualUrl(input?.value)
+    if (!normalized) {
+      setStatus('请输入文章链接后再加入', true)
+      return
+    }
+    if (!isThoughtPostUrl(normalized)) {
+      setStatus('链接格式无效，仅支持 /thoughts/*.html', true)
+      return
+    }
+    addManual(normalized)
+    if (input) input.value = ''
+    setStatus('已加入手动列表')
   }
 
   function renderManual() {

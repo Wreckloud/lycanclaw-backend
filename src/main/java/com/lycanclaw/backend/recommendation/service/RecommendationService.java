@@ -7,11 +7,18 @@ import com.lycanclaw.backend.waline.service.WalineGatewayClient;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -53,6 +60,12 @@ public class RecommendationService {
 
         RecommendationManualConfigDto manualConfig = manualConfigService.read();
         List<RecommendationPostDto> hotPosts = getHotPosts();
+        Map<String, RecommendationSourceService.RecommendationCandidate> candidateByUrl = sourceService.loadAllCandidates().stream()
+                .collect(Collectors.toMap(
+                        RecommendationSourceService.RecommendationCandidate::url,
+                        candidate -> candidate,
+                        (left, right) -> left
+                ));
 
         Map<String, RecommendationPostDto> byUrl = hotPosts.stream()
                 .collect(Collectors.toMap(RecommendationPostDto::url, post -> post, (left, right) -> left));
@@ -65,6 +78,12 @@ public class RecommendationService {
                 continue;
             }
             RecommendationPostDto post = byUrl.get(manualUrl);
+            if (post == null) {
+                RecommendationSourceService.RecommendationCandidate candidate = candidateByUrl.get(manualUrl);
+                if (candidate != null) {
+                    post = buildRecommendation(candidate);
+                }
+            }
             if (post == null || seen.contains(post.url())) {
                 continue;
             }
@@ -89,28 +108,40 @@ public class RecommendationService {
         return result;
     }
     /**
-     * 获取manual config。
+     * 读取手动推荐配置。
      */
-
     public RecommendationManualConfigDto getManualConfig() {
         return manualConfigService.read();
     }
-    /**
-     * 执行update manual config操作。
-     */
 
+    /**
+     * 更新手动推荐配置并清空热门缓存。
+     */
     public RecommendationManualConfigDto updateManualConfig(List<String> manualUrls) {
         RecommendationManualConfigDto config = manualConfigService.update(manualUrls);
         cachedHotSnapshot = null;
         return config;
     }
-    /**
-     * 查询candidates。
-     */
 
+    /**
+     * 获取管理端候选文章列表（按发布时间倒序）。
+     */
     public List<RecommendationPostDto> listCandidates(int limit) {
         int safeLimit = Math.max(1, Math.min(limit, Math.max(1, properties.getMaxCandidatePosts())));
-        return getHotPosts().stream().limit(safeLimit).toList();
+        Map<String, RecommendationPostDto> hotByUrl = getHotPosts().stream()
+                .collect(Collectors.toMap(RecommendationPostDto::url, post -> post, (left, right) -> left));
+
+        return sourceService.loadCandidates().stream()
+                .sorted(Comparator
+                        .comparingLong((RecommendationSourceService.RecommendationCandidate candidate) -> parseDateEpoch(candidate.date()))
+                        .reversed()
+                        .thenComparing(RecommendationSourceService.RecommendationCandidate::title, String.CASE_INSENSITIVE_ORDER))
+                .map(candidate -> {
+                    RecommendationPostDto hotPost = hotByUrl.get(candidate.url());
+                    return hotPost != null ? hotPost : buildRecommendation(candidate);
+                })
+                .limit(safeLimit)
+                .toList();
     }
 
     /**
@@ -247,6 +278,34 @@ public class RecommendationService {
         }
         String trimmed = value.trim();
         return trimmed.startsWith("/") ? trimmed : "/" + trimmed;
+    }
+
+    private long parseDateEpoch(String value) {
+        if (value == null || value.isBlank()) {
+            return 0L;
+        }
+        String trimmed = value.trim();
+        try {
+            return OffsetDateTime.parse(trimmed).toInstant().toEpochMilli();
+        } catch (DateTimeParseException ignored) {
+            // try next parser
+        }
+        try {
+            return LocalDateTime.parse(trimmed).toInstant(ZoneOffset.ofHours(8)).toEpochMilli();
+        } catch (DateTimeParseException ignored) {
+            // try next parser
+        }
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
+            return LocalDateTime.parse(trimmed, formatter).toInstant(ZoneOffset.ofHours(8)).toEpochMilli();
+        } catch (DateTimeParseException ignored) {
+            // try next parser
+        }
+        try {
+            return LocalDate.parse(trimmed).atStartOfDay().toInstant(ZoneOffset.ofHours(8)).toEpochMilli();
+        } catch (DateTimeParseException ignored) {
+            return 0L;
+        }
     }
 
     private record CachedHotSnapshot(long generatedAtEpochMilli, List<RecommendationPostDto> posts) {
