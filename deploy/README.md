@@ -111,6 +111,7 @@ cd D:\Portfolio\Website\LycanClawBackend\deploy\scripts
 
 - Waline/NCM 上游状态
 - 推荐手动配置更新时间
+- 推荐聚合任务状态（上次成功时间、耗时、失败数）
 - posts.json 挂载是否生效
 - 常见错误与处理建议
 
@@ -153,7 +154,7 @@ bash restore.sh /path/to/LycanClawBackend/deploy/backups/<timestamp>
 
 ## 6.1 本地测试数据库初始化（可选）
 
-如果你准备把“文章索引 / 推荐管理 / 评论快照 / 阅读统计”逐步迁到本地 MySQL，可先执行：
+如果你准备把“文章索引 / 推荐管理 / 评论快照 / 阅读统计 / 推荐聚合快照”逐步迁到本地 MySQL，可先执行：
 
 ```sql
 SOURCE D:/Portfolio/Website/LycanClawBackend/deploy/sql/local-test-init.sql;

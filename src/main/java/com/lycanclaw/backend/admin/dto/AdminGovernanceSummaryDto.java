@@ -31,6 +31,8 @@ public record AdminGovernanceSummaryDto(
         HealthLevel syncLevel,
         @Schema(description = "同步状态检查时间", example = "2026-05-28T22:05:43+08:00")
         String syncCheckedAt,
+        @Schema(description = "推荐聚合状态摘要（上次成功时间、耗时、失败数等）")
+        Map<String, Object> recommendationAggregation,
         @Schema(description = "治理动作接口路径映射")
         Map<String, String> actions
 ) {

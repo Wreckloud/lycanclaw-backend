@@ -115,6 +115,7 @@ public class AdminDashboardService {
             int tagCount = toInt(tagSummary.get("tagCount"));
             int thoughtPostCount = toInt(tagSummary.get("thoughtPostCount"));
             List<RecentCommentDto> recent = commentService.recentComments(5);
+            Map<String, Object> recommendationAggregation = asMap(asMap(syncStatus.get("caches")).get("recommendation"));
             return new AdminGovernanceSummaryDto(
                     true,
                     "",
@@ -125,6 +126,7 @@ public class AdminDashboardService {
                     recent.size(),
                     parseHealthLevel(syncStatus.get("level")),
                     String.valueOf(syncStatus.getOrDefault("checkedAt", "")),
+                    recommendationAggregation,
                     actions()
             );
         } catch (Exception ex) {
@@ -138,6 +140,7 @@ public class AdminDashboardService {
                     0,
                     HealthLevel.RED,
                     appTimeProvider.nowOffsetString(),
+                    Map.of(),
                     actions()
             );
         }
@@ -211,6 +214,14 @@ public class AdminDashboardService {
             return level;
         }
         return HealthLevel.fromValue(value == null ? HealthLevel.YELLOW.value() : String.valueOf(value));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> asMap(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
+        }
+        return Map.of();
     }
 
     private Map<String, String> actions() {

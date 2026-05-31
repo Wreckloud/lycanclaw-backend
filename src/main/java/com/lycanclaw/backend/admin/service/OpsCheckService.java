@@ -5,6 +5,7 @@ import com.lycanclaw.backend.common.api.ErrorCode;
 import com.lycanclaw.backend.music.service.NcmUpstreamClient;
 import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
 import com.lycanclaw.backend.recommendation.service.RecommendationManualConfigService;
+import com.lycanclaw.backend.recommendation.service.RecommendationService;
 import com.lycanclaw.backend.recommendation.config.RecommendationProperties;
 import com.lycanclaw.backend.tag.config.TagProperties;
 import com.lycanclaw.backend.common.time.AppTimeProvider;
@@ -30,6 +31,7 @@ public class OpsCheckService {
     private final WalineGatewayClient walineGatewayClient;
     private final NcmUpstreamClient ncmUpstreamClient;
     private final RecommendationManualConfigService recommendationManualConfigService;
+    private final RecommendationService recommendationService;
     private final RecommendationProperties recommendationProperties;
     private final TagProperties tagProperties;
     private final WalineProperties walineProperties;
@@ -39,6 +41,7 @@ public class OpsCheckService {
             WalineGatewayClient walineGatewayClient,
             NcmUpstreamClient ncmUpstreamClient,
             RecommendationManualConfigService recommendationManualConfigService,
+            RecommendationService recommendationService,
             RecommendationProperties recommendationProperties,
             TagProperties tagProperties,
             WalineProperties walineProperties,
@@ -47,6 +50,7 @@ public class OpsCheckService {
         this.walineGatewayClient = walineGatewayClient;
         this.ncmUpstreamClient = ncmUpstreamClient;
         this.recommendationManualConfigService = recommendationManualConfigService;
+        this.recommendationService = recommendationService;
         this.recommendationProperties = recommendationProperties;
         this.tagProperties = tagProperties;
         this.walineProperties = walineProperties;
@@ -67,6 +71,7 @@ public class OpsCheckService {
 
         result.put("sync", Map.of(
                 "recommendationManual", recommendationManualMeta(),
+                "recommendationAggregation", recommendationService.cacheState(),
                 "postsJson", postsJsonMeta(recommendationProperties.getPostsJsonPath()),
                 "tagPostsJson", postsJsonMeta(tagProperties.getPostsJsonPath())
         ));
@@ -79,8 +84,8 @@ public class OpsCheckService {
                 ),
                 Map.of(
                         "title", "推荐列表为空",
-                        "cause", "posts.json 路径挂载错误或文章 publish 未开启",
-                        "suggestion", "确认 POSTS_JSON_HOST_PATH 与 frontmatter.publish"
+                        "cause", "posts.json 路径异常，或推荐聚合任务尚未成功生成快照",
+                        "suggestion", "确认 POSTS_JSON_HOST_PATH 后手动触发一次推荐聚合"
                 ),
                 Map.of(
                         "title", "音乐接口失败",

@@ -1,16 +1,27 @@
 server:
   # 后端服务端口
-  port: 8080
+  port: 8081
 
 spring:
   application:
     # 应用名称（日志与监控中展示）
     name: lycanclaw-backend
-  autoconfigure:
-    # 当前阶段不启用数据库，避免未配置数据源导致启动失败
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  datasource:
+    # MySQL 连接地址（本地测试默认数据库：lycanclaw_local_test）
+    url: ${LYCAN_DB_URL:jdbc:mysql://127.0.0.1:3306/lycanclaw_local_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    # 数据库用户名
+    username: ${LYCAN_DB_USERNAME:root}
+    # 数据库密码
+    password: ${LYCAN_DB_PASSWORD:1677}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    # 本地默认自动更新表结构；生产建议改为 validate 并用 SQL 迁移
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: false
+    open-in-view: false
 
 management:
   endpoints:
@@ -92,8 +103,16 @@ lycan:
     posts-json-path: D:/Portfolio/Website/LycanClaw/docs/public/posts.json
     # 手动推荐配置文件（管理员接口写入）
     manual-config-path: data/recommendation-manual.json
-    # 热门推荐缓存秒数
-    cache-seconds: 300
+    # 推荐聚合调度周期（毫秒，默认 5 分钟）
+    aggregation-interval-millis: 300000
+    # 单次聚合抓取 Waline 指标的并发数
+    aggregation-fetch-parallelism: 6
+    # 单篇文章聚合抓取超时时间（秒）
+    aggregation-fetch-timeout-seconds: 15
+    # 聚合快照保鲜窗口（秒）
+    snapshot-fresh-seconds: 900
+    # 启动后自动异步触发首轮聚合
+    startup-warmup-enabled: true
     # 最大候选文章数
     max-candidate-posts: 200
     score:

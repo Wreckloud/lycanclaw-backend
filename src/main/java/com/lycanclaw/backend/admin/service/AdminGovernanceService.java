@@ -36,11 +36,11 @@ public class AdminGovernanceService {
     }
 
     /**
-     * 手动触发推荐缓存重建，并返回动作执行快照。
+     * 手动触发推荐聚合任务，并返回受理与快照状态。
      */
     public Map<String, Object> rebuildRecommendations() {
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("action", "recommendations.rebuild");
+        payload.put("action", "recommendations.aggregate");
         payload.put("result", recommendationService.forceRebuildCache());
         payload.put("checkedAt", appTimeProvider.nowOffsetString());
         return payload;

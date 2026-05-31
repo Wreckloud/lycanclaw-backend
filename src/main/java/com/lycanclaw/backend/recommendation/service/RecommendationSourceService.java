@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -53,7 +52,7 @@ public class RecommendationSourceService {
         try {
             JsonNode root = objectMapper.readTree(Files.readString(postsPath));
             if (!root.isArray()) {
-                return Collections.emptyList();
+                throw new IllegalStateException("posts.json 数据结构异常，根节点不是数组");
             }
 
             List<RecommendationCandidate> result = new ArrayList<>();

@@ -22,9 +22,29 @@ public class RecommendationProperties {
     private String manualConfigPath = "data/recommendation-manual.json";
 
     /**
-     * 热门结果缓存时间（秒）。
+     * 推荐聚合调度周期（毫秒），默认 5 分钟。
      */
-    private int cacheSeconds = 300;
+    private long aggregationIntervalMillis = 300_000L;
+
+    /**
+     * 聚合任务每次抓取上游时的并发度。
+     */
+    private int aggregationFetchParallelism = 6;
+
+    /**
+     * 聚合任务每个候选抓取的超时时间（秒）。
+     */
+    private int aggregationFetchTimeoutSeconds = 15;
+
+    /**
+     * 聚合快照保鲜窗口（秒），超出后管理端会标记为过期。
+     */
+    private int snapshotFreshSeconds = 900;
+
+    /**
+     * 应用启动后是否自动异步触发首轮聚合。
+     */
+    private boolean startupWarmupEnabled = true;
 
     /**
      * 参与热门计算的最多文章数。
@@ -49,12 +69,44 @@ public class RecommendationProperties {
         this.manualConfigPath = manualConfigPath;
     }
 
-    public int getCacheSeconds() {
-        return cacheSeconds;
+    public long getAggregationIntervalMillis() {
+        return aggregationIntervalMillis;
     }
 
-    public void setCacheSeconds(int cacheSeconds) {
-        this.cacheSeconds = cacheSeconds;
+    public void setAggregationIntervalMillis(long aggregationIntervalMillis) {
+        this.aggregationIntervalMillis = aggregationIntervalMillis;
+    }
+
+    public int getAggregationFetchParallelism() {
+        return aggregationFetchParallelism;
+    }
+
+    public void setAggregationFetchParallelism(int aggregationFetchParallelism) {
+        this.aggregationFetchParallelism = aggregationFetchParallelism;
+    }
+
+    public int getAggregationFetchTimeoutSeconds() {
+        return aggregationFetchTimeoutSeconds;
+    }
+
+    public void setAggregationFetchTimeoutSeconds(int aggregationFetchTimeoutSeconds) {
+        this.aggregationFetchTimeoutSeconds = aggregationFetchTimeoutSeconds;
+    }
+
+    public int getSnapshotFreshSeconds() {
+        return snapshotFreshSeconds;
+    }
+
+    public void setSnapshotFreshSeconds(int snapshotFreshSeconds) {
+        this.snapshotFreshSeconds = snapshotFreshSeconds;
+    }
+
+    public boolean isStartupWarmupEnabled() {
+        return startupWarmupEnabled;
+    }
+
+    public void setStartupWarmupEnabled(boolean startupWarmupEnabled) {
+        this.startupWarmupEnabled = startupWarmupEnabled;
     }
 
     public int getMaxCandidatePosts() {

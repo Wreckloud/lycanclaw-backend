@@ -65,10 +65,13 @@ services:
       SERVER_PORT: 8080
       LYCAN_CORS_ALLOWED_ORIGINS: https://${DOMAIN},https://www.${DOMAIN}
       LYCAN_SECURITY_ADMIN_TOKEN: ${BACKEND_ADMIN_TOKEN}
-      LYCAN_SECURITY_ADMIN_IP_WHITELIST: ${BACKEND_ADMIN_IP_WHITELIST}
+      LYCAN_DB_URL: jdbc:mysql://mysql:3306/${WALINE_DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      LYCAN_DB_USERNAME: ${WALINE_DB_USER}
+      LYCAN_DB_PASSWORD: ${WALINE_DB_PASSWORD}
       LYCAN_ANALYTICS_REPO_PATH: /workspace/blog
       LYCAN_MUSIC_UPSTREAM_BASE_URL: http://ncm-api:3000
       LYCAN_RECOMMENDATION_POSTS_JSON_PATH: /data/posts.json
+      LYCAN_RECOMMENDATION_AGGREGATION_INTERVAL_MILLIS: 300000
       LYCAN_WALINE_BASE_URL: http://waline:8360
       LYCAN_TAG_POSTS_JSON_PATH: /data/posts.json
     volumes:

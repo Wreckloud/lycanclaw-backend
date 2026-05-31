@@ -113,11 +113,14 @@
 
     function renderSyncSummary(sync) {
       const manual = sync?.recommendationManual || {};
+      const aggregation = sync?.recommendationAggregation || {};
       const posts = sync?.postsJson || {};
       const tagPosts = sync?.tagPostsJson || {};
       document.getElementById('syncSummary').innerHTML = `
         <p>推荐手动配置更新时间：${manual.updatedAt || '未设置'}</p>
         <p>推荐手动条目数：${manual.manualCount ?? 0}</p>
+        <p>推荐聚合状态：${aggregation.running ? '运行中' : '空闲'} / 快照：${aggregation.hasSnapshot ? '可用' : '暂无'}</p>
+        <p>推荐聚合上次成功：${aggregation.lastSuccessAt || '-'} / 失败数：${aggregation.lastFailedCount ?? 0}</p>
         <p>推荐 posts.json：${posts.exists ? '存在' : '缺失'}（${posts.path || '-'}）</p>
         <p>tag posts.json：${tagPosts.exists ? '存在' : '缺失'}（${tagPosts.path || '-'}）</p>
       `;

@@ -63,7 +63,7 @@
       <h2>内容治理</h2>
       <div id="governanceStatus"></div>
       <div class="tools">
-        <button class="btn" id="rebuildRecommendationBtn">重算推荐缓存</button>
+        <button class="btn" id="rebuildRecommendationBtn">触发推荐聚合</button>
         <button class="btn" id="refreshTagBtn">刷新标签缓存</button>
         <a class="btn primary" href="/admin/recommendation-admin.html">推荐管理</a>
         <a class="btn" href="/api/tags/thoughts" target="_blank" rel="noopener">查看标签接口</a>
@@ -129,10 +129,16 @@
   function renderGovernance(governance) {
     const level = String(governance?.syncLevel || 'yellow');
     const levelClass = level === 'green' ? 'ok' : (level === 'red' ? 'bad' : 'warn');
+    const aggregation = governance?.recommendationAggregation || {};
     governanceEl.innerHTML = `
       <div class="line">手动推荐条目：<strong>${governance?.manualRecommendationCount ?? 0}</strong></div>
       <div class="line">随想标签数：<strong>${governance?.thoughtTagCount ?? 0}</strong>（文章 ${governance?.thoughtPostCount ?? 0}）</div>
       <div class="line">数据同步状态：<strong class="${levelClass}">${level.toUpperCase()}</strong></div>
+      <div class="line">推荐聚合：<strong class="${aggregation.running ? 'warn' : 'ok'}">${aggregation.running ? '运行中' : '空闲'}</strong></div>
+      <div class="meta">聚合快照：${aggregation.hasSnapshot ? '可用' : '暂无'} / 过期：${aggregation.expired ? '是' : '否'}</div>
+      <div class="meta">上次成功：${escapeHtml(aggregation.lastSuccessAt || '-')} / 耗时：${aggregation.lastDurationMs ?? '-'}ms</div>
+      <div class="meta">候选 ${aggregation.lastCandidateCount ?? 0} / 成功 ${aggregation.lastSuccessCount ?? 0} / 失败 ${aggregation.lastFailedCount ?? 0}</div>
+      <div class="meta">最后错误：${escapeHtml(aggregation.lastError || '无')}</div>
       <div class="meta">推荐配置更新时间：${escapeHtml(governance?.manualRecommendationUpdatedAt || '未设置')}</div>
       <div class="meta">同步检查时间：${escapeHtml(governance?.syncCheckedAt || '-')}</div>
     `;
@@ -154,8 +160,15 @@
     governanceActionStatusEl.style.color = '#60a5fa';
     try {
       const payload = await adminCommon.requestJson(path, { method: 'POST' });
-      governanceActionStatusEl.textContent = `治理动作状态：${actionName} 成功（${payload?.checkedAt || ''}）`;
-      governanceActionStatusEl.style.color = '#22c55e';
+      const accepted = payload?.result?.accepted;
+      const suffix = payload?.checkedAt || '';
+      if (accepted === false) {
+        governanceActionStatusEl.textContent = `治理动作状态：${actionName} 未受理（任务运行中）（${suffix}）`;
+        governanceActionStatusEl.style.color = '#f59e0b';
+      } else {
+        governanceActionStatusEl.textContent = `治理动作状态：${actionName} 已受理（${suffix}）`;
+        governanceActionStatusEl.style.color = '#22c55e';
+      }
       await loadSummary();
     } catch (error) {
       governanceActionStatusEl.textContent = `治理动作状态：${actionName} 失败：${error.message || String(error)}`;
@@ -195,7 +208,7 @@
   document.getElementById('refreshBtn').addEventListener('click', loadSummary);
   document.getElementById('logoutBtn').addEventListener('click', logout);
   document.getElementById('rebuildRecommendationBtn').addEventListener('click', () =>
-    governanceAction('/api/admin/governance/recommendations/rebuild', '重算推荐缓存')
+    governanceAction('/api/admin/governance/recommendations/rebuild', '触发推荐聚合')
   );
   document.getElementById('refreshTagBtn').addEventListener('click', () =>
     governanceAction('/api/admin/governance/tags/refresh', '刷新标签缓存')

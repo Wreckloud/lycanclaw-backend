@@ -3,10 +3,9 @@ package com.lycanclaw.backend.recommendation.service;
 import com.lycanclaw.backend.recommendation.config.RecommendationProperties;
 import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
 import com.lycanclaw.backend.recommendation.dto.RecommendationPostDto;
-import com.lycanclaw.backend.waline.service.WalineGatewayClient;
+import com.lycanclaw.backend.recommendation.entity.RecommendationMetricEntity;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -15,8 +14,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -25,7 +24,7 @@ import java.util.stream.Collectors;
 
 /**
  * 推荐计算服务。
- * 计算推荐文章、维护推荐缓存并提供刷新能力。
+ * 组合手动推荐与聚合热度快照，向前台输出推荐阅读列表。
  * @author Wreckloud
  * @since 2026-05-15
  */
@@ -34,20 +33,18 @@ public class RecommendationService {
 
     private final RecommendationSourceService sourceService;
     private final RecommendationManualConfigService manualConfigService;
-    private final WalineGatewayClient walineGatewayClient;
+    private final RecommendationAggregationService aggregationService;
     private final RecommendationProperties properties;
-
-    private volatile CachedHotSnapshot cachedHotSnapshot;
 
     public RecommendationService(
             RecommendationSourceService sourceService,
             RecommendationManualConfigService manualConfigService,
-            WalineGatewayClient walineGatewayClient,
+            RecommendationAggregationService aggregationService,
             RecommendationProperties properties
     ) {
         this.sourceService = sourceService;
         this.manualConfigService = manualConfigService;
-        this.walineGatewayClient = walineGatewayClient;
+        this.aggregationService = aggregationService;
         this.properties = properties;
     }
 
@@ -59,7 +56,7 @@ public class RecommendationService {
         String normalizedExcludePath = normalizeUrl(excludePath);
 
         RecommendationManualConfigDto manualConfig = manualConfigService.read();
-        List<RecommendationPostDto> hotPosts = getHotPosts();
+        List<RecommendationPostDto> hotPosts = buildHotPostsFromMetrics();
         Map<String, RecommendationSourceService.RecommendationCandidate> candidateByUrl = sourceService.loadAllCandidates().stream()
                 .collect(Collectors.toMap(
                         RecommendationSourceService.RecommendationCandidate::url,
@@ -81,7 +78,7 @@ public class RecommendationService {
             if (post == null) {
                 RecommendationSourceService.RecommendationCandidate candidate = candidateByUrl.get(manualUrl);
                 if (candidate != null) {
-                    post = buildRecommendation(candidate);
+                    post = buildRecommendation(candidate, null);
                 }
             }
             if (post == null || seen.contains(post.url())) {
@@ -107,6 +104,7 @@ public class RecommendationService {
 
         return result;
     }
+
     /**
      * 读取手动推荐配置。
      */
@@ -115,12 +113,10 @@ public class RecommendationService {
     }
 
     /**
-     * 更新手动推荐配置并清空热门缓存。
+     * 更新手动推荐配置。
      */
     public RecommendationManualConfigDto updateManualConfig(List<String> manualUrls) {
-        RecommendationManualConfigDto config = manualConfigService.update(manualUrls);
-        cachedHotSnapshot = null;
-        return config;
+        return manualConfigService.update(manualUrls);
     }
 
     /**
@@ -128,58 +124,62 @@ public class RecommendationService {
      */
     public List<RecommendationPostDto> listCandidates(int limit) {
         int safeLimit = Math.max(1, Math.min(limit, Math.max(1, properties.getMaxCandidatePosts())));
-        Map<String, RecommendationPostDto> hotByUrl = getHotPosts().stream()
-                .collect(Collectors.toMap(RecommendationPostDto::url, post -> post, (left, right) -> left));
 
-        return sourceService.loadCandidates().stream()
+        List<RecommendationSourceService.RecommendationCandidate> candidates = sourceService.loadCandidates().stream()
                 .sorted(Comparator
                         .comparingLong((RecommendationSourceService.RecommendationCandidate candidate) -> parseDateEpoch(candidate.date()))
                         .reversed()
                         .thenComparing(RecommendationSourceService.RecommendationCandidate::title, String.CASE_INSENSITIVE_ORDER))
-                .map(candidate -> {
-                    RecommendationPostDto hotPost = hotByUrl.get(candidate.url());
-                    return hotPost != null ? hotPost : buildRecommendation(candidate);
-                })
+                .toList();
+
+        Map<String, RecommendationMetricEntity> metricsByUrl = aggregationService.loadMetricsByUrls(
+                candidates.stream().map(RecommendationSourceService.RecommendationCandidate::url).toList()
+        );
+
+        return candidates.stream()
+                .map(candidate -> buildRecommendation(candidate, metricsByUrl.get(candidate.url())))
                 .limit(safeLimit)
                 .toList();
     }
 
     /**
-     * 手动触发推荐缓存重算，返回最新缓存快照。
+     * 手动触发推荐聚合任务，异步执行并立即返回受理状态。
      */
-    public synchronized Map<String, Object> forceRebuildCache() {
-        List<RecommendationPostDto> rebuilt = rebuildHotPosts();
-        long now = Instant.now().toEpochMilli();
-        cachedHotSnapshot = new CachedHotSnapshot(now, rebuilt);
-
-        return Map.of(
-                "rebuiltAtEpochMilli", now,
-                "totalCandidates", rebuilt.size(),
-                "topUrls", rebuilt.stream().limit(5).map(RecommendationPostDto::url).toList()
-        );
+    public Map<String, Object> forceRebuildCache() {
+        return aggregationService.triggerAsyncAggregation("manual");
     }
 
     /**
-     * 返回当前推荐缓存状态，供管理端展示。
+     * 返回当前推荐聚合快照状态，供管理端展示。
      */
     public Map<String, Object> cacheState() {
-        CachedHotSnapshot snapshot = cachedHotSnapshot;
-        if (snapshot == null) {
-            return Map.of(
-                    "hasCache", false,
-                    "expired", true,
-                    "size", 0
-            );
+        Map<String, Object> aggregation = aggregationService.snapshotState();
+
+        Map<String, Object> payload = new LinkedHashMap<>(aggregation);
+        payload.put("hasCache", asBoolean(aggregation.get("hasSnapshot")));
+        payload.put("size", asInt(aggregation.get("metricsCount")));
+        payload.put("ttlSeconds", Math.max(60, properties.getSnapshotFreshSeconds()));
+        return payload;
+    }
+
+    private List<RecommendationPostDto> buildHotPostsFromMetrics() {
+        List<RecommendationSourceService.RecommendationCandidate> candidates = sourceService.loadCandidates();
+        Map<String, RecommendationMetricEntity> metricsByUrl = aggregationService.loadMetricsByUrls(
+                candidates.stream().map(RecommendationSourceService.RecommendationCandidate::url).toList()
+        );
+
+        List<RecommendationPostDto> posts = new ArrayList<>(candidates.size());
+        for (RecommendationSourceService.RecommendationCandidate candidate : candidates) {
+            posts.add(buildRecommendation(candidate, metricsByUrl.get(candidate.url())));
         }
 
-        boolean expired = isCacheExpired(snapshot.generatedAtEpochMilli());
-        return Map.of(
-                "hasCache", true,
-                "expired", expired,
-                "size", snapshot.posts().size(),
-                "generatedAtEpochMilli", snapshot.generatedAtEpochMilli(),
-                "ttlSeconds", Math.max(5, properties.getCacheSeconds())
+        posts.sort(
+                Comparator.comparingDouble(RecommendationPostDto::hotScore).reversed()
+                        .thenComparing(Comparator.comparingLong(
+                                (RecommendationPostDto post) -> parseDateEpoch(post.date())
+                        ).reversed())
         );
+        return posts;
     }
 
     private RecommendationPostDto toManualPinned(RecommendationPostDto post) {
@@ -196,52 +196,13 @@ public class RecommendationService {
         );
     }
 
-    private List<RecommendationPostDto> getHotPosts() {
-        CachedHotSnapshot current = cachedHotSnapshot;
-        if (current != null && !isCacheExpired(current.generatedAtEpochMilli())) {
-            return current.posts();
-        }
-
-        synchronized (this) {
-            CachedHotSnapshot latest = cachedHotSnapshot;
-            if (latest != null && !isCacheExpired(latest.generatedAtEpochMilli())) {
-                return latest.posts();
-            }
-
-            List<RecommendationPostDto> rebuilt = rebuildHotPosts();
-            cachedHotSnapshot = new CachedHotSnapshot(Instant.now().toEpochMilli(), rebuilt);
-            return rebuilt;
-        }
-    }
-
-    private boolean isCacheExpired(long generatedAtEpochMilli) {
-        int cacheSeconds = Math.max(5, properties.getCacheSeconds());
-        long ttlMillis = cacheSeconds * 1000L;
-        return Instant.now().toEpochMilli() - generatedAtEpochMilli > ttlMillis;
-    }
-
-    private List<RecommendationPostDto> rebuildHotPosts() {
-        List<RecommendationSourceService.RecommendationCandidate> candidates = sourceService.loadCandidates();
-        Map<String, RecommendationPostDto> hotByUrl = new HashMap<>();
-
-        for (RecommendationSourceService.RecommendationCandidate candidate : candidates) {
-            RecommendationPostDto post = buildRecommendation(candidate);
-            hotByUrl.put(post.url(), post);
-        }
-
-        return hotByUrl.values().stream()
-                .sorted(Comparator
-                        .comparingDouble(RecommendationPostDto::hotScore).reversed()
-                        .thenComparing(RecommendationPostDto::date, Comparator.reverseOrder()))
-                .toList();
-    }
-
-    private RecommendationPostDto buildRecommendation(RecommendationSourceService.RecommendationCandidate candidate) {
-        int pageviewCount = safeFetchPageview(candidate.url());
-        int commentCount = safeFetchComment(candidate.url());
-
-        double score = pageviewCount * properties.getScore().getPageviewWeight()
-                + commentCount * properties.getScore().getCommentWeight();
+    private RecommendationPostDto buildRecommendation(
+            RecommendationSourceService.RecommendationCandidate candidate,
+            RecommendationMetricEntity metric
+    ) {
+        int pageviewCount = metric == null ? 0 : Math.max(0, metric.getPageviewCount());
+        int commentCount = metric == null ? 0 : Math.max(0, metric.getCommentCount());
+        double hotScore = metric == null ? 0.0D : metric.getHotScore();
 
         return new RecommendationPostDto(
                 candidate.url(),
@@ -251,25 +212,9 @@ public class RecommendationService {
                 candidate.tags(),
                 pageviewCount,
                 commentCount,
-                Math.round(score * 100.0) / 100.0,
+                hotScore,
                 false
         );
-    }
-
-    private int safeFetchPageview(String url) {
-        try {
-            return Math.max(0, walineGatewayClient.fetchPageview(url));
-        } catch (Exception ignored) {
-            return 0;
-        }
-    }
-
-    private int safeFetchComment(String url) {
-        try {
-            return Math.max(0, walineGatewayClient.fetchCommentCount(url));
-        } catch (Exception ignored) {
-            return 0;
-        }
     }
 
     private String normalizeUrl(String value) {
@@ -308,6 +253,11 @@ public class RecommendationService {
         }
     }
 
-    private record CachedHotSnapshot(long generatedAtEpochMilli, List<RecommendationPostDto> posts) {
+    private boolean asBoolean(Object value) {
+        return value instanceof Boolean b && b;
+    }
+
+    private int asInt(Object value) {
+        return value instanceof Number number ? number.intValue() : 0;
     }
 }

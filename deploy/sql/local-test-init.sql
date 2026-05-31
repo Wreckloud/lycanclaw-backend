@@ -78,3 +78,17 @@ CREATE TABLE IF NOT EXISTS `lc_system_state` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_lc_system_state_key` (`state_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 推荐聚合快照表：定时任务写入，推荐接口直接读取。
+CREATE TABLE IF NOT EXISTS `recommendation_metrics` (
+  `url` VARCHAR(255) NOT NULL,
+  `pageview_count` INT NOT NULL DEFAULT 0,
+  `comment_count` INT NOT NULL DEFAULT 0,
+  `hot_score` DOUBLE NOT NULL DEFAULT 0,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `source_status` VARCHAR(32) NOT NULL DEFAULT 'ok',
+  `last_error` VARCHAR(1000) NULL,
+  PRIMARY KEY (`url`),
+  KEY `idx_recommendation_metrics_updated_at` (`updated_at`),
+  KEY `idx_recommendation_metrics_hot_score` (`hot_score`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
