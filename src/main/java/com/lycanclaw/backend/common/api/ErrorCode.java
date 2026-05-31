@@ -8,6 +8,7 @@ package com.lycanclaw.backend.common.api;
  */
 public enum ErrorCode {
     BAD_REQUEST("BAD_REQUEST", "参数错误"),
+    NOT_FOUND("NOT_FOUND", "资源不存在"),
     INTERNAL_ERROR("INTERNAL_ERROR", "服务器错误"),
 
     ADMIN_RATE_LIMITED("ADMIN_RATE_LIMITED", "请求频率过高，请稍后再试"),

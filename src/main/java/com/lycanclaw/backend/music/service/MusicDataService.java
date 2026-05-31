@@ -33,6 +33,9 @@ public class MusicDataService {
     @Value("${lycan.music.fallback-uid}")
     private String fallbackUid;
 
+    @Value("${lycan.music.playlist-owner-uid:629126546}")
+    private String playlistOwnerUid;
+
     @Value("${lycan.music.preferred-level:exhigh}")
     private String preferredLevel;
 
@@ -59,55 +62,53 @@ public class MusicDataService {
     }
 
     /**
-     * 拉取周听歌榜：优先当前登录账号，未登录则回退 fallbackUid。
+     * 拉取周听歌榜：固定读取配置账号，和登录态解耦。
      */
     public Map<String, Object> getWeeklyRanking(int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 100));
-        String uid = resolveUid();
-
-        Map<String, String> query = new LinkedHashMap<>();
-        query.put("uid", uid);
-        query.put("type", "1");
-        query.put("timestamp", String.valueOf(System.currentTimeMillis()));
-        appendCookie(query);
-
-        JsonNode node = upstreamClient.get("/user/record", query);
-        int code = jsonNodeExtractors.findInt(node, "code").orElse(-1);
-        if (code != 200) {
-            throw new IllegalStateException("拉取周听歌榜失败，返回码: " + code);
-        }
-
-        JsonNode weekData = jsonNodeExtractors.findArray(node, "weekData")
-                .orElseThrow(() -> new IllegalStateException("周听歌榜数据结构异常，缺少 weekData"));
-
-        List<MusicTrackDto> tracks = new ArrayList<>();
-        for (JsonNode item : weekData) {
-            JsonNode song = item.has("song") ? item.get("song") : item;
-            if (song == null || song.isNull()) {
-                continue;
-            }
-            String id = safeText(song, "id");
-            String name = safeText(song, "name");
-            if (id.isBlank() || name.isBlank()) {
-                continue;
-            }
-            tracks.add(new MusicTrackDto(
-                    id,
-                    name,
-                    parseArtists(song.get("ar")),
-                    safeText(song.path("al"), "picUrl")
-            ));
-            if (tracks.size() >= safeLimit) {
-                break;
-            }
-        }
+        String uid = resolvePlaylistOwnerUid();
+        List<MusicTrackDto> tracks = fetchUserRecordTracks(uid, safeLimit, false);
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("limit", safeLimit);
         data.put("uid", uid);
         data.put("tracks", tracks);
-        data.put("source", sessionService.hasCookie() ? "login" : "fallback");
+        data.put("source", "playlist-owner");
         return data;
+    }
+
+    /**
+     * 查询首页随机池（先 weekData，不足再补 allData）。
+     */
+    public List<MusicTrackDto> getHomeTrackPool(int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 200));
+        String uid = resolvePlaylistOwnerUid();
+
+        List<MusicTrackDto> weekTracks = fetchUserRecordTracks(uid, safeLimit, false);
+        if (weekTracks.size() >= safeLimit) {
+            return weekTracks;
+        }
+
+        List<MusicTrackDto> allTracks = fetchUserRecordTracks(uid, safeLimit, true);
+        LinkedHashMap<String, MusicTrackDto> merged = new LinkedHashMap<>();
+        for (MusicTrackDto track : weekTracks) {
+            merged.put(track.id(), track);
+        }
+        for (MusicTrackDto track : allTracks) {
+            merged.putIfAbsent(track.id(), track);
+            if (merged.size() >= safeLimit) {
+                break;
+            }
+        }
+        return new ArrayList<>(merged.values());
+    }
+
+    /**
+     * 查询关于页榜单前 N 首（按最近一周顺序）。
+     */
+    public List<MusicTrackDto> getAboutRankingTracks(int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 10));
+        return fetchUserRecordTracks(resolvePlaylistOwnerUid(), safeLimit, false);
     }
 
     /**
@@ -183,31 +184,14 @@ public class MusicDataService {
         return data;
     }
 
-    /**
-     * 解析最终使用的 uid（登录账号 > 回退账号）。
-     */
-    private String resolveUid() {
-        if (sessionService.hasCookie()) {
-            String uid = resolveUidFromLoginStatus(sessionService.getCookie());
-            if (!uid.isBlank()) {
-                return uid;
-            }
+    private String resolvePlaylistOwnerUid() {
+        if (playlistOwnerUid != null && !playlistOwnerUid.isBlank()) {
+            return playlistOwnerUid.trim();
         }
         if (fallbackUid != null && !fallbackUid.isBlank()) {
             return fallbackUid.trim();
         }
-        throw new IllegalStateException("未检测到登录账号，且未配置 lycan.music.fallback-uid");
-    }
-
-    /**
-     * 从 /login/status 响应中提取当前账号 id。
-     */
-    private String resolveUidFromLoginStatus(String cookie) {
-        JsonNode node = upstreamClient.get("/login/status", Map.of(
-                "cookie", cookie,
-                "timestamp", String.valueOf(System.currentTimeMillis())
-        ));
-        return jsonNodeExtractors.findText(node, "id").orElse("");
+        throw new IllegalStateException("未配置 lycan.music.playlist-owner-uid");
     }
 
     /**
@@ -233,6 +217,50 @@ public class MusicDataService {
         String url = safeText(first, "url");
         String normalized = url.startsWith("http:") ? url.replace("http:", "https:") : url;
         return TrackUrlFetchResult.success(normalized);
+    }
+
+    private List<MusicTrackDto> fetchUserRecordTracks(String uid, int limit, boolean useAllData) {
+        Map<String, String> query = new LinkedHashMap<>();
+        query.put("uid", uid);
+        query.put("type", "1");
+        query.put("timestamp", String.valueOf(System.currentTimeMillis()));
+        appendCookie(query);
+
+        JsonNode node = upstreamClient.get("/user/record", query);
+        int code = jsonNodeExtractors.findInt(node, "code").orElse(-1);
+        if (code != 200) {
+            throw new IllegalStateException("拉取听歌记录失败，返回码: " + code);
+        }
+
+        JsonNode recordArray = useAllData
+                ? jsonNodeExtractors.findArray(node, "allData").orElse(null)
+                : jsonNodeExtractors.findArray(node, "weekData").orElse(null);
+        if (recordArray == null || !recordArray.isArray()) {
+            return List.of();
+        }
+
+        List<MusicTrackDto> tracks = new ArrayList<>();
+        for (JsonNode item : recordArray) {
+            JsonNode song = item.has("song") ? item.get("song") : item;
+            if (song == null || song.isNull()) {
+                continue;
+            }
+            String id = safeText(song, "id");
+            String name = safeText(song, "name");
+            if (id.isBlank() || name.isBlank()) {
+                continue;
+            }
+            tracks.add(new MusicTrackDto(
+                    id,
+                    name,
+                    parseArtists(song.get("ar")),
+                    safeText(song.path("al"), "picUrl")
+            ));
+            if (tracks.size() >= limit) {
+                break;
+            }
+        }
+        return tracks;
     }
 
     private Map<String, Object> toTrackUrlResponse(String songId, String preferred, TrackUrlResolveResult resolved) {
