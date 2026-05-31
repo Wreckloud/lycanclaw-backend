@@ -3,7 +3,9 @@ package com.lycanclaw.backend.music.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lycanclaw.backend.common.json.JsonNodeExtractors;
 import com.lycanclaw.backend.common.security.InMemorySlidingWindowRateLimiter;
+import com.lycanclaw.backend.music.dto.MusicLyricLineDto;
 import com.lycanclaw.backend.music.dto.MusicTrackDto;
+import com.lycanclaw.backend.music.dto.MusicTrackLyricDto;
 import com.lycanclaw.backend.music.model.MusicQualityLevel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 音乐数据聚合服务。
@@ -29,6 +33,8 @@ public class MusicDataService {
     private static final long TRACK_URL_PUBLIC_CACHE_TTL_MS = 5L * 60 * 1000;
     private static final long TRACK_URL_LOGIN_CACHE_TTL_MS = 3L * 60 * 1000;
     private static final long TRACK_URL_FAILURE_CACHE_TTL_MS = 30L * 1000;
+    private static final long LYRIC_CACHE_TTL_MS = 12L * 60 * 60 * 1000;
+    private static final Pattern LRC_LINE_PATTERN = Pattern.compile("\\[(\\d{1,2}):(\\d{1,2})(?:[.:](\\d{1,3}))?\\](.*)");
 
     @Value("${lycan.music.fallback-uid}")
     private String fallbackUid;
@@ -48,6 +54,7 @@ public class MusicDataService {
     private final InMemorySlidingWindowRateLimiter rateLimiter;
     private final Map<String, CacheEntry<SongDetail>> songDetailCache = new ConcurrentHashMap<>();
     private final Map<String, CacheEntry<TrackUrlResolveResult>> resolvedTrackUrlCache = new ConcurrentHashMap<>();
+    private final Map<String, CacheEntry<MusicTrackLyricDto>> lyricCache = new ConcurrentHashMap<>();
 
     public MusicDataService(
             NcmUpstreamClient upstreamClient,
@@ -184,6 +191,27 @@ public class MusicDataService {
         return data;
     }
 
+    /**
+     * 获取歌曲原文歌词时间轴。
+     */
+    public MusicTrackLyricDto getTrackLyric(String id) {
+        String safeId = validateSongId(id);
+        cleanupCaches();
+
+        CacheEntry<MusicTrackLyricDto> cached = lyricCache.get(safeId);
+        long now = System.currentTimeMillis();
+        if (cached != null && !cached.expired(now)) {
+            return cached.value();
+        }
+
+        JsonNode lyricNode = upstreamClient.get("/lyric", Map.of("id", safeId));
+        JsonNode lrcNode = lyricNode.path("lrc");
+        String lrcText = safeText(lrcNode, "lyric");
+        MusicTrackLyricDto parsed = parseLyric(safeId, lrcText);
+        lyricCache.put(safeId, new CacheEntry<>(parsed, now + LYRIC_CACHE_TTL_MS));
+        return parsed;
+    }
+
     private String resolvePlaylistOwnerUid() {
         if (playlistOwnerUid != null && !playlistOwnerUid.isBlank()) {
             return playlistOwnerUid.trim();
@@ -318,6 +346,7 @@ public class MusicDataService {
         long now = System.currentTimeMillis();
         cleanupExpired(songDetailCache, now);
         cleanupExpired(resolvedTrackUrlCache, now);
+        cleanupExpired(lyricCache, now);
     }
 
     private <T> void cleanupExpired(Map<String, CacheEntry<T>> cache, long now) {
@@ -384,6 +413,66 @@ public class MusicDataService {
             }
         }
         return String.join("/", names);
+    }
+
+    private MusicTrackLyricDto parseLyric(String songId, String lrcText) {
+        if (lrcText == null || lrcText.isBlank()) {
+            return new MusicTrackLyricDto(songId, false, List.of());
+        }
+
+        String[] rawLines = lrcText.split("\\r?\\n");
+        List<MusicLyricLineDto> lines = new ArrayList<>();
+        for (String rawLine : rawLines) {
+            if (rawLine == null || rawLine.isBlank()) {
+                continue;
+            }
+            Matcher matcher = LRC_LINE_PATTERN.matcher(rawLine);
+            if (!matcher.matches()) {
+                continue;
+            }
+            long timeMs = toLyricTimeMs(matcher.group(1), matcher.group(2), matcher.group(3));
+            String text = matcher.group(4) == null ? "" : matcher.group(4).trim();
+            if (text.isBlank()) {
+                continue;
+            }
+            lines.add(new MusicLyricLineDto(timeMs, text));
+        }
+
+        lines.sort((left, right) -> Long.compare(left.timeMs(), right.timeMs()));
+        return new MusicTrackLyricDto(songId, !lines.isEmpty(), lines);
+    }
+
+    private long toLyricTimeMs(String minuteText, String secondText, String fractionText) {
+        int minutes = parseInt(minuteText);
+        int seconds = parseInt(secondText);
+        int milliseconds = parseFractionMillis(fractionText);
+        return minutes * 60_000L + seconds * 1_000L + milliseconds;
+    }
+
+    private int parseFractionMillis(String fractionText) {
+        if (fractionText == null || fractionText.isBlank()) {
+            return 0;
+        }
+        String normalized = fractionText.trim();
+        if (normalized.length() == 1) {
+            normalized = normalized + "00";
+        } else if (normalized.length() == 2) {
+            normalized = normalized + "0";
+        } else if (normalized.length() > 3) {
+            normalized = normalized.substring(0, 3);
+        }
+        return parseInt(normalized);
+    }
+
+    private int parseInt(String text) {
+        if (text == null || text.isBlank()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(text.trim());
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
     }
 
     private record SongDetail(String id, String name, String artist, String cover) {

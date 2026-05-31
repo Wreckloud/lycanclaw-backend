@@ -111,6 +111,18 @@ public class MusicFlowController {
         return ApiResponse.ok(musicFlowService.state(resolveSessionId(sessionHeader, request)));
     }
 
+    /**
+     * 停止并清空当前播放会话。
+     */
+    @Operation(summary = "停止当前播放会话")
+    @PostMapping("/stop")
+    public ApiResponse<MusicFlowStateDto> stop(
+            @Parameter(hidden = true) @RequestHeader(value = SESSION_HEADER, required = false) String sessionHeader,
+            HttpServletRequest request
+    ) {
+        return ApiResponse.ok(musicFlowService.stop(resolveSessionId(sessionHeader, request)));
+    }
+
     private String resolveSessionId(String sessionHeader, HttpServletRequest request) {
         if (sessionHeader != null && !sessionHeader.isBlank()) {
             return sessionHeader.trim();

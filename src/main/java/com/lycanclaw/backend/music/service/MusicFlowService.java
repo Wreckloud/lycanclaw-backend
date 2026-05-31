@@ -155,6 +155,22 @@ public class MusicFlowService {
         return toStateDto(state);
     }
 
+    /**
+     * 停止并清空当前播放会话。
+     */
+    public synchronized MusicFlowStateDto stop(String sessionId) {
+        SessionState state = getOrCreateSession(sessionId);
+        cleanupExpiredSessions();
+
+        state.mode = MusicFlowMode.IDLE;
+        state.current = null;
+        state.aboutQueue.clear();
+        state.randomDeck.clear();
+        state.interruptSongId = "";
+        state.lastAccessAt = System.currentTimeMillis();
+        return toStateDto(state);
+    }
+
     private MusicQueueItemDto nextRandomItem(SessionState state) {
         if (state.homeTrackIds.isEmpty()) {
             state.homeTrackIds = loadHomeTrackIds();

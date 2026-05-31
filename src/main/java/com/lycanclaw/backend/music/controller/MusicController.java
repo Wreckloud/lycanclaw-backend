@@ -1,6 +1,7 @@
 package com.lycanclaw.backend.music.controller;
 
 import com.lycanclaw.backend.common.api.ApiResponse;
+import com.lycanclaw.backend.music.dto.MusicTrackLyricDto;
 import com.lycanclaw.backend.music.dto.MusicQueueSnapshotDto;
 import com.lycanclaw.backend.music.dto.QueueEnqueueRequest;
 import com.lycanclaw.backend.music.service.MusicDataService;
@@ -74,6 +75,18 @@ public class MusicController {
             @RequestParam(name = "level", required = false) String level
     ) {
         return ApiResponse.ok(musicDataService.getTrackDetailWithUrl(id, level));
+    }
+
+    /**
+     * 查询歌曲原文歌词时间轴。
+     */
+    @Operation(summary = "获取歌曲歌词")
+    @GetMapping("/track/lyric")
+    public ApiResponse<MusicTrackLyricDto> trackLyric(
+            @Parameter(description = "歌曲 ID", required = true)
+            @RequestParam("id") String id
+    ) {
+        return ApiResponse.ok(musicDataService.getTrackLyric(id));
     }
 
     /**
