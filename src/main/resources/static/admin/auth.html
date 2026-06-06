@@ -5,33 +5,54 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>管理员登录</title>
   <style>
-    body { margin: 0; font-family: "Segoe UI", "PingFang SC", sans-serif; background: #0b1220; color: #dbe7ff; }
-    .wrap { max-width: 720px; margin: 48px auto; padding: 0 16px; }
-    .card { background: #101a30; border: 1px solid #263654; border-radius: 12px; padding: 18px; }
-    h1 { margin: 0 0 12px; font-size: 24px; }
-    .hint { color: #95a4c8; line-height: 1.8; margin-bottom: 14px; }
-    .row { display: flex; gap: 10px; flex-wrap: wrap; }
-    button, a.btn { border-radius: 8px; border: 1px solid #365287; background: #0f1a32; color: #dce8ff; padding: 8px 12px; text-decoration: none; cursor: pointer; }
-    button.primary { background: #2563eb; border-color: #2563eb; }
-    .status { min-height: 22px; margin-top: 12px; color: #60a5fa; white-space: pre-wrap; }
+    :root {
+      color-scheme: dark;
+      --bg: #18181b;
+      --panel: #1f2026;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --accent: #19c56f;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background: var(--bg);
+      font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .card {
+      width: min(420px, 100%);
+      background: var(--panel);
+      padding: 22px;
+    }
+    h1 { margin: 0; font-size: 22px; line-height: 1.2; }
+    .subtitle { margin: 10px 0 18px; color: var(--muted); font-size: 14px; }
+    button {
+      width: 100%;
+      min-height: 42px;
+      border: 0;
+      background: var(--accent);
+      color: #08130d;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:disabled { opacity: .7; cursor: not-allowed; }
+    .status { min-height: 22px; margin-top: 14px; color: var(--accent); white-space: pre-wrap; font-size: 13px; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <section class="card">
-      <h1>LycanClaw 管理员登录</h1>
-      <div class="hint">
-        1. 点击“使用 Waline QQ 登录”后完成授权。<br>
-        2. 页面会自动把 Waline 登录身份换成后端会话。<br>
-        3. 只有 QQ 白名单（当前配置：1677820334）可进入管理端。
-      </div>
-      <div class="row">
-        <button class="primary" id="loginBtn">使用 Waline QQ 登录</button>
-        <a class="btn" href="/waline/" target="_blank" rel="noopener">打开 Waline 页面</a>
-      </div>
-      <div id="status" class="status">状态：待登录</div>
-    </section>
-  </div>
+  <section class="card">
+    <h1>管理员入口</h1>
+    <div class="subtitle">使用 Waline QQ 身份进入 LycanClaw 控制台。</div>
+    <button id="loginBtn">QQ 登录</button>
+    <div id="status" class="status">状态：待登录</div>
+  </section>
 
   <script src="/admin/admin-common.js"></script>
   <script>
@@ -39,7 +60,7 @@
 
     function setStatus(text, isError = false) {
       statusEl.textContent = `状态：${text}`;
-      statusEl.style.color = isError ? '#ef4444' : '#60a5fa';
+      statusEl.style.color = isError ? 'var(--danger)' : 'var(--accent)';
     }
 
     async function tryAutoLogin() {
@@ -54,13 +75,17 @@
     }
 
     document.getElementById('loginBtn').addEventListener('click', async () => {
+      const button = document.getElementById('loginBtn');
       try {
+        button.disabled = true;
         setStatus('正在打开 Waline 登录窗口...');
         const session = await adminCommon.loginWithWaline();
         setStatus(`登录成功，欢迎 ${session.nickname || '管理员'}，正在跳转...`);
         location.href = '/admin/index.html';
       } catch (error) {
         setStatus(error.message || String(error), true);
+      } finally {
+        button.disabled = false;
       }
     });
 

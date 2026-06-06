@@ -3,180 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>音乐账号登录管理</title>
+  <meta http-equiv="refresh" content="1; url=/admin/index.html#music" />
+  <title>跳转到统一控制台</title>
   <style>
-    body { font-family: "Segoe UI", "PingFang SC", sans-serif; margin: 0; background: #0f1117; color: #d6d9e0; }
-    .wrap { max-width: 780px; margin: 40px auto; padding: 24px; background: #171b24; border: 1px solid #2a3140; border-radius: 10px; }
-    h1 { font-size: 20px; margin: 0 0 16px; }
-    .row { margin: 12px 0; display: flex; gap: 12px; flex-wrap: wrap; }
-    button { border-radius: 8px; border: 1px solid #38445b; background: #10141d; color: #d6d9e0; padding: 8px 10px; }
-    button { cursor: pointer; background: #1f6feb; border-color: #1f6feb; }
-    button.secondary { background: #2d333b; border-color: #49556a; }
-    .status { margin-top: 14px; font-size: 14px; color: #9aa7bd; white-space: pre-wrap; }
-    .qr { margin-top: 16px; }
-    .qr img { width: 240px; height: 240px; background: #fff; border-radius: 6px; }
-    .qr a { display: inline-block; margin-top: 10px; font-size: 13px; color: #7fb3ff; }
-    .hint { font-size: 13px; color: #8b96aa; line-height: 1.7; }
-    .nav { display: flex; gap: 12px; margin-bottom: 12px; font-size: 13px; flex-wrap: wrap; }
-    .nav a { color: #7fb3ff; text-decoration: none; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0d1119; color: #edf2ff; font-family: "Microsoft YaHei", "Segoe UI", sans-serif; }
+    .card { max-width: 520px; padding: 24px; background: #151a24; }
+    a { color: #18c96e; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="nav">
-      <a href="/admin/index.html">管理首页</a>
-      <a href="/admin/music-login.html">音乐登录管理</a>
-      <a href="/admin/recommendation-admin.html">推荐管理</a>
-      <a href="/admin/ops-checks.html">运维检查项</a>
-    </div>
-    <h1>网易云音乐登录（管理员）</h1>
-    <p class="hint">
-      说明：本页面只用于你自己扫码授权。<br>
-      页面操作会请求 <code>/api/music/auth/*</code>，需携带管理会话（请求头 <code>X-Lycan-Admin-Token</code>）。
-    </p>
-    <div class="row">
-      <div id="meInfo" class="hint">管理员：加载中...</div>
-    </div>
-    <div class="row">
-      <button id="logoutAdmin" class="secondary">退出管理端登录</button>
-      <button id="checkStatus" class="secondary">检查登录状态</button>
-      <button id="logout" class="secondary">退出登录</button>
-    </div>
-    <div class="row">
-      <button id="createQr">生成二维码</button>
-      <button id="startPoll" class="secondary">开始轮询</button>
-      <button id="stopPoll" class="secondary">停止轮询</button>
-    </div>
-    <div class="qr">
-      <img id="qrImg" alt="二维码" />
-      <div><a id="qrLink" target="_blank" rel="noopener"></a></div>
-    </div>
-    <div id="status" class="status">状态：未开始</div>
-  </div>
-
-  <script src="/admin/admin-common.js"></script>
-  <script>
-    const qrImg = document.getElementById('qrImg');
-    const qrLink = document.getElementById('qrLink');
-    const statusBox = document.getElementById('status');
-    let qrKey = '';
-    let timer = null;
-
-    function setStatus(text) {
-      statusBox.textContent = `状态：${text}`;
-    }
-
-    function escapeHtml(value) {
-      return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-    }
-
-    function renderMe(me) {
-      const suffix = me?.qq ? `（QQ: ${escapeHtml(me.qq)}）` : '';
-      document.getElementById('meInfo').innerHTML = `管理员：<strong>${escapeHtml(me?.nickname || '未知')}</strong>${suffix} / 模式：${escapeHtml(me?.mode || '-')}`;
-    }
-
-    async function callApi(path, method = 'GET') {
-      return adminCommon.requestJson(path, { method });
-    }
-
-    async function createQr() {
-      const keyResp = await callApi('/api/music/auth/qr/key');
-      qrKey = keyResp.key;
-      const qrResp = await callApi(`/api/music/auth/qr/create?key=${encodeURIComponent(qrKey)}`);
-      const imageSrc = (qrResp.qrimg || '').trim();
-      if (!imageSrc) {
-        throw new Error('上游未返回二维码图片，请确认 api-enhanced 服务可用');
-      }
-      qrImg.src = imageSrc;
-      qrLink.href = qrResp.qrurl || '';
-      qrLink.textContent = qrResp.qrurl ? '二维码链接（无法显示图片时可点此打开）' : '';
-      setStatus('二维码已生成，请打开网易云音乐扫码');
-    }
-
-    async function pollOnce() {
-      if (!qrKey) throw new Error('请先生成二维码');
-      const data = await callApi(`/api/music/auth/qr/check?key=${encodeURIComponent(qrKey)}`);
-      setStatus(`${data.message}（code=${data.code}）`);
-      if (data.code === 803) {
-        stopPoll();
-        const status = await callApi('/api/music/auth/status');
-        setStatus(`登录成功，当前账号：${status.nickname || '未知'}`);
-      }
-      if (data.code === 800) {
-        stopPoll();
-      }
-    }
-
-    function startPoll() {
-      if (timer) return;
-      timer = setInterval(() => {
-        pollOnce().catch((e) => setStatus(e.message));
-      }, 2000);
-      setStatus('开始轮询登录状态');
-    }
-
-    function stopPoll() {
-      if (timer) {
-        clearInterval(timer);
-        timer = null;
-      }
-      setStatus('已停止轮询');
-    }
-
-    document.getElementById('createQr').addEventListener('click', () => {
-      createQr().catch((e) => setStatus(e.message));
-    });
-    qrImg.addEventListener('error', () => {
-      setStatus('二维码图片加载失败：请检查后端返回的 qrimg 或浏览器拦截策略');
-    });
-
-    document.getElementById('startPoll').addEventListener('click', () => {
-      startPoll();
-    });
-
-    document.getElementById('stopPoll').addEventListener('click', () => {
-      stopPoll();
-    });
-
-    document.getElementById('checkStatus').addEventListener('click', async () => {
-      try {
-        const data = await callApi('/api/music/auth/status');
-        setStatus(data.loggedIn ? `已登录：${data.nickname || '未知'}` : '当前未登录');
-      } catch (e) {
-        setStatus(e.message);
-      }
-    });
-
-    document.getElementById('logout').addEventListener('click', async () => {
-      try {
-        await callApi('/api/music/auth/logout', 'POST');
-        setStatus('已退出登录');
-      } catch (e) {
-        setStatus(e.message);
-      }
-    });
-
-    document.getElementById('logoutAdmin').addEventListener('click', async () => {
-      try {
-        await adminCommon.logout();
-      } finally {
-        location.href = '/admin/auth.html';
-      }
-    });
-
-    (async () => {
-      try {
-        const me = await adminCommon.ensureAuthenticated(true);
-        renderMe(me);
-      } catch (_error) {
-        // ensureAuthenticated 已跳转
-      }
-    })();
-  </script>
+  <main class="card">
+    <h1>音乐登录已迁移</h1>
+    <p>该页面已合并到统一管理控制台的“音乐”分区。</p>
+    <p><a href="/admin/index.html#music">立即打开统一控制台</a></p>
+  </main>
+  <script>window.setTimeout(() => location.replace('/admin/index.html#music'), 700);</script>
 </body>
 </html>

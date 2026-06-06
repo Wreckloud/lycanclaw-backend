@@ -1,6 +1,6 @@
 server:
   # 后端服务端口
-  port: 8081
+  port: 8080
 
 spring:
   application:
@@ -50,6 +50,9 @@ knife4j:
     language: zh_cn
 
 lycan:
+  admin:
+    # 管理端运行时配置文件（仅保存非敏感配置，可由后台页面在线修改）
+    runtime-config-path: data/admin-runtime-config.json
   system:
     # 系统时间时区（管理端检查时间、配置更新时间等）
     zone-id: Asia/Shanghai
@@ -59,8 +62,8 @@ lycan:
   security:
     # 管理员令牌（必须改成你自己的随机值）
     admin-token: change-me-token
-    # 管理员 QQ 白名单（逗号分隔，Waline 登录后仅这些 QQ 可换取后端会话）
-    admin-qq-whitelist: 1677820334
+    # 管理员 QQ 身份白名单（逗号分隔，可填 QQ 号或 Waline QQ OAuth 标识）
+    admin-qq-whitelist: 1677820334,UID_E59B5290860ADD10C36077980031A6FE
     # 是否要求 Waline 账号必须是 administrator 才能换取后端会话
     admin-require-waline-administrator: true
     # 后端管理会话有效期（秒）
@@ -89,8 +92,6 @@ lycan:
     # 统计目录，多个目录用英文逗号分隔
     scope: docs/thoughts,docs/knowledge
   music:
-    # 未登录时的回退网易云 uid（如不需要可置空：""）
-    fallback-uid: 629126546
     # 首页随机流与关于页榜单固定账号 uid（与登录态解耦）
     playlist-owner-uid: 629126546
     # 默认目标音质（公开链路降级顺序：exhigh -> higher -> standard）

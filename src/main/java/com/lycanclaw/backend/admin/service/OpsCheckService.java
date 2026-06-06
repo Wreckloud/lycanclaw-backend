@@ -2,6 +2,7 @@ package com.lycanclaw.backend.admin.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lycanclaw.backend.common.api.ErrorCode;
+import com.lycanclaw.backend.common.json.JsonNodeExtractors;
 import com.lycanclaw.backend.music.service.NcmUpstreamClient;
 import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
 import com.lycanclaw.backend.recommendation.service.RecommendationManualConfigService;
@@ -30,6 +31,7 @@ public class OpsCheckService {
 
     private final WalineGatewayClient walineGatewayClient;
     private final NcmUpstreamClient ncmUpstreamClient;
+    private final JsonNodeExtractors jsonNodeExtractors;
     private final RecommendationManualConfigService recommendationManualConfigService;
     private final RecommendationService recommendationService;
     private final RecommendationProperties recommendationProperties;
@@ -40,6 +42,7 @@ public class OpsCheckService {
     public OpsCheckService(
             WalineGatewayClient walineGatewayClient,
             NcmUpstreamClient ncmUpstreamClient,
+            JsonNodeExtractors jsonNodeExtractors,
             RecommendationManualConfigService recommendationManualConfigService,
             RecommendationService recommendationService,
             RecommendationProperties recommendationProperties,
@@ -49,6 +52,7 @@ public class OpsCheckService {
     ) {
         this.walineGatewayClient = walineGatewayClient;
         this.ncmUpstreamClient = ncmUpstreamClient;
+        this.jsonNodeExtractors = jsonNodeExtractors;
         this.recommendationManualConfigService = recommendationManualConfigService;
         this.recommendationService = recommendationService;
         this.recommendationProperties = recommendationProperties;
@@ -131,13 +135,14 @@ public class OpsCheckService {
     private Map<String, Object> checkNcmUpstream() {
         try {
             JsonNode status = ncmUpstreamClient.get("/login/status", Map.of());
-            int code = status.path("code").asInt(-1);
-            boolean reachable = true;
-            boolean ok = code >= 0;
+            int code = jsonNodeExtractors.findInt(status, "code").orElse(-1);
+            boolean anonymous = status.path("data").path("account").path("anonimousUser").asBoolean(false);
+            boolean ok = code == 200 || code == 301;
             return Map.of(
-                    "reachable", reachable,
+                    "reachable", true,
                     "ok", ok,
-                    "sampleStatusCode", code
+                    "sampleStatusCode", code,
+                    "loginState", anonymous ? "anonymous" : "account"
             );
         } catch (Exception ex) {
             return Map.of(

@@ -87,8 +87,8 @@
 
 说明：
 
-- 排行榜优先使用当前登录账号；未登录时回退 `lycan.music.fallback-uid`。
-- 周榜响应里的 `source` 字段为 `login` 或 `fallback`，用于标记数据来源。
+- 排行榜和随机流使用 `lycan.music.playlist-owner-uid`，与登录态解耦。
+- 周榜响应里的 `source` 固定为 `playlist-owner`，用于标记榜单来自配置账号。
 - 播放地址默认先尝试公开链路（`exhigh -> higher -> standard`），全部失败后才尝试登录链路。
 - 会员登录链路有全局限流保护（`lycan.security.music-login-url-global-limit-per-minute`）。
 - 歌曲详情与 URL 解析结果在内存做短缓存，减少上游请求。
@@ -132,7 +132,7 @@
 - `GET /api/admin/ops/checks`
   - 返回服务状态、同步状态、常见错误提示
 
-## 内容治理接口（管理员）
+## 推荐与索引接口（管理员）
 
 - `POST /api/admin/governance/recommendations/rebuild`
   - 手动触发推荐缓存重算
@@ -190,7 +190,6 @@ mvn spring-boot:run
 - `lycan.security.admin-auth-log-enabled`：管理端鉴权访问日志开关
 - `lycan.security.public-access-log-enabled`：公共 API 访问日志开关
 - `lycan.music.upstream.base-url`：api-enhanced 服务地址
-- `lycan.music.fallback-uid`：未登录时排行榜回退账号
 - `lycan.music.preferred-level`：默认音质级别（建议 `exhigh`）
 - `lycan.recommendation.posts-json-path`：前端 posts.json 路径
 - `lycan.recommendation.manual-config-path`：手动推荐持久化文件路径

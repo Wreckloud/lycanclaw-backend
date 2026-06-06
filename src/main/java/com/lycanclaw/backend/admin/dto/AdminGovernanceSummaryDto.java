@@ -6,16 +6,16 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
 
 /**
- * 管理治理摘要数据模型。
- * 用于在管理治理摘要业务链路中传递结构化数据。
+ * 推荐与索引摘要。
+ * 用于后台展示手动推荐、标签缓存、最新评论采样和推荐聚合状态。
  * @author Wreckloud
  * @since 2026-05-15
  */
-@Schema(description = "管理端治理摘要")
+@Schema(description = "管理端推荐与索引摘要")
 public record AdminGovernanceSummaryDto(
-        @Schema(description = "治理模块是否正常", example = "true")
+        @Schema(description = "推荐与索引模块是否正常", example = "true")
         boolean ok,
-        @Schema(description = "治理状态说明", example = "")
+        @Schema(description = "状态说明", example = "")
         String message,
         @Schema(description = "手动推荐条目数", example = "3")
         int manualRecommendationCount,

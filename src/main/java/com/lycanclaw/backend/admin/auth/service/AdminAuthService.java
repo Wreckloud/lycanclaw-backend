@@ -66,8 +66,8 @@ public class AdminAuthService {
         String nickname = pickText(user, "nick", "display_name");
         String email = pickText(user, "mail", "email");
         String userId = pickText(user, "objectId", "id");
-        String qq = resolveQq(user, email);
-        checkQqWhitelist(qq);
+        List<String> identityCandidates = resolveAdminIdentityCandidates(user, email);
+        String qq = checkQqWhitelist(identityCandidates);
 
         AdminAuthPrincipal principal = new AdminAuthPrincipal(
                 "session",
@@ -124,14 +124,23 @@ public class AdminAuthService {
         );
     }
 
-    private void checkQqWhitelist(String qq) {
+    private String checkQqWhitelist(List<String> identityCandidates) {
         Set<String> whitelist = parseWhitelist(adminQqWhitelistRaw);
         if (whitelist.isEmpty()) {
             throw new IllegalArgumentException("未配置 lycan.security.admin-qq-whitelist");
         }
-        if (qq.isBlank() || !whitelist.contains(qq)) {
+        for (String identity : identityCandidates) {
+            if (whitelist.contains(identity)) {
+                return identity;
+            }
+        }
+        if (identityCandidates.isEmpty()) {
+            throw new IllegalArgumentException("当前 Waline 账号缺少可校验的 QQ 身份");
+        }
+        if (identityCandidates.stream().noneMatch(whitelist::contains)) {
             throw new IllegalArgumentException("当前 Waline 账号不在管理员 QQ 白名单中");
         }
+        return "";
     }
 
     private Set<String> parseWhitelist(String rawValue) {
@@ -148,7 +157,7 @@ public class AdminAuthService {
         return values;
     }
 
-    private String resolveQq(JsonNode user, String email) {
+    private List<String> resolveAdminIdentityCandidates(JsonNode user, String email) {
         List<String> candidates = new ArrayList<>();
         String directQq = pickText(user, "qq");
         if (!directQq.isBlank()) {
@@ -167,7 +176,10 @@ public class AdminAuthService {
                 candidates.add(matcher.group(1));
             }
         }
-        return candidates.stream().filter(value -> !value.isBlank()).findFirst().orElse("");
+        return candidates.stream()
+                .filter(value -> !value.isBlank())
+                .distinct()
+                .toList();
     }
 
     private String pickText(JsonNode node, String... fields) {
