@@ -2,6 +2,7 @@ package com.lycanclaw.backend.tag.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lycanclaw.backend.runtimeconfig.service.RuntimeConfigService;
 import com.lycanclaw.backend.tag.config.TagProperties;
 import org.springframework.stereotype.Service;
 
@@ -33,11 +34,13 @@ public class TagService {
 
     private final ObjectMapper objectMapper;
     private final TagProperties properties;
+    private final RuntimeConfigService runtimeConfigService;
     private volatile CachedThoughts cache;
 
-    public TagService(ObjectMapper objectMapper, TagProperties properties) {
+    public TagService(ObjectMapper objectMapper, TagProperties properties, RuntimeConfigService runtimeConfigService) {
         this.objectMapper = objectMapper;
         this.properties = properties;
+        this.runtimeConfigService = runtimeConfigService;
     }
 
     /**
@@ -61,7 +64,7 @@ public class TagService {
                 "refreshedAtEpochMilli", rebuilt.loadedAtEpochMilli(),
                 "thoughtPostCount", rebuilt.posts().size(),
                 "tagCount", rebuilt.tagCount(),
-                "ttlSeconds", Math.max(5, properties.getCacheSeconds())
+                "ttlSeconds", runtimeConfigService.tagCacheSeconds()
         );
     }
 
@@ -86,7 +89,7 @@ public class TagService {
                 "thoughtPostCount", current.posts().size(),
                 "tagCount", current.tagCount(),
                 "loadedAtEpochMilli", current.loadedAtEpochMilli(),
-                "ttlSeconds", Math.max(5, properties.getCacheSeconds())
+                "ttlSeconds", runtimeConfigService.tagCacheSeconds()
         );
     }
 
@@ -126,7 +129,7 @@ public class TagService {
      * 判断缓存是否过期。
      */
     private boolean isExpired(long loadedAtEpochMilli) {
-        long ttlMillis = Math.max(5, properties.getCacheSeconds()) * 1000L;
+        long ttlMillis = runtimeConfigService.tagCacheSeconds() * 1000L;
         return System.currentTimeMillis() - loadedAtEpochMilli > ttlMillis;
     }
 

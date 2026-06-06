@@ -4,6 +4,7 @@ import com.lycanclaw.backend.recommendation.config.RecommendationProperties;
 import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
 import com.lycanclaw.backend.recommendation.dto.RecommendationPostDto;
 import com.lycanclaw.backend.recommendation.entity.RecommendationMetricEntity;
+import com.lycanclaw.backend.runtimeconfig.service.RuntimeConfigService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -35,17 +36,20 @@ public class RecommendationService {
     private final RecommendationManualConfigService manualConfigService;
     private final RecommendationAggregationService aggregationService;
     private final RecommendationProperties properties;
+    private final RuntimeConfigService runtimeConfigService;
 
     public RecommendationService(
             RecommendationSourceService sourceService,
             RecommendationManualConfigService manualConfigService,
             RecommendationAggregationService aggregationService,
-            RecommendationProperties properties
+            RecommendationProperties properties,
+            RuntimeConfigService runtimeConfigService
     ) {
         this.sourceService = sourceService;
         this.manualConfigService = manualConfigService;
         this.aggregationService = aggregationService;
         this.properties = properties;
+        this.runtimeConfigService = runtimeConfigService;
     }
 
     /**
@@ -123,7 +127,7 @@ public class RecommendationService {
      * 获取管理端候选文章列表（按发布时间倒序）。
      */
     public List<RecommendationPostDto> listCandidates(int limit) {
-        int safeLimit = Math.max(1, Math.min(limit, Math.max(1, properties.getMaxCandidatePosts())));
+        int safeLimit = Math.max(1, Math.min(limit, runtimeConfigService.maxCandidatePosts()));
 
         List<RecommendationSourceService.RecommendationCandidate> candidates = sourceService.loadCandidates().stream()
                 .sorted(Comparator
@@ -158,7 +162,7 @@ public class RecommendationService {
         Map<String, Object> payload = new LinkedHashMap<>(aggregation);
         payload.put("hasCache", asBoolean(aggregation.get("hasSnapshot")));
         payload.put("size", asInt(aggregation.get("metricsCount")));
-        payload.put("ttlSeconds", Math.max(60, properties.getSnapshotFreshSeconds()));
+        payload.put("ttlSeconds", runtimeConfigService.snapshotFreshSeconds());
         return payload;
     }
 

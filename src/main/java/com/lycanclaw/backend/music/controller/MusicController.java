@@ -38,7 +38,7 @@ public class MusicController {
     }
 
     /**
-     * 查询当前账号（或回退账号）的周听歌榜。
+     * 查询配置账号的周听歌榜。
      */
     @Operation(summary = "查询周听歌榜")
     @GetMapping("/ranking/weekly")

@@ -3,6 +3,7 @@ package com.lycanclaw.backend.recommendation.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lycanclaw.backend.recommendation.config.RecommendationProperties;
+import com.lycanclaw.backend.runtimeconfig.service.RuntimeConfigService;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -23,17 +24,23 @@ public class RecommendationSourceService {
 
     private final ObjectMapper objectMapper;
     private final RecommendationProperties properties;
+    private final RuntimeConfigService runtimeConfigService;
 
-    public RecommendationSourceService(ObjectMapper objectMapper, RecommendationProperties properties) {
+    public RecommendationSourceService(
+            ObjectMapper objectMapper,
+            RecommendationProperties properties,
+            RuntimeConfigService runtimeConfigService
+    ) {
         this.objectMapper = objectMapper;
         this.properties = properties;
+        this.runtimeConfigService = runtimeConfigService;
     }
 
     /**
      * 从 posts.json 读取候选文章（仅返回已发布的 thoughts 文章）。
      */
     public List<RecommendationCandidate> loadCandidates() {
-        return limitCandidates(readCandidates(), Math.max(1, properties.getMaxCandidatePosts()));
+        return limitCandidates(readCandidates(), runtimeConfigService.maxCandidatePosts());
     }
 
     /**

@@ -4,6 +4,7 @@ import com.lycanclaw.backend.common.time.AppTimeProvider;
 import com.lycanclaw.backend.recommendation.config.RecommendationProperties;
 import com.lycanclaw.backend.recommendation.entity.RecommendationMetricEntity;
 import com.lycanclaw.backend.recommendation.repository.RecommendationMetricRepository;
+import com.lycanclaw.backend.runtimeconfig.service.RuntimeConfigService;
 import com.lycanclaw.backend.waline.service.WalineGatewayClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,7 @@ public class RecommendationAggregationService {
     private final WalineGatewayClient walineGatewayClient;
     private final RecommendationProperties properties;
     private final AppTimeProvider appTimeProvider;
+    private final RuntimeConfigService runtimeConfigService;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicReference<AggregationRunStatus> latestStatus = new AtomicReference<>(AggregationRunStatus.initial());
@@ -55,13 +57,15 @@ public class RecommendationAggregationService {
             RecommendationMetricRepository metricRepository,
             WalineGatewayClient walineGatewayClient,
             RecommendationProperties properties,
-            AppTimeProvider appTimeProvider
+            AppTimeProvider appTimeProvider,
+            RuntimeConfigService runtimeConfigService
     ) {
         this.sourceService = sourceService;
         this.metricRepository = metricRepository;
         this.walineGatewayClient = walineGatewayClient;
         this.properties = properties;
         this.appTimeProvider = appTimeProvider;
+        this.runtimeConfigService = runtimeConfigService;
     }
 
     /**
@@ -127,7 +131,7 @@ public class RecommendationAggregationService {
      */
     public Map<String, Object> snapshotState() {
         AggregationRunStatus status = latestStatus.get();
-        long freshWindowMillis = Math.max(60_000L, properties.getSnapshotFreshSeconds() * 1000L);
+        long freshWindowMillis = Math.max(60_000L, runtimeConfigService.snapshotFreshSeconds() * 1000L);
         long nowMillis = Instant.now().toEpochMilli();
         boolean hasSnapshot = status.lastSuccessEpochMilli() > 0 && status.metricsCount() > 0;
         boolean expired = !hasSnapshot || nowMillis - status.lastSuccessEpochMilli() > freshWindowMillis;
@@ -146,7 +150,7 @@ public class RecommendationAggregationService {
         payload.put("lastSuccessCount", status.lastSuccessCount());
         payload.put("lastFailedCount", status.lastFailedCount());
         payload.put("lastError", status.lastError());
-        payload.put("freshWindowSeconds", properties.getSnapshotFreshSeconds());
+        payload.put("freshWindowSeconds", runtimeConfigService.snapshotFreshSeconds());
         payload.put("checkedAt", appTimeProvider.nowOffsetString());
         return payload;
     }
@@ -263,8 +267,8 @@ public class RecommendationAggregationService {
             errors.add("comment: " + errorMessage(ex));
         }
 
-        double score = pageviewCount * properties.getScore().getPageviewWeight()
-                + commentCount * properties.getScore().getCommentWeight();
+        double score = pageviewCount * runtimeConfigService.pageviewWeight()
+                + commentCount * runtimeConfigService.commentWeight();
 
         if (errors.isEmpty()) {
             return MetricFetchResult.success(candidate.url(), pageviewCount, commentCount, roundScore(score));

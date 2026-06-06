@@ -7,6 +7,7 @@ import com.lycanclaw.backend.music.dto.MusicLyricLineDto;
 import com.lycanclaw.backend.music.dto.MusicTrackDto;
 import com.lycanclaw.backend.music.dto.MusicTrackLyricDto;
 import com.lycanclaw.backend.music.model.MusicQualityLevel;
+import com.lycanclaw.backend.runtimeconfig.service.RuntimeConfigService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -36,15 +37,6 @@ public class MusicDataService {
     private static final long LYRIC_CACHE_TTL_MS = 12L * 60 * 60 * 1000;
     private static final Pattern LRC_LINE_PATTERN = Pattern.compile("\\[(\\d{1,2}):(\\d{1,2})(?:[.:](\\d{1,3}))?\\](.*)");
 
-    @Value("${lycan.music.fallback-uid}")
-    private String fallbackUid;
-
-    @Value("${lycan.music.playlist-owner-uid:629126546}")
-    private String playlistOwnerUid;
-
-    @Value("${lycan.music.preferred-level:exhigh}")
-    private String preferredLevel;
-
     @Value("${lycan.security.music-login-url-global-limit-per-minute:60}")
     private int loginUrlGlobalLimitPerMinute;
 
@@ -52,6 +44,7 @@ public class MusicDataService {
     private final MusicAuthSessionService sessionService;
     private final JsonNodeExtractors jsonNodeExtractors;
     private final InMemorySlidingWindowRateLimiter rateLimiter;
+    private final RuntimeConfigService runtimeConfigService;
     private final Map<String, CacheEntry<SongDetail>> songDetailCache = new ConcurrentHashMap<>();
     private final Map<String, CacheEntry<TrackUrlResolveResult>> resolvedTrackUrlCache = new ConcurrentHashMap<>();
     private final Map<String, CacheEntry<MusicTrackLyricDto>> lyricCache = new ConcurrentHashMap<>();
@@ -60,12 +53,14 @@ public class MusicDataService {
             NcmUpstreamClient upstreamClient,
             MusicAuthSessionService sessionService,
             JsonNodeExtractors jsonNodeExtractors,
-            InMemorySlidingWindowRateLimiter rateLimiter
+            InMemorySlidingWindowRateLimiter rateLimiter,
+            RuntimeConfigService runtimeConfigService
     ) {
         this.upstreamClient = upstreamClient;
         this.sessionService = sessionService;
         this.jsonNodeExtractors = jsonNodeExtractors;
         this.rateLimiter = rateLimiter;
+        this.runtimeConfigService = runtimeConfigService;
     }
 
     /**
@@ -135,18 +130,37 @@ public class MusicDataService {
             return toTrackUrlResponse(safeId, preferred, cached);
         }
 
+        SongDetail detail = getSongDetail(safeId);
+        long songDurationMs = detail.durationMs();
         List<String> levels = buildLevelAttempts(preferred);
+        TrackUrlFetchResult firstTrialResult = null;
 
         for (String attemptLevel : levels) {
-            TrackUrlFetchResult publicResult = fetchTrackUrlWithLevel(safeId, attemptLevel, false);
-            if (!publicResult.url().isBlank()) {
-                TrackUrlResolveResult resolved = TrackUrlResolveResult.success(publicResult.url(), attemptLevel, "public");
+            TrackUrlFetchResult publicResult = fetchTrackUrlWithLevel(safeId, attemptLevel, false, songDurationMs);
+            if (!publicResult.playable()) {
+                continue;
+            }
+            if (!publicResult.trial()) {
+                TrackUrlResolveResult resolved = TrackUrlResolveResult.success(publicResult.url(), attemptLevel, "public", false);
                 cacheTrackUrl(cacheKey, resolved, TRACK_URL_PUBLIC_CACHE_TTL_MS);
                 return toTrackUrlResponse(safeId, preferred, resolved);
+            }
+            if (firstTrialResult == null) {
+                firstTrialResult = publicResult;
             }
         }
 
         if (!hasLoginCookie) {
+            if (firstTrialResult != null) {
+                TrackUrlResolveResult trial = TrackUrlResolveResult.success(
+                        firstTrialResult.url(),
+                        firstTrialResult.level(),
+                        "public_trial",
+                        true
+                );
+                cacheTrackUrl(cacheKey, trial, TRACK_URL_FAILURE_CACHE_TTL_MS);
+                return toTrackUrlResponse(safeId, preferred, trial);
+            }
             TrackUrlResolveResult failed = TrackUrlResolveResult.failure(preferred, "public_only");
             cacheTrackUrl(cacheKey, failed, TRACK_URL_FAILURE_CACHE_TTL_MS);
             return toTrackUrlResponse(safeId, preferred, failed);
@@ -154,16 +168,32 @@ public class MusicDataService {
 
         boolean loginRateLimited = false;
         for (String attemptLevel : levels) {
-            TrackUrlFetchResult authResult = fetchTrackUrlWithLevel(safeId, attemptLevel, true);
+            TrackUrlFetchResult authResult = fetchTrackUrlWithLevel(safeId, attemptLevel, true, songDurationMs);
             if (authResult.rateLimited()) {
                 loginRateLimited = true;
                 continue;
             }
-            if (!authResult.url().isBlank()) {
-                TrackUrlResolveResult resolved = TrackUrlResolveResult.success(authResult.url(), attemptLevel, "login");
+            if (authResult.playable()) {
+                TrackUrlResolveResult resolved = TrackUrlResolveResult.success(
+                        authResult.url(),
+                        attemptLevel,
+                        authResult.trial() ? "login_trial" : "login",
+                        authResult.trial()
+                );
                 cacheTrackUrl(cacheKey, resolved, TRACK_URL_LOGIN_CACHE_TTL_MS);
                 return toTrackUrlResponse(safeId, preferred, resolved);
             }
+        }
+
+        if (firstTrialResult != null) {
+            TrackUrlResolveResult trial = TrackUrlResolveResult.success(
+                    firstTrialResult.url(),
+                    firstTrialResult.level(),
+                    "public_trial_after_login_failed",
+                    true
+            );
+            cacheTrackUrl(cacheKey, trial, TRACK_URL_FAILURE_CACHE_TTL_MS);
+            return toTrackUrlResponse(safeId, preferred, trial);
         }
 
         String failureSource = loginRateLimited ? "login_rate_limited" : "login_fallback_failed";
@@ -188,6 +218,7 @@ public class MusicDataService {
         data.put("url", urlInfo.get("url"));
         data.put("level", urlInfo.get("level"));
         data.put("source", urlInfo.get("source"));
+        data.put("trial", urlInfo.get("trial"));
         return data;
     }
 
@@ -204,20 +235,47 @@ public class MusicDataService {
             return cached.value();
         }
 
-        JsonNode lyricNode = upstreamClient.get("/lyric", Map.of("id", safeId));
-        JsonNode lrcNode = lyricNode.path("lrc");
-        String lrcText = safeText(lrcNode, "lyric");
+        String lrcText = requestLyricText(safeId);
         MusicTrackLyricDto parsed = parseLyric(safeId, lrcText);
         lyricCache.put(safeId, new CacheEntry<>(parsed, now + LYRIC_CACHE_TTL_MS));
         return parsed;
     }
 
-    private String resolvePlaylistOwnerUid() {
-        if (playlistOwnerUid != null && !playlistOwnerUid.isBlank()) {
-            return playlistOwnerUid.trim();
+    /**
+     * 拉取歌词文本：
+     * 1) 优先 /lyric；
+     * 2) 404 或结构异常时回退 /lyric/new。
+     */
+    private String requestLyricText(String songId) {
+        String primary = readLyricTextFromEndpoint("/lyric", songId);
+        if (!primary.isBlank()) {
+            return primary;
         }
-        if (fallbackUid != null && !fallbackUid.isBlank()) {
-            return fallbackUid.trim();
+        return readLyricTextFromEndpoint("/lyric/new", songId);
+    }
+
+    private String readLyricTextFromEndpoint(String endpoint, String songId) {
+        try {
+            JsonNode lyricNode = upstreamClient.get(endpoint, Map.of("id", songId));
+            JsonNode lrcNode = lyricNode.path("lrc");
+            return safeText(lrcNode, "lyric");
+        } catch (IllegalStateException ex) {
+            if (is404StatusError(ex)) {
+                return "";
+            }
+            throw ex;
+        }
+    }
+
+    private boolean is404StatusError(IllegalStateException ex) {
+        String message = ex.getMessage();
+        return message != null && message.contains("状态码: 404");
+    }
+
+    private String resolvePlaylistOwnerUid() {
+        String playlistOwnerUid = runtimeConfigService.playlistOwnerUid();
+        if (playlistOwnerUid != null && !playlistOwnerUid.isBlank()) {
+            return playlistOwnerUid;
         }
         throw new IllegalStateException("未配置 lycan.music.playlist-owner-uid");
     }
@@ -225,7 +283,7 @@ public class MusicDataService {
     /**
      * 带音质参数请求上游 URL 接口，返回可播放地址。
      */
-    private TrackUrlFetchResult fetchTrackUrlWithLevel(String id, String level, boolean withCookie) {
+    private TrackUrlFetchResult fetchTrackUrlWithLevel(String id, String level, boolean withCookie, long songDurationMs) {
         if (withCookie && !allowLoginUrlRequest()) {
             return TrackUrlFetchResult.limited();
         }
@@ -244,7 +302,10 @@ public class MusicDataService {
         JsonNode first = dataArray.get(0);
         String url = safeText(first, "url");
         String normalized = url.startsWith("http:") ? url.replace("http:", "https:") : url;
-        return TrackUrlFetchResult.success(normalized);
+        if (normalized.isBlank()) {
+            return TrackUrlFetchResult.empty();
+        }
+        return TrackUrlFetchResult.success(normalized, level, isTrialUrl(first, songDurationMs));
     }
 
     private List<MusicTrackDto> fetchUserRecordTracks(String uid, int limit, boolean useAllData) {
@@ -297,7 +358,53 @@ public class MusicDataService {
         data.put("url", resolved.url());
         data.put("level", resolved.level().isBlank() ? preferred : resolved.level());
         data.put("source", resolved.source());
+        data.put("trial", resolved.trial());
         return data;
+    }
+
+    /**
+     * 判断公开地址是否只是试听片段。
+     * 优先使用上游 freeTrial* 标记，缺失时再用可播放时长和歌曲总时长兜底。
+     */
+    private boolean isTrialUrl(JsonNode node, long songDurationMs) {
+        if (node == null || node.isNull()) {
+            return false;
+        }
+
+        if (node.hasNonNull("freeTrialInfo") && !node.path("freeTrialInfo").isNull()) {
+            return true;
+        }
+
+        JsonNode freeTrialPrivilege = node.path("freeTrialPrivilege");
+        if (!freeTrialPrivilege.isMissingNode() && !freeTrialPrivilege.isNull()) {
+            if (freeTrialPrivilege.path("resConsumable").asBoolean(false)
+                    || freeTrialPrivilege.path("userConsumable").asBoolean(false)
+                    || hasTextValue(freeTrialPrivilege, "listenType")
+                    || hasTextValue(freeTrialPrivilege, "cannotListenReason")
+                    || hasTextValue(freeTrialPrivilege, "playReason")
+                    || hasTextValue(freeTrialPrivilege, "freeLimitTagType")) {
+                return true;
+            }
+        }
+
+        JsonNode freeTimeTrialPrivilege = node.path("freeTimeTrialPrivilege");
+        if (!freeTimeTrialPrivilege.isMissingNode() && !freeTimeTrialPrivilege.isNull()) {
+            if (freeTimeTrialPrivilege.path("type").asInt(0) > 0
+                    || freeTimeTrialPrivilege.path("remainTime").asLong(0L) > 0) {
+                return true;
+            }
+        }
+
+        long playableTimeMs = node.path("time").asLong(0L);
+        return songDurationMs > 0
+                && playableTimeMs > 0
+                && playableTimeMs <= 120_000L
+                && playableTimeMs < Math.round(songDurationMs * 0.8D);
+    }
+
+    private boolean hasTextValue(JsonNode node, String field) {
+        JsonNode value = node.path(field);
+        return !value.isMissingNode() && !value.isNull() && !value.asText("").isBlank();
     }
 
     private boolean allowLoginUrlRequest() {
@@ -324,7 +431,8 @@ public class MusicDataService {
                 songId,
                 safeText(song, "name"),
                 parseArtists(song.get("ar")),
-                safeText(song.path("al"), "picUrl")
+                safeText(song.path("al"), "picUrl"),
+                song.path("dt").asLong(0L)
         );
         songDetailCache.put(songId, new CacheEntry<>(detail, now + SONG_DETAIL_CACHE_TTL_MS));
         return detail;
@@ -380,7 +488,7 @@ public class MusicDataService {
     }
 
     private String normalizeLevel(String level) {
-        MusicQualityLevel configuredDefault = MusicQualityLevel.parseOrDefault(preferredLevel, MusicQualityLevel.EXHIGH);
+        MusicQualityLevel configuredDefault = MusicQualityLevel.parseOrDefault(runtimeConfigService.preferredLevel(), MusicQualityLevel.EXHIGH);
         if (level == null || level.isBlank()) {
             return configuredDefault.value();
         }
@@ -475,30 +583,34 @@ public class MusicDataService {
         }
     }
 
-    private record SongDetail(String id, String name, String artist, String cover) {
+    private record SongDetail(String id, String name, String artist, String cover, long durationMs) {
     }
 
-    private record TrackUrlResolveResult(String url, String level, String source) {
-        private static TrackUrlResolveResult success(String url, String level, String source) {
-            return new TrackUrlResolveResult(url, level, source);
+    private record TrackUrlResolveResult(String url, String level, String source, boolean trial) {
+        private static TrackUrlResolveResult success(String url, String level, String source, boolean trial) {
+            return new TrackUrlResolveResult(url, level, source, trial);
         }
 
         private static TrackUrlResolveResult failure(String level, String source) {
-            return new TrackUrlResolveResult("", level, source);
+            return new TrackUrlResolveResult("", level, source, false);
         }
     }
 
-    private record TrackUrlFetchResult(String url, boolean rateLimited) {
-        private static TrackUrlFetchResult success(String url) {
-            return new TrackUrlFetchResult(url, false);
+    private record TrackUrlFetchResult(String url, String level, boolean trial, boolean rateLimited) {
+        private boolean playable() {
+            return !url.isBlank();
+        }
+
+        private static TrackUrlFetchResult success(String url, String level, boolean trial) {
+            return new TrackUrlFetchResult(url, level, trial, false);
         }
 
         private static TrackUrlFetchResult empty() {
-            return new TrackUrlFetchResult("", false);
+            return new TrackUrlFetchResult("", "", false, false);
         }
 
         private static TrackUrlFetchResult limited() {
-            return new TrackUrlFetchResult("", true);
+            return new TrackUrlFetchResult("", "", false, true);
         }
     }
 
