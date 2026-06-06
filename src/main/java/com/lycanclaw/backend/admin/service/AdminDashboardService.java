@@ -1,5 +1,6 @@
 package com.lycanclaw.backend.admin.service;
 
+import com.lycanclaw.backend.analytics.service.AdminAnalyticsService;
 import com.lycanclaw.backend.admin.dto.AdminDashboardSummaryDto;
 import com.lycanclaw.backend.admin.dto.AdminGovernanceSummaryDto;
 import com.lycanclaw.backend.admin.dto.AdminMusicStatusDto;
@@ -39,6 +40,7 @@ public class AdminDashboardService {
     private final CommentService commentService;
     private final OpsCheckService opsCheckService;
     private final AdminGovernanceService adminGovernanceService;
+    private final AdminAnalyticsService adminAnalyticsService;
     private final AppTimeProvider appTimeProvider;
 
     @Value("${lycan.security.auth-rate-limit-per-minute}")
@@ -54,6 +56,7 @@ public class AdminDashboardService {
             CommentService commentService,
             OpsCheckService opsCheckService,
             AdminGovernanceService adminGovernanceService,
+            AdminAnalyticsService adminAnalyticsService,
             AppTimeProvider appTimeProvider
     ) {
         this.musicAuthService = musicAuthService;
@@ -62,6 +65,7 @@ public class AdminDashboardService {
         this.commentService = commentService;
         this.opsCheckService = opsCheckService;
         this.adminGovernanceService = adminGovernanceService;
+        this.adminAnalyticsService = adminAnalyticsService;
         this.appTimeProvider = appTimeProvider;
     }
 
@@ -82,6 +86,7 @@ public class AdminDashboardService {
         return new AdminDashboardSummaryDto(
                 appTimeProvider.nowOffsetString(),
                 musicSection(),
+                adminAnalyticsService.summary(),
                 governanceSection(syncStatus),
                 riskSection(),
                 opsSection(checks, opsError)

@@ -92,3 +92,40 @@ CREATE TABLE IF NOT EXISTS `recommendation_metrics` (
   KEY `idx_recommendation_metrics_updated_at` (`updated_at`),
   KEY `idx_recommendation_metrics_hot_score` (`hot_score`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 前台访问统计表：记录核心页面/文章页访问与有效停留时间。
+CREATE TABLE IF NOT EXISTS `analytics_visit` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `visit_id` VARCHAR(64) NOT NULL,
+  `path` VARCHAR(512) NOT NULL,
+  `title` VARCHAR(255) NOT NULL DEFAULT '',
+  `page_type` VARCHAR(32) NOT NULL DEFAULT 'core',
+  `visitor_id` VARCHAR(96) NOT NULL DEFAULT 'anonymous',
+  `ip` VARCHAR(64) NOT NULL DEFAULT '',
+  `user_agent` VARCHAR(1000) NULL,
+  `referrer` VARCHAR(1000) NULL,
+  `started_at` DATETIME NOT NULL,
+  `ended_at` DATETIME NULL,
+  `duration_ms` BIGINT NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_analytics_visit_visit_id` (`visit_id`),
+  KEY `idx_analytics_visit_started_at` (`started_at`),
+  KEY `idx_analytics_visit_path` (`path`),
+  KEY `idx_analytics_visit_visitor` (`visitor_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 首页催更结算表：保存前端连续点击后的批量增量，只供管理端统计。
+CREATE TABLE IF NOT EXISTS `encouragement_event` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `path` VARCHAR(512) NOT NULL DEFAULT '/',
+  `title` VARCHAR(255) NOT NULL DEFAULT '首页催更',
+  `visitor_id` VARCHAR(96) NOT NULL DEFAULT 'anonymous',
+  `ip` VARCHAR(64) NOT NULL DEFAULT '',
+  `user_agent` VARCHAR(1000) NULL,
+  `delta` INT NOT NULL DEFAULT 1,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_encouragement_created_at` (`created_at`),
+  KEY `idx_encouragement_visitor` (`visitor_id`),
+  KEY `idx_encouragement_path` (`path`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

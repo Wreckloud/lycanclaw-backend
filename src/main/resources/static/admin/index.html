@@ -3,223 +3,600 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LycanClaw 管理端</title>
+  <title>LycanClaw 统一管理控制台</title>
   <style>
-    body { margin: 0; font-family: "Segoe UI", "PingFang SC", sans-serif; background: #0a1120; color: #dce8ff; }
-    .wrap { max-width: 1160px; margin: 22px auto; padding: 0 16px 26px; }
-    .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
-    h1 { margin: 0; font-size: 26px; }
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    button, a.btn { border-radius: 8px; border: 1px solid #365287; background: #0f1a32; color: #dce8ff; padding: 8px 12px; text-decoration: none; cursor: pointer; }
-    a.primary, button.primary { background: #2563eb; border-color: #2563eb; }
-    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .card { background: #101a31; border: 1px solid #26395d; border-radius: 12px; padding: 14px; }
-    .card h2 { margin: 0 0 10px; font-size: 19px; }
-    .meta { color: #91a9d3; font-size: 13px; }
-    .ok { color: #22c55e; }
-    .bad { color: #ef4444; }
-    .warn { color: #f59e0b; }
-    .line { margin: 7px 0; }
-    .tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-    .status { margin: 8px 0 12px; color: #60a5fa; min-height: 20px; }
-    ul { margin: 8px 0 0; padding-left: 18px; }
-    li { margin: 6px 0; }
-    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    :root {
+      color-scheme: dark;
+      --bg: #0d1119;
+      --surface: #151a24;
+      --surface-soft: #10151e;
+      --surface-muted: #1b222f;
+      --text: #eef3ff;
+      --muted: #9ca8bb;
+      --faint: #6f7a8d;
+      --green: #19c56f;
+      --yellow: #d7a441;
+      --red: #e65d68;
+      --accent: #19c56f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background: var(--bg);
+      font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+    }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+    code { color: #a8f0c5; }
+    .app { min-height: 100vh; display: grid; grid-template-columns: 240px minmax(0, 1fr); }
+    .sidebar { position: sticky; top: 0; height: 100vh; padding: 18px 14px; background: #0b1018; }
+    .brand { display: flex; gap: 10px; align-items: center; padding: 4px 8px 18px; }
+    .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; background: var(--surface); color: var(--accent); font-weight: 800; }
+    .brand-title { font-weight: 800; }
+    .brand-subtitle { margin-top: 2px; color: var(--muted); font-size: 12px; }
+    .nav { display: grid; gap: 4px; }
+    .nav-link { border: 0; width: 100%; color: var(--muted); background: transparent; text-align: left; padding: 10px 10px; display: flex; justify-content: space-between; align-items: center; }
+    .nav-link:hover, .nav-link.active { color: var(--text); background: var(--surface); }
+    .nav-link span:last-child { color: var(--faint); font-size: 12px; }
+    .main { min-width: 0; }
+    .topbar { position: sticky; top: 0; z-index: 4; min-height: 64px; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #0d1119; }
+    .page-title { margin: 0; font-size: 22px; }
+    .topbar-meta { color: var(--muted); font-size: 13px; }
+    .topbar-actions, .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .content { padding: 22px 24px 34px; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .section-head { margin-bottom: 16px; display: flex; justify-content: space-between; gap: 14px; align-items: flex-end; }
+    .section-head h2 { margin: 0; font-size: 23px; }
+    .section-head p { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
+    .grid { display: grid; gap: 12px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .grid.aside { grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); align-items: start; }
+    .card { background: var(--surface); padding: 16px; overflow: hidden; }
+    .metric { min-height: 104px; display: flex; flex-direction: column; justify-content: space-between; }
+    .metric-value { font-size: 29px; font-weight: 900; line-height: 1; color: var(--accent); }
+    .metric-label { color: var(--muted); font-size: 13px; }
+    .metric-note { color: var(--faint); font-size: 12px; }
+    .chart { height: 260px; width: 100%; }
+    .chart.small { height: 240px; }
+    .card-title { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 12px; }
+    .card-title h3 { margin: 0; font-size: 17px; }
+    .card-title small { color: var(--muted); }
+    .btn { border: 0; color: var(--text); background: var(--surface-muted); padding: 8px 11px; text-decoration: none; display: inline-flex; gap: 6px; align-items: center; justify-content: center; min-height: 36px; }
+    .btn:hover { background: #222b3a; }
+    .btn.primary { background: rgba(25, 197, 111, .18); color: #d9ffe8; }
+    .btn.danger { background: rgba(230, 93, 104, .16); color: #ffd8dc; }
+    .btn.link { background: transparent; color: var(--muted); padding: 5px; min-height: auto; }
+    .tag { display: inline-flex; align-items: center; padding: 4px 8px; font-size: 12px; color: var(--muted); background: var(--surface-muted); }
+    .tag.green { color: #b5ffd3; background: rgba(25, 197, 111, .14); }
+    .tag.yellow { color: #ffe5a9; background: rgba(215, 164, 65, .14); }
+    .tag.red { color: #ffd1d6; background: rgba(230, 93, 104, .14); }
+    .status-dot { width: 8px; height: 8px; display: inline-block; margin-right: 7px; background: var(--muted); }
+    .status-dot.green { background: var(--green); }
+    .status-dot.yellow { background: var(--yellow); }
+    .status-dot.red { background: var(--red); }
+    .list { display: grid; gap: 8px; }
+    .list-item { padding: 11px; background: var(--surface-soft); display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .list-title { font-weight: 750; margin-bottom: 5px; }
+    .list-meta { color: var(--muted); font-size: 12px; line-height: 1.6; word-break: break-all; }
+    .empty { color: var(--muted); padding: 16px; background: var(--surface-soft); text-align: center; }
+    .kv { display: grid; gap: 7px; }
+    .kv-row { display: flex; justify-content: space-between; gap: 14px; padding: 8px 0; }
+    .kv-row span:first-child { color: var(--muted); }
+    .kv-row span:last-child { text-align: right; word-break: break-all; }
+    .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .field { display: grid; gap: 6px; }
+    .field label { color: var(--muted); font-size: 13px; }
+    .field input, .field select { width: 100%; border: 0; background: var(--surface-soft); color: var(--text); padding: 9px 10px; outline: 0; }
+    .field input:focus, .field select:focus { background: #202837; }
+    .field-hint { color: var(--faint); font-size: 12px; }
+    .qr-wrap { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+    .qr-box { width: 210px; height: 210px; background: #fff; display: grid; place-items: center; overflow: hidden; }
+    .qr-box img { width: 100%; height: 100%; object-fit: contain; }
+    .message { position: fixed; right: 20px; bottom: 20px; z-index: 20; max-width: min(460px, calc(100vw - 40px)); background: var(--surface); padding: 12px 14px; color: var(--muted); display: none; }
+    .message.show { display: block; }
+    .message.error { color: #ffd6da; }
+    @media (max-width: 1080px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { position: relative; height: auto; padding: 14px; }
+      .brand { padding-bottom: 12px; }
+      .nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .topbar { padding: 12px 16px; }
+      .content { padding: 18px 16px 28px; }
+      .grid.two, .grid.four, .grid.aside { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 680px) {
+      .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .field-grid { grid-template-columns: 1fr; }
+      .list-item { flex-direction: column; }
+    }
   </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="top">
-    <h1>LycanClaw 管理端</h1>
-    <div class="actions">
-      <span id="meInfo" class="meta">管理员：加载中...</span>
-      <button id="refreshBtn" class="primary">刷新总览</button>
-      <button id="logoutBtn">退出登录</button>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">LC</div>
+      <div><div class="brand-title">LycanClaw</div><div class="brand-subtitle">统一管理控制台</div></div>
     </div>
-  </div>
-
-  <div id="status" class="status">状态：初始化中...</div>
-
-  <div class="grid">
-    <section class="card">
-      <h2>音乐账号与播放器链路</h2>
-      <div id="musicStatus"></div>
-      <div class="tools">
-        <a class="btn primary" href="/admin/music-login.html">网易云扫码登录</a>
-        <a class="btn" href="/admin/ops-checks.html">查看上游健康</a>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>评论与数据展示</h2>
-      <div id="commentStatus"></div>
-      <div class="tools">
-        <a class="btn primary" href="/admin/ops-checks.html">运维检查项</a>
-        <a class="btn" href="/waline/">打开 Waline</a>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>内容治理</h2>
-      <div id="governanceStatus"></div>
-      <div class="tools">
-        <button class="btn" id="rebuildRecommendationBtn">触发推荐聚合</button>
-        <button class="btn" id="refreshTagBtn">刷新标签缓存</button>
-        <a class="btn primary" href="/admin/recommendation-admin.html">推荐管理</a>
-        <a class="btn" href="/api/tags/thoughts" target="_blank" rel="noopener">查看标签接口</a>
-      </div>
-      <div id="governanceActionStatus" class="meta" style="margin-top: 10px;">治理动作状态：未执行</div>
-    </section>
-
-    <section class="card">
-      <h2>风控与安全基线</h2>
-      <div id="riskStatus"></div>
-    </section>
-  </div>
+    <nav class="nav" id="nav">
+      <button class="nav-link active" data-section="overview">总览 <span>01</span></button>
+      <button class="nav-link" data-section="music">音乐 <span>02</span></button>
+      <button class="nav-link" data-section="recommendation">推荐 <span>03</span></button>
+      <button class="nav-link" data-section="comments">评论 <span>04</span></button>
+      <button class="nav-link" data-section="ops">运维 <span>05</span></button>
+      <button class="nav-link" data-section="security">安全 <span>06</span></button>
+      <button class="nav-link" data-section="config">配置 <span>07</span></button>
+    </nav>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div><h1 class="page-title" id="pageTitle">总览</h1><div class="topbar-meta" id="pageSubtitle">加载控制台状态...</div></div>
+      <div class="topbar-actions"><span class="tag" id="meInfo">管理员：验证中</span><button class="btn primary" id="refreshAllBtn">刷新</button><button class="btn" id="logoutBtn">退出</button></div>
+    </header>
+    <div class="content">
+      <section class="section active" id="section-overview">
+        <div class="section-head"><div><h2>总览</h2><p>访问趋势、热门文章、催更与关键服务状态。</p></div></div>
+        <div class="grid four" id="overviewMetrics"></div>
+        <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>访问趋势</h3><small>最近 30 天</small></div><div class="chart" id="visitTrendChart"></div></div><div class="card"><div class="card-title"><h3>催更趋势</h3><small>最近 30 天</small></div><div class="chart" id="encourageTrendChart"></div></div></div>
+        <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>热门文章</h3><small>访问量</small></div><div class="list" id="topArticleList"></div></div><div class="card"><div class="card-title"><h3>Tag 关注</h3><small>访问聚合</small></div><div class="chart small" id="tagFocusChart"></div></div></div>
+        <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>上游状态</h3><small id="overviewCheckedAt">-</small></div><div id="overviewServices" class="kv"></div></div><div class="card"><div class="card-title"><h3>推荐与评论</h3><small>聚合状态</small></div><div id="overviewGovernance" class="kv"></div></div></div>
+      </section>
+      <section class="section" id="section-music">
+        <div class="section-head"><div><h2>音乐</h2><p>网易云扫码登录、账号状态与播放流配置。</p></div><div class="actions"><button class="btn" id="checkMusicBtn">检查状态</button><button class="btn danger" id="logoutMusicBtn">退出网易云</button></div></div>
+        <div class="grid aside"><div class="card"><div class="card-title"><h3>网易云扫码登录</h3><small id="musicStatusBadge">未检查</small></div><div class="qr-wrap"><div class="qr-box"><img id="qrImg" alt="网易云登录二维码" /></div><div style="flex:1; min-width:260px;"><div class="actions"><button class="btn primary" id="createQrBtn">生成二维码</button><button class="btn" id="startQrPollBtn">开始轮询</button><button class="btn" id="stopQrPollBtn">停止轮询</button></div><div class="list-meta" style="margin-top:12px;" id="qrStatus">等待生成二维码。</div><a class="list-meta" id="qrLink" href="#" target="_blank" rel="noopener"></a></div></div></div><div class="card"><div class="card-title"><h3>音乐配置</h3><small>运行时生效</small></div><div id="musicConfigSummary" class="kv"></div></div></div>
+      </section>
+      <section class="section" id="section-recommendation">
+        <div class="section-head"><div><h2>推荐</h2><p>手动推荐优先，空位由推荐聚合热度补齐。</p></div><div class="actions"><button class="btn" id="reloadRecommendationBtn">重新加载</button><button class="btn primary" id="saveRecommendationBtn">保存手动推荐</button><button class="btn" id="rebuildRecommendationBtn">触发聚合</button></div></div>
+        <div class="grid aside"><div class="card"><div class="card-title"><h3>手动推荐顺序</h3><small id="manualUpdatedAt">-</small></div><div class="field" style="margin-bottom:12px;"><label>手填文章链接</label><div style="display:flex; gap:8px;"><input id="manualInput" placeholder="/thoughts/文章.html" /><button class="btn" id="addManualInputBtn">加入</button></div><div class="field-hint">仅格式校验，展示顺序即首页推荐优先级。</div></div><div class="list" id="manualList"></div></div><div class="card"><div class="card-title"><h3>候选文章</h3><small>按时间倒序</small></div><div class="list" id="candidateList"></div></div></div>
+      </section>
+      <section class="section" id="section-comments">
+        <div class="section-head"><div><h2>评论</h2><p>Waline 服务、最新评论采样与文章互动数据状态。</p></div><button class="btn" id="reloadCommentsBtn">刷新评论</button></div>
+        <div class="grid two"><div class="card"><div class="card-title"><h3>Waline 状态</h3><small>只读</small></div><div id="walineSummary" class="kv"></div></div><div class="card"><div class="card-title"><h3>最新评论</h3><small>最多 5 条</small></div><div class="list" id="recentComments"></div></div></div>
+      </section>
+      <section class="section" id="section-ops">
+        <div class="section-head"><div><h2>运维</h2><p>关键上游状态、索引文件与部署提示。</p></div><div class="actions"><button class="btn" id="refreshTagBtn">刷新标签缓存</button><button class="btn" id="reloadOpsBtn">刷新检查</button></div></div>
+        <div class="grid two"><div class="card"><div class="card-title"><h3>上游健康</h3><small>Waline / NCM</small></div><div id="opsServices" class="kv"></div></div><div class="card"><div class="card-title"><h3>常见错误提示</h3><small>部署排查</small></div><div class="list" id="opsHints"></div></div></div>
+        <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>索引文件</h3><small>posts / tag posts</small></div><div id="opsContentFiles" class="kv"></div></div><div class="card"><div class="card-title"><h3>标签缓存</h3><small>后台观察者</small></div><div id="opsTagCacheSummary" class="kv"></div></div></div>
+      </section>
+      <section class="section" id="section-security">
+        <div class="section-head"><div><h2>安全</h2><p>管理员身份、鉴权模式、限流与日志开关。</p></div></div>
+        <div class="grid two"><div class="card"><div class="card-title"><h3>当前管理员</h3><small>Waline 会话</small></div><div id="adminIdentity" class="kv"></div></div><div class="card"><div class="card-title"><h3>安全基线</h3><small>只读</small></div><div id="securitySummary" class="kv"></div></div></div>
+      </section>
+      <section class="section" id="section-config">
+        <div class="section-head"><div><h2>配置中心</h2><p>只允许修改非敏感配置；密钥、密码、Cookie、绝对路径仍走环境变量或 application.yml。</p></div><div class="actions"><button class="btn primary" id="saveRuntimeConfigBtn">保存配置</button><button class="btn danger" id="resetRuntimeConfigBtn">恢复默认</button></div></div>
+        <div class="grid aside"><form class="card" id="runtimeConfigForm"><div class="card-title"><h3>可编辑运行时配置</h3><small id="runtimeStoredState">-</small></div><div class="field-grid"><div class="field"><label>音乐来源 UID</label><input name="playlistOwnerUid" inputmode="numeric" /><div class="field-hint">首页随机流与关于页榜单来源。</div></div><div class="field"><label>默认音质</label><select name="preferredLevel"><option value="exhigh">exhigh</option><option value="higher">higher</option><option value="standard">standard</option><option value="lossless">lossless</option><option value="hires">hires</option><option value="jymaster">jymaster</option></select></div><div class="field"><label>最大候选文章数</label><input name="maxCandidatePosts" type="number" min="1" max="1000" /></div><div class="field"><label>推荐快照保鲜秒数</label><input name="snapshotFreshSeconds" type="number" min="60" max="86400" /></div><div class="field"><label>浏览量权重</label><input name="pageviewWeight" type="number" min="0" max="1000" step="0.1" /></div><div class="field"><label>评论数权重</label><input name="commentWeight" type="number" min="0" max="1000" step="0.1" /></div><div class="field"><label>标签缓存秒数</label><input name="tagCacheSeconds" type="number" min="5" max="86400" /></div></div></form><div class="card"><div class="card-title"><h3>只读配置摘要</h3><small>脱敏展示</small></div><div id="readonlyConfig" class="kv"></div></div></div>
+      </section>
+    </div>
+  </main>
 </div>
-
+<div class="message" id="messageBox"></div>
+<script src="/admin/vendor/echarts.min.js"></script>
 <script src="/admin/admin-common.js"></script>
 <script>
-  const statusEl = document.getElementById('status');
-  const musicEl = document.getElementById('musicStatus');
-  const commentEl = document.getElementById('commentStatus');
-  const governanceEl = document.getElementById('governanceStatus');
-  const riskEl = document.getElementById('riskStatus');
-  const governanceActionStatusEl = document.getElementById('governanceActionStatus');
-
-  function setStatus(text, isError = false) {
-    statusEl.textContent = `状态：${text}`;
-    statusEl.style.color = isError ? '#ef4444' : '#60a5fa';
-  }
+  const sections = {
+    overview: ['总览', '访问趋势、热门文章、催更与关键服务状态。'],
+    music: ['音乐', '网易云扫码登录、账号状态与播放流配置。'],
+    recommendation: ['推荐', '手动推荐优先，聚合热度补齐。'],
+    comments: ['评论', 'Waline 评论和阅读统计状态。'],
+    ops: ['运维', '关键上游状态、索引文件与部署排查。'],
+    security: ['安全', '管理员身份、限流与日志开关。'],
+    config: ['配置中心', '非敏感配置在线修改。']
+  };
+  const state = { me: null, console: null, ops: null, runtime: null, manualUrls: [], candidates: [], recentComments: [], qrKey: '', qrTimer: null, charts: {} };
+  const $ = (selector) => document.querySelector(selector);
+  const asArray = (value) => Array.isArray(value) ? value : [];
+  const yesNo = (value) => value ? '是' : '否';
 
   function escapeHtml(value) {
-    return String(value ?? '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
+    return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
   }
-
-  async function requestSummary() {
-    return adminCommon.requestJson('/api/admin/dashboard/summary', { method: 'GET' });
+  function statusLevel(value) {
+    const raw = String(value ?? '').toLowerCase();
+    if (raw.includes('green')) return 'green';
+    if (raw.includes('red')) return 'red';
+    return 'yellow';
   }
-
-  function renderMusic(music) {
-    const ok = Boolean(music?.ok);
-    const loggedIn = Boolean(music?.loggedIn);
-    musicEl.innerHTML = `
-      <div class="line">链路状态：<strong class="${ok ? 'ok' : 'bad'}">${ok ? '正常' : '异常'}</strong></div>
-      <div class="line">登录状态：<strong class="${loggedIn ? 'ok' : 'bad'}">${loggedIn ? '已登录' : '未登录'}</strong></div>
-      <div class="meta">${music?.nickname ? `当前账号：${escapeHtml(music.nickname)}` : escapeHtml(music?.message || '未获取到账号信息')}</div>
-    `;
+  function statusText(value) {
+    const level = statusLevel(value);
+    return level === 'green' ? '正常' : level === 'red' ? '异常' : '需关注';
   }
-
-  function renderCommentAndOps(governance, ops) {
-    const waline = ops?.services?.waline || {};
-    const ncm = ops?.services?.ncmUpstream || {};
-    commentEl.innerHTML = `
-      <div class="line">Waline 服务：<strong class="${waline.ok ? 'ok' : 'bad'}">${waline.ok ? '正常' : '异常'}</strong></div>
-      <div class="line">NCM 上游：<strong class="${ncm.ok ? 'ok' : 'bad'}">${ncm.ok ? '正常' : '异常'}</strong></div>
-      <div class="meta">最近评论采样：${governance?.recentCommentCount ?? 0}</div>
-      <div class="meta">上次检查：${escapeHtml(ops?.checkedAt || '-')}</div>
-    `;
+  function showMessage(text, error = false) {
+    const box = $('#messageBox');
+    box.textContent = text;
+    box.className = `message show${error ? ' error' : ''}`;
+    window.clearTimeout(showMessage.timer);
+    showMessage.timer = window.setTimeout(() => box.className = 'message', 3600);
   }
-
-  function renderGovernance(governance) {
-    const level = String(governance?.syncLevel || 'yellow');
-    const levelClass = level === 'green' ? 'ok' : (level === 'red' ? 'bad' : 'warn');
-    const aggregation = governance?.recommendationAggregation || {};
-    governanceEl.innerHTML = `
-      <div class="line">手动推荐条目：<strong>${governance?.manualRecommendationCount ?? 0}</strong></div>
-      <div class="line">随想标签数：<strong>${governance?.thoughtTagCount ?? 0}</strong>（文章 ${governance?.thoughtPostCount ?? 0}）</div>
-      <div class="line">数据同步状态：<strong class="${levelClass}">${level.toUpperCase()}</strong></div>
-      <div class="line">推荐聚合：<strong class="${aggregation.running ? 'warn' : 'ok'}">${aggregation.running ? '运行中' : '空闲'}</strong></div>
-      <div class="meta">聚合快照：${aggregation.hasSnapshot ? '可用' : '暂无'} / 过期：${aggregation.expired ? '是' : '否'}</div>
-      <div class="meta">上次成功：${escapeHtml(aggregation.lastSuccessAt || '-')} / 耗时：${aggregation.lastDurationMs ?? '-'}ms</div>
-      <div class="meta">候选 ${aggregation.lastCandidateCount ?? 0} / 成功 ${aggregation.lastSuccessCount ?? 0} / 失败 ${aggregation.lastFailedCount ?? 0}</div>
-      <div class="meta">最后错误：${escapeHtml(aggregation.lastError || '无')}</div>
-      <div class="meta">推荐配置更新时间：${escapeHtml(governance?.manualRecommendationUpdatedAt || '未设置')}</div>
-      <div class="meta">同步检查时间：${escapeHtml(governance?.syncCheckedAt || '-')}</div>
-    `;
+  function kvRows(rows) {
+    return rows.map(([label, value]) => `<div class="kv-row"><span>${escapeHtml(label)}</span><span>${escapeHtml(value)}</span></div>`).join('');
   }
-
-  function renderRisk(risk) {
-    const notes = Array.isArray(risk?.notes) ? risk.notes : [];
-    riskEl.innerHTML = `
-      <div class="line">管理接口限流：${risk?.adminApiRateLimitPerMinute ?? '-'} 次/分钟</div>
-      <div class="line">公开音乐接口限流：${risk?.publicMusicRateLimitPerMinute ?? '-'} 次/分钟</div>
-      <div class="line">鉴权模式：${escapeHtml(risk?.authMode || '-')}</div>
-      <div class="meta">当前策略说明：</div>
-      <ul>${notes.map(item => `<li>${item}</li>`).join('')}</ul>
-    `;
+  function metricCard(value, label, note) {
+    return `<div class="card metric"><div class="metric-value">${escapeHtml(value)}</div><div><div class="metric-label">${escapeHtml(label)}</div><div class="metric-note">${escapeHtml(note)}</div></div></div>`;
   }
-
-  async function governanceAction(path, actionName) {
-    governanceActionStatusEl.textContent = `治理动作状态：${actionName} 执行中...`;
-    governanceActionStatusEl.style.color = '#60a5fa';
-    try {
-      const payload = await adminCommon.requestJson(path, { method: 'POST' });
-      const accepted = payload?.result?.accepted;
-      const suffix = payload?.checkedAt || '';
-      if (accepted === false) {
-        governanceActionStatusEl.textContent = `治理动作状态：${actionName} 未受理（任务运行中）（${suffix}）`;
-        governanceActionStatusEl.style.color = '#f59e0b';
-      } else {
-        governanceActionStatusEl.textContent = `治理动作状态：${actionName} 已受理（${suffix}）`;
-        governanceActionStatusEl.style.color = '#22c55e';
-      }
-      await loadSummary();
-    } catch (error) {
-      governanceActionStatusEl.textContent = `治理动作状态：${actionName} 失败：${error.message || String(error)}`;
-      governanceActionStatusEl.style.color = '#ef4444';
+  function serviceText(service) {
+    if (!service) return '-';
+    return service.ok ? '正常' : (service.error || '异常');
+  }
+  function aggregationText(data) {
+    if (!data) return '-';
+    if (data.running) return '运行中';
+    return data.hasSnapshot ? `快照可用 / ${data.expired ? '已过期' : '新鲜'}` : '暂无快照';
+  }
+  async function api(url, options = {}, authRequired = true) {
+    return adminCommon.requestJson(url, options, authRequired);
+  }
+  function setSection(name) {
+    const section = sections[name] ? name : 'overview';
+    Object.keys(sections).forEach((key) => {
+      $(`#section-${key}`).classList.toggle('active', key === section);
+      document.querySelector(`[data-section="${key}"]`)?.classList.toggle('active', key === section);
+    });
+    $('#pageTitle').textContent = sections[section][0];
+    $('#pageSubtitle').textContent = sections[section][1];
+    if (location.hash !== `#${section}`) history.replaceState(null, '', `#${section}`);
+    if (section === 'overview') {
+      window.setTimeout(() => Object.values(state.charts).forEach((chart) => chart.resize()), 50);
     }
   }
-
-  async function loadSummary() {
+  function renderMe() {
+    const me = state.me || {};
+    $('#meInfo').textContent = `${me.nickname || '管理员'}${me.qq ? ` / QQ ${me.qq}` : ''}`;
+    $('#adminIdentity').innerHTML = kvRows([['昵称', me.nickname || '-'], ['QQ', me.qq || '-'], ['模式', me.mode || '-'], ['会话过期时间', me.expiresAt || '-']]);
+  }
+  async function refreshConsole() {
+    state.console = await api('/api/admin/console/summary');
+    state.runtime = state.console.runtimeConfig || null;
+    renderOverview();
+    renderMusicConfig();
+    renderSecurity();
+    renderRuntimeConfig();
+  }
+  async function refreshOps() {
+    state.ops = await api('/api/admin/ops/checks');
+    renderOps();
+    renderComments();
+    renderOpsContent();
+    if (state.console) renderOverview();
+  }
+  async function refreshRecommendation() {
+    const [config, candidates] = await Promise.all([api('/api/recommendations/admin/config'), api('/api/recommendations/admin/candidates?limit=200')]);
+    state.manualUrls = asArray(config.manualUrls);
+    state.candidates = asArray(candidates);
+    $('#manualUpdatedAt').textContent = config.updatedAt || '未设置';
+    renderManualList();
+    renderCandidateList();
+  }
+  async function refreshComments() {
+    state.recentComments = await api('/api/comments/recent?limit=5');
+    renderRecentComments();
+  }
+  async function refreshMusicStatus() {
+    const status = await api('/api/music/auth/status');
+    renderMusicStatus(status);
+  }
+  async function refreshAll() {
     try {
-      setStatus('加载中...');
-      const data = await requestSummary();
-      renderMusic(data.music || {});
-      renderGovernance(data.governance || {});
-      renderCommentAndOps(data.governance || {}, data.ops || {});
-      renderRisk(data.riskControl || {});
-      setStatus(`已完成（${data.checkedAt || ''}）`);
+      $('#refreshAllBtn').disabled = true;
+      await Promise.all([refreshConsole(), refreshOps(), refreshRecommendation(), refreshComments(), refreshMusicStatus()]);
+      renderOverview();
+      renderOpsContent();
+      showMessage('控制台已刷新');
     } catch (error) {
-      setStatus(error.message || String(error), true);
-    }
-  }
-
-  function renderMe(me) {
-    const title = me?.nickname || '管理员';
-    const mode = me?.mode || '-';
-    const suffix = me?.qq ? `（QQ: ${escapeHtml(me.qq)}）` : '';
-    document.getElementById('meInfo').innerHTML = `管理员：<strong>${escapeHtml(title)}</strong>${suffix} / 模式：${escapeHtml(mode)}`;
-  }
-
-  async function logout() {
-    try {
-      await adminCommon.logout();
+      showMessage(error.message || String(error), true);
     } finally {
-      location.href = '/admin/auth.html';
+      $('#refreshAllBtn').disabled = false;
     }
   }
-
-  document.getElementById('refreshBtn').addEventListener('click', loadSummary);
-  document.getElementById('logoutBtn').addEventListener('click', logout);
-  document.getElementById('rebuildRecommendationBtn').addEventListener('click', () =>
-    governanceAction('/api/admin/governance/recommendations/rebuild', '触发推荐聚合')
-  );
-  document.getElementById('refreshTagBtn').addEventListener('click', () =>
-    governanceAction('/api/admin/governance/tags/refresh', '刷新标签缓存')
-  );
-  (async () => {
+  function renderOverview() {
+    const dashboard = state.console?.dashboard || {};
+    const music = dashboard.music || {};
+    const insights = dashboard.writingInsights || {};
+    const governance = dashboard.governance || {};
+    const risk = dashboard.riskControl || {};
+    const level = statusLevel(governance.syncLevel);
+    $('#overviewMetrics').innerHTML = [
+      metricCard(insights.visits ?? 0, '近 30 天访问', `独立访客 ${insights.uniqueVisitors ?? 0}`),
+      metricCard(`${insights.averageDurationSeconds ?? 0}s`, '平均停留', '只统计页面可见时间'),
+      metricCard(insights.totalEncouragements ?? 0, '总催更', `今日 ${insights.encouragement?.today ?? 0}`),
+      metricCard(music.loggedIn ? '已登录' : '未登录', '网易云账号', music.nickname || music.message || '-')
+    ].join('');
+    $('#overviewCheckedAt').textContent = dashboard.checkedAt || state.console?.checkedAt || '-';
+    $('#overviewServices').innerHTML = kvRows([['音乐登录', `${music.loggedIn ? '已登录' : '未登录'} ${music.nickname || ''}`], ['Waline', serviceText(state.ops?.services?.waline)], ['NCM 上游', serviceText(state.ops?.services?.ncmUpstream)], ['推荐聚合', aggregationText(governance.recommendationAggregation)]]);
+    $('#overviewGovernance').innerHTML = `<div class="kv-row"><span>同步等级</span><span><span class="status-dot ${level}"></span>${statusText(governance.syncLevel)}</span></div>${kvRows([['随想文章', governance.thoughtPostCount ?? 0], ['随想标签', governance.thoughtTagCount ?? 0], ['最新评论采样', governance.recentCommentCount ?? 0], ['推荐聚合', aggregationText(governance.recommendationAggregation)]])}`;
+    renderWritingInsightCharts(insights);
+    renderTopArticles(insights.topArticles || []);
+  }
+  function chartColors() {
+    return { text: '#9ca8bb', grid: 'rgba(156,168,187,.16)', green: '#19c56f', yellow: '#d7a441', surface: '#151a24' };
+  }
+  function getChart(id) {
+    if (!window.echarts) return null;
+    const el = document.getElementById(id);
+    if (!el) return null;
+    if (!state.charts[id]) state.charts[id] = echarts.init(el);
+    return state.charts[id];
+  }
+  function renderWritingInsightCharts(insights) {
+    const colors = chartColors();
+    const trend = asArray(insights.trend);
+    const dates = trend.map((item) => item.date);
+    const visitChart = getChart('visitTrendChart');
+    if (visitChart) {
+      visitChart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis' },
+        grid: { left: 36, right: 16, top: 28, bottom: 28 },
+        xAxis: { type: 'category', data: dates, axisLine: { lineStyle: { color: colors.grid } }, axisLabel: { color: colors.text } },
+        yAxis: { type: 'value', splitLine: { lineStyle: { color: colors.grid } }, axisLabel: { color: colors.text } },
+        series: [
+          { name: '访问', type: 'line', smooth: true, data: trend.map((item) => item.visits || 0), lineStyle: { color: colors.green, width: 2 }, itemStyle: { color: colors.green }, areaStyle: { color: 'rgba(25,197,111,.12)' } },
+          { name: '访客', type: 'line', smooth: true, data: trend.map((item) => item.uniqueVisitors || 0), lineStyle: { color: colors.yellow, width: 2 }, itemStyle: { color: colors.yellow } }
+        ]
+      });
+    }
+    const encourageChart = getChart('encourageTrendChart');
+    if (encourageChart) {
+      encourageChart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis' },
+        grid: { left: 36, right: 16, top: 28, bottom: 28 },
+        xAxis: { type: 'category', data: dates, axisLine: { lineStyle: { color: colors.grid } }, axisLabel: { color: colors.text } },
+        yAxis: { type: 'value', splitLine: { lineStyle: { color: colors.grid } }, axisLabel: { color: colors.text } },
+        series: [{ name: '催更', type: 'bar', data: trend.map((item) => item.encouragements || 0), itemStyle: { color: colors.green } }]
+      });
+    }
+    const tags = asArray(insights.topTags).slice(0, 8);
+    const tagChart = getChart('tagFocusChart');
+    if (tagChart) {
+      tagChart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis' },
+        grid: { left: 70, right: 18, top: 16, bottom: 18 },
+        xAxis: { type: 'value', splitLine: { lineStyle: { color: colors.grid } }, axisLabel: { color: colors.text } },
+        yAxis: { type: 'category', data: tags.map((item) => item.tag).reverse(), axisLine: { lineStyle: { color: colors.grid } }, axisLabel: { color: colors.text } },
+        series: [{ name: '访问', type: 'bar', data: tags.map((item) => item.visits || 0).reverse(), itemStyle: { color: colors.green } }]
+      });
+    }
+  }
+  function renderTopArticles(articles) {
+    if (!articles.length) {
+      $('#topArticleList').innerHTML = '<div class="empty">暂无访问数据。</div>';
+      return;
+    }
+    $('#topArticleList').innerHTML = articles.slice(0, 6).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.title || item.path)}</div><div class="list-meta">访问 ${item.visits ?? 0} · 访客 ${item.uniqueVisitors ?? 0} · 平均停留 ${item.averageDurationSeconds ?? 0}s</div><div class="list-meta">${escapeHtml(item.path || '-')}</div></div></div>`).join('');
+  }
+  function renderMusicStatus(status) {
+    $('#musicStatusBadge').innerHTML = status.loggedIn ? '<span class="tag green">已登录</span>' : '<span class="tag yellow">未登录</span>';
+    $('#qrStatus').textContent = status.loggedIn ? `当前账号：${status.nickname || '未知'}（${status.message || '已登录'}）` : (status.message || '当前未登录，可生成二维码扫码。');
+  }
+  function renderMusicConfig() {
+    const music = state.runtime?.editable?.music || {};
+    $('#musicConfigSummary').innerHTML = kvRows([['歌单来源 UID', music.playlistOwnerUid || '-'], ['默认音质', music.preferredLevel || '-'], ['NCM 上游', state.runtime?.readonly?.services?.ncmUpstreamBaseUrl || '-']]);
+  }
+  async function createQr() {
+    const keyResp = await api('/api/music/auth/qr/key');
+    state.qrKey = keyResp.key || keyResp.unikey || '';
+    if (!state.qrKey) throw new Error('未获取到二维码 key');
+    const qrResp = await api(`/api/music/auth/qr/create?key=${encodeURIComponent(state.qrKey)}`);
+    const imageSrc = String(qrResp.qrimg || '').trim();
+    if (!imageSrc) throw new Error('上游未返回二维码图片');
+    $('#qrImg').src = imageSrc;
+    $('#qrLink').href = qrResp.qrurl || '#';
+    $('#qrLink').textContent = qrResp.qrurl ? '二维码链接（图片异常时打开）' : '';
+    $('#qrStatus').textContent = '二维码已生成，请用网易云音乐扫码。';
+  }
+  async function pollQrOnce() {
+    if (!state.qrKey) throw new Error('请先生成二维码');
+    const data = await api(`/api/music/auth/qr/check?key=${encodeURIComponent(state.qrKey)}`);
+    $('#qrStatus').textContent = `${data.message || '等待扫码'}（code=${data.code ?? '-'}）`;
+    if (data.code === 803 || data.code === '803') {
+      stopQrPoll();
+      await refreshMusicStatus();
+      await refreshConsole();
+      showMessage('网易云登录成功');
+    }
+    if (data.code === 800 || data.code === '800') stopQrPoll();
+  }
+  function startQrPoll() {
+    if (state.qrTimer) return;
+    state.qrTimer = window.setInterval(() => pollQrOnce().catch((e) => $('#qrStatus').textContent = e.message), 2000);
+    $('#qrStatus').textContent = '开始轮询扫码状态。';
+  }
+  function stopQrPoll() {
+    if (!state.qrTimer) return;
+    window.clearInterval(state.qrTimer);
+    state.qrTimer = null;
+  }
+  function normalizeManualUrl(value) {
+    const raw = String(value || '').trim();
+    return raw ? (raw.startsWith('/') ? raw : `/${raw}`) : '';
+  }
+  function isThoughtPostUrl(value) {
+    return /^\/thoughts\/(?!index\.html$)(?!tags\.html$).+\.html$/i.test(value);
+  }
+  function addManual(url) {
+    const normalized = normalizeManualUrl(url);
+    if (!isThoughtPostUrl(normalized)) throw new Error('链接格式无效，仅支持 /thoughts/*.html');
+    if (!state.manualUrls.includes(normalized)) state.manualUrls.push(normalized);
+    renderManualList();
+    renderCandidateList();
+  }
+  function removeManual(url) {
+    state.manualUrls = state.manualUrls.filter((item) => item !== url);
+    renderManualList();
+    renderCandidateList();
+  }
+  function moveManual(url, direction) {
+    const index = state.manualUrls.indexOf(url);
+    const next = index + direction;
+    if (index < 0 || next < 0 || next >= state.manualUrls.length) return;
+    const copy = [...state.manualUrls];
+    [copy[index], copy[next]] = [copy[next], copy[index]];
+    state.manualUrls = copy;
+    renderManualList();
+  }
+  function renderManualList() {
+    if (!state.manualUrls.length) {
+      $('#manualList').innerHTML = '<div class="empty">暂无手动推荐，右侧候选可直接加入。</div>';
+      return;
+    }
+    $('#manualList').innerHTML = state.manualUrls.map((url) => `<div class="list-item" data-url="${escapeHtml(url)}"><div><div class="list-title">${escapeHtml(url)}</div><div class="list-meta">手动推荐优先展示，当前位置决定展示顺序。</div></div><div class="actions"><button class="btn link" data-action="manual-up">上移</button><button class="btn link" data-action="manual-down">下移</button><button class="btn link" data-action="manual-remove">移除</button></div></div>`).join('');
+  }
+  function renderCandidateList() {
+    if (!state.candidates.length) {
+      $('#candidateList').innerHTML = '<div class="empty">暂无候选文章。</div>';
+      return;
+    }
+    $('#candidateList').innerHTML = state.candidates.map((item) => {
+      const added = state.manualUrls.includes(item.url);
+      return `<div class="list-item" data-url="${escapeHtml(item.url)}"><div><div class="list-title">${escapeHtml(item.title || item.url)}</div><div class="list-meta">${escapeHtml(item.date || '-')} · 浏览 ${item.pageviewCount ?? 0} · 评论 ${item.commentCount ?? 0} · 热度 ${Number(item.hotScore || 0).toFixed(1)}</div><div class="list-meta">${escapeHtml(item.url)}</div></div><button class="btn ${added ? '' : 'primary'}" data-action="candidate-add" ${added ? 'disabled' : ''}>${added ? '已加入' : '加入'}</button></div>`;
+    }).join('');
+  }
+  async function saveRecommendation() {
+    const saved = await api('/api/recommendations/admin/config', { method: 'PUT', body: JSON.stringify({ manualUrls: state.manualUrls }) });
+    state.manualUrls = asArray(saved.manualUrls);
+    $('#manualUpdatedAt').textContent = saved.updatedAt || '刚刚更新';
+    renderManualList();
+    renderCandidateList();
+    showMessage('手动推荐已保存');
+  }
+  async function rebuildRecommendation() {
+    const result = await api('/api/admin/governance/recommendations/rebuild', { method: 'POST' });
+    showMessage(result?.result?.accepted === false ? '推荐聚合正在运行中' : '推荐聚合任务已受理');
+    await Promise.all([refreshConsole(), refreshOps(), refreshRecommendation()]);
+  }
+  function renderWalineSummary() {
+    const waline = state.ops?.services?.waline || {};
+    $('#walineSummary').innerHTML = kvRows([['服务状态', waline.ok ? '正常' : (waline.error || '异常')], ['服务地址', waline.baseUrl || state.runtime?.readonly?.services?.walineBaseUrl || '-'], ['最新评论采样', waline.sampleRecentCount ?? '-'], ['首页阅读量采样', waline.samplePageview ?? '-']]);
+  }
+  function renderRecentComments() {
+    if (!state.recentComments.length) {
+      $('#recentComments').innerHTML = '<div class="empty">暂无最新评论。</div>';
+      return;
+    }
+    $('#recentComments').innerHTML = state.recentComments.map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.nick || '匿名')}</div><div class="list-meta">${escapeHtml(item.createdAt || '-')} · ${escapeHtml(item.url || item.path || '-')}</div><div class="list-meta">${escapeHtml(item.comment || '')}</div></div></div>`).join('');
+  }
+  function renderComments() {
+    renderWalineSummary();
+    renderRecentComments();
+  }
+  function renderOpsContent() {
+    const sync = state.ops?.sync || {};
+    const posts = sync.postsJson || {};
+    const tagPosts = sync.tagPostsJson || {};
+    const governance = state.console?.dashboard?.governance || {};
+    $('#opsContentFiles').innerHTML = kvRows([['推荐 posts.json', `${posts.exists ? '存在' : '缺失'} · ${posts.size ?? 0} bytes`], ['推荐 posts 路径', posts.path || '-'], ['标签 posts.json', `${tagPosts.exists ? '存在' : '缺失'} · ${tagPosts.size ?? 0} bytes`], ['标签 posts 路径', tagPosts.path || '-']]);
+    $('#opsTagCacheSummary').innerHTML = kvRows([['随想文章', governance.thoughtPostCount ?? '-'], ['随想标签', governance.thoughtTagCount ?? '-'], ['同步状态', statusText(governance.syncLevel)], ['缓存秒数', state.runtime?.editable?.tag?.tagCacheSeconds ?? '-']]);
+  }
+  async function refreshTags() {
+    const result = await api('/api/admin/governance/tags/refresh', { method: 'POST' });
+    showMessage(`标签缓存已刷新：${result?.checkedAt || ''}`);
+    await Promise.all([refreshConsole(), refreshOps()]);
+  }
+  function renderOps() {
+    const ops = state.ops || {};
+    $('#opsServices').innerHTML = kvRows([['Waline', serviceText(ops.services?.waline)], ['Waline 地址', ops.services?.waline?.baseUrl || '-'], ['NCM', serviceText(ops.services?.ncmUpstream)], ['NCM code', ops.services?.ncmUpstream?.sampleStatusCode ?? '-'], ['NCM 登录态', ops.services?.ncmUpstream?.loginState || '-'], ['推荐聚合', aggregationText(ops.sync?.recommendationAggregation)]]);
+    const hints = asArray(ops.commonErrors);
+    $('#opsHints').innerHTML = hints.length ? hints.map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.title || '问题')}</div><div class="list-meta">原因：${escapeHtml(item.cause || '-')}</div><div class="list-meta">建议：${escapeHtml(item.suggestion || '-')}</div></div></div>`).join('') : '<div class="empty">暂无提示。</div>';
+  }
+  function renderSecurity() {
+    const readonly = state.runtime?.readonly || {};
+    const risk = state.console?.dashboard?.riskControl || {};
+    const security = readonly.security || {};
+    $('#securitySummary').innerHTML = kvRows([['鉴权模式', risk.authMode || '-'], ['管理员 token 已配置', yesNo(security.adminTokenConfigured)], ['QQ 白名单', security.adminQqWhitelist || '-'], ['要求 Waline 管理员', yesNo(security.adminRequireWalineAdministrator)], ['管理限流', `${security.adminRateLimitPerMinute ?? risk.adminApiRateLimitPerMinute ?? '-'} / min`], ['公开音乐限流', `${security.musicRateLimitPerMinute ?? risk.publicMusicRateLimitPerMinute ?? '-'} / min`], ['会员 Cookie 全局限流', `${security.musicLoginUrlGlobalLimitPerMinute ?? '-'} / min`], ['管理访问日志', yesNo(security.adminAuthLogEnabled)], ['公共访问日志', yesNo(security.publicAccessLogEnabled)], ['信任代理头', yesNo(security.trustForwardedHeaders)]]);
+  }
+  function renderRuntimeConfig() {
+    const runtime = state.runtime;
+    if (!runtime) return;
+    const form = $('#runtimeConfigForm');
+    const music = runtime.editable?.music || {};
+    const recommendation = runtime.editable?.recommendation || {};
+    const tag = runtime.editable?.tag || {};
+    form.elements.playlistOwnerUid.value = music.playlistOwnerUid || '';
+    form.elements.preferredLevel.value = music.preferredLevel || 'exhigh';
+    form.elements.maxCandidatePosts.value = recommendation.maxCandidatePosts ?? '';
+    form.elements.snapshotFreshSeconds.value = recommendation.snapshotFreshSeconds ?? '';
+    form.elements.pageviewWeight.value = recommendation.pageviewWeight ?? '';
+    form.elements.commentWeight.value = recommendation.commentWeight ?? '';
+    form.elements.tagCacheSeconds.value = tag.tagCacheSeconds ?? '';
+    $('#runtimeStoredState').textContent = runtime.stored ? `已持久化：${runtime.updatedAt || '-'}` : '使用 application.yml 默认值';
+    const readonly = runtime.readonly || {};
+    $('#readonlyConfig').innerHTML = kvRows([['数据库地址', readonly.database?.url || '-'], ['数据库用户', readonly.database?.username || '-'], ['数据库密码已配置', yesNo(readonly.database?.passwordConfigured)], ['Waline 地址', readonly.services?.walineBaseUrl || '-'], ['NCM 地址', readonly.services?.ncmUpstreamBaseUrl || '-'], ['推荐 posts 路径', readonly.paths?.recommendationPostsJsonPath || '-'], ['手动推荐配置', readonly.paths?.recommendationManualConfigPath || '-'], ['标签 posts 路径', readonly.paths?.tagPostsJsonPath || '-']]);
+  }
+  function readRuntimeConfigForm() {
+    const form = $('#runtimeConfigForm');
+    return {
+      music: { playlistOwnerUid: form.elements.playlistOwnerUid.value.trim(), preferredLevel: form.elements.preferredLevel.value },
+      recommendation: { maxCandidatePosts: Number(form.elements.maxCandidatePosts.value), snapshotFreshSeconds: Number(form.elements.snapshotFreshSeconds.value), pageviewWeight: Number(form.elements.pageviewWeight.value), commentWeight: Number(form.elements.commentWeight.value) },
+      tag: { tagCacheSeconds: Number(form.elements.tagCacheSeconds.value) }
+    };
+  }
+  async function saveRuntimeConfig() {
+    state.runtime = await api('/api/admin/config/runtime', { method: 'PUT', body: JSON.stringify(readRuntimeConfigForm()) });
+    renderRuntimeConfig();
+    renderMusicConfig();
+    showMessage('运行时配置已保存；推荐权重变化后建议手动触发一次聚合。');
+  }
+  async function resetRuntimeConfig() {
+    if (!confirm('确认恢复 application.yml 默认配置？')) return;
+    state.runtime = await api('/api/admin/config/runtime/reset', { method: 'POST' });
+    renderRuntimeConfig();
+    renderMusicConfig();
+    showMessage('运行时配置已恢复默认');
+  }
+  function bindEvents() {
+    $('#nav').addEventListener('click', (event) => {
+      const button = event.target.closest('[data-section]');
+      if (button) setSection(button.dataset.section);
+    });
+    window.addEventListener('hashchange', () => setSection(location.hash.slice(1)));
+    $('#refreshAllBtn').addEventListener('click', refreshAll);
+    $('#logoutBtn').addEventListener('click', async () => { try { await adminCommon.logout(); } finally { location.href = '/admin/auth.html'; } });
+    $('#checkMusicBtn').addEventListener('click', () => refreshMusicStatus().catch((e) => showMessage(e.message, true)));
+    $('#logoutMusicBtn').addEventListener('click', async () => { await api('/api/music/auth/logout', { method: 'POST' }); await refreshMusicStatus(); showMessage('网易云登录态已清理'); });
+    $('#createQrBtn').addEventListener('click', () => createQr().catch((e) => showMessage(e.message, true)));
+    $('#startQrPollBtn').addEventListener('click', startQrPoll);
+    $('#stopQrPollBtn').addEventListener('click', stopQrPoll);
+    $('#reloadRecommendationBtn').addEventListener('click', () => refreshRecommendation().catch((e) => showMessage(e.message, true)));
+    $('#saveRecommendationBtn').addEventListener('click', () => saveRecommendation().catch((e) => showMessage(e.message, true)));
+    $('#rebuildRecommendationBtn').addEventListener('click', () => rebuildRecommendation().catch((e) => showMessage(e.message, true)));
+    $('#addManualInputBtn').addEventListener('click', () => { try { addManual($('#manualInput').value); $('#manualInput').value = ''; } catch (e) { showMessage(e.message, true); } });
+    $('#manualList').addEventListener('click', (event) => {
+      const item = event.target.closest('.list-item');
+      const action = event.target.closest('[data-action]')?.dataset.action;
+      if (!item || !action) return;
+      if (action === 'manual-up') moveManual(item.dataset.url, -1);
+      if (action === 'manual-down') moveManual(item.dataset.url, 1);
+      if (action === 'manual-remove') removeManual(item.dataset.url);
+    });
+    $('#candidateList').addEventListener('click', (event) => {
+      const item = event.target.closest('.list-item');
+      if (event.target.closest('[data-action="candidate-add"]') && item) {
+        try { addManual(item.dataset.url); } catch (e) { showMessage(e.message, true); }
+      }
+    });
+    $('#reloadCommentsBtn').addEventListener('click', () => Promise.all([refreshOps(), refreshComments()]).catch((e) => showMessage(e.message, true)));
+    $('#refreshTagBtn').addEventListener('click', () => refreshTags().catch((e) => showMessage(e.message, true)));
+    $('#reloadOpsBtn').addEventListener('click', () => refreshOps().catch((e) => showMessage(e.message, true)));
+    $('#saveRuntimeConfigBtn').addEventListener('click', () => saveRuntimeConfig().catch((e) => showMessage(e.message, true)));
+    $('#resetRuntimeConfigBtn').addEventListener('click', () => resetRuntimeConfig().catch((e) => showMessage(e.message, true)));
+    window.addEventListener('resize', () => Object.values(state.charts).forEach((chart) => chart.resize()));
+  }
+  (async function bootstrap() {
+    bindEvents();
+    setSection(location.hash.slice(1) || 'overview');
     try {
-      const me = await adminCommon.ensureAuthenticated(true);
-      renderMe(me);
-      await loadSummary();
-    } catch (_error) {
-      // ensureAuthenticated 已处理跳转
+      state.me = await adminCommon.ensureAuthenticated(true);
+      renderMe();
+      await refreshAll();
+    } catch (error) {
+      if (error) showMessage(error.message || String(error), true);
     }
   })();
 </script>
