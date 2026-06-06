@@ -43,7 +43,7 @@ public class WalineGatewayClient {
         MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
         query.add("type", "recent");
         query.add("count", Integer.toString(Math.max(1, Math.min(limit, 50))));
-        return get("/comment", query);
+        return get("/api/comment", query);
     }
 
     /**
@@ -54,7 +54,7 @@ public class WalineGatewayClient {
         MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
         query.add("type", "count");
         query.add("url", normalizedPath);
-        JsonNode node = get("/comment", query);
+        JsonNode node = get("/api/comment", query);
         return parseCommentCount(node, normalizedPath);
     }
 
@@ -65,7 +65,7 @@ public class WalineGatewayClient {
         String normalizedPath = normalizePath(path);
         MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
         query.add("path", normalizedPath);
-        JsonNode node = get("/article", query);
+        JsonNode node = get("/api/article", query);
         return parseInteger(node);
     }
 
@@ -76,7 +76,7 @@ public class WalineGatewayClient {
         String normalizedPath = normalizePath(path);
         ObjectNode body = objectMapper.createObjectNode();
         body.put("path", normalizedPath);
-        JsonNode node = postJson("/article", body);
+        JsonNode node = postJson("/api/article", body);
         return parseInteger(node);
     }
 
@@ -177,27 +177,43 @@ public class WalineGatewayClient {
      * 兼容 Waline count 接口可能返回的数字、数组或路径映射结构。
      */
     private int parseCommentCount(JsonNode node, String path) {
-        if (node == null || node.isNull()) return 0;
-        if (node.isNumber()) return Math.max(0, node.asInt(0));
-        if (node.isArray() && node.size() > 0 && node.get(0).isNumber()) {
-            return Math.max(0, node.get(0).asInt(0));
+        JsonNode payload = unwrapData(node);
+        if (payload == null || payload.isNull()) return 0;
+        if (payload.isNumber()) return Math.max(0, payload.asInt(0));
+        if (payload.isArray() && payload.size() > 0 && payload.get(0).isNumber()) {
+            return Math.max(0, payload.get(0).asInt(0));
         }
 
         String noSlash = path.startsWith("/") ? path.substring(1) : path;
         String withSlash = path.startsWith("/") ? path : "/" + path;
 
-        if (node.has(path) && node.get(path).isNumber()) return Math.max(0, node.get(path).asInt(0));
-        if (node.has(noSlash) && node.get(noSlash).isNumber()) return Math.max(0, node.get(noSlash).asInt(0));
-        if (node.has(withSlash) && node.get(withSlash).isNumber()) return Math.max(0, node.get(withSlash).asInt(0));
-        if (node.has("data") && node.get("data").isNumber()) return Math.max(0, node.get("data").asInt(0));
-
+        if (payload.has(path) && payload.get(path).isNumber()) return Math.max(0, payload.get(path).asInt(0));
+        if (payload.has(noSlash) && payload.get(noSlash).isNumber()) return Math.max(0, payload.get(noSlash).asInt(0));
+        if (payload.has(withSlash) && payload.get(withSlash).isNumber()) return Math.max(0, payload.get(withSlash).asInt(0));
         return 0;
     }
 
     private int parseInteger(JsonNode node) {
+        JsonNode payload = unwrapData(node);
+        if (payload == null || payload.isNull()) return 0;
+        if (payload.isNumber()) return Math.max(0, payload.asInt(0));
+        if (payload.isArray() && payload.size() > 0) {
+            return parseIntegerValue(payload.get(0));
+        }
+        return parseIntegerValue(payload);
+    }
+
+    private int parseIntegerValue(JsonNode node) {
         if (node == null || node.isNull()) return 0;
         if (node.isNumber()) return Math.max(0, node.asInt(0));
-        if (node.has("data") && node.get("data").isNumber()) return Math.max(0, node.get("data").asInt(0));
+        if (node.has("time") && node.get("time").isNumber()) return Math.max(0, node.get("time").asInt(0));
+        if (node.has("count") && node.get("count").isNumber()) return Math.max(0, node.get("count").asInt(0));
         return 0;
+    }
+
+    private JsonNode unwrapData(JsonNode node) {
+        if (node == null || node.isNull()) return node;
+        JsonNode data = node.get("data");
+        return data == null || data.isNull() ? node : data;
     }
 }
