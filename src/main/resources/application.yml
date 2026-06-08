@@ -11,8 +11,8 @@ spring:
     url: ${LYCAN_DB_URL:jdbc:mysql://127.0.0.1:3306/lycanclaw_local_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
     # 数据库用户名
     username: ${LYCAN_DB_USERNAME:root}
-    # 数据库密码
-    password: ${LYCAN_DB_PASSWORD:1677}
+    # 数据库密码（必须通过环境变量提供）
+    password: ${LYCAN_DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     # 本地默认自动更新表结构；生产建议改为 validate 并用 SQL 迁移
@@ -60,8 +60,8 @@ lycan:
     # 允许跨域来源，多个域名用英文逗号分隔
     allowed-origins: http://localhost:5173,http://127.0.0.1:5173,https://wreckloud.com,https://www.wreckloud.com
   security:
-    # 管理员令牌（必须改成你自己的随机值）
-    admin-token: change-me-token
+    # 静态管理员令牌（可选，应急调试时通过环境变量提供）
+    admin-token: ${LYCAN_SECURITY_ADMIN_TOKEN:}
     # 管理员 QQ 身份白名单（逗号分隔，可填 QQ 号或 Waline QQ OAuth 标识）
     admin-qq-whitelist: 1677820334,UID_E59B5290860ADD10C36077980031A6FE
     # 是否要求 Waline 账号必须是 administrator 才能换取后端会话

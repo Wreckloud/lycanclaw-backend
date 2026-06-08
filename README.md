@@ -7,7 +7,7 @@
 - Java 17
 - Spring Boot 3.4.x
 - Maven
-- MySQL（后续接入，当前默认不强依赖数据库启动）
+- MySQL（推荐聚合、访问分析、催更统计依赖数据库）
 
 ## 已初始化内容
 
@@ -204,8 +204,7 @@ mvn spring-boot:run
 - `D:/Portfolio/Website/LycanClawBackend/deploy/waline.env.example`（Waline）
 - `D:/Portfolio/Website/LycanClaw/.env.example`（前端，单一 `VITE_BACKEND_API_BASE`）
 
-> 当前阶段默认关闭了数据源自动装配，便于先推进无状态 API。  
-> 开始接入数据库时再恢复 `spring.datasource` 与 `spring.jpa` 配置。
+> 当前阶段已经接入 MySQL。运行本地测试或部署到服务器前，需要先准备数据库并通过环境变量配置连接信息。
 
 ## 分阶段需求（与你当前规划对齐）
 

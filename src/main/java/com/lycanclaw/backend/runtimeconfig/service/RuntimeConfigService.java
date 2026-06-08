@@ -288,7 +288,7 @@ public class RuntimeConfigService {
                 "tagPostsJsonPath", tagProperties.getPostsJsonPath()
         ));
         result.put("security", Map.of(
-                "adminTokenConfigured", adminToken != null && !adminToken.isBlank() && !"change-me-token".equals(adminToken),
+                "adminTokenConfigured", adminToken != null && !adminToken.isBlank(),
                 "adminQqWhitelist", adminQqWhitelist,
                 "adminRequireWalineAdministrator", adminRequireWalineAdministrator,
                 "adminRateLimitPerMinute", adminRateLimitPerMinute,
