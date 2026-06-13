@@ -1,6 +1,8 @@
 server:
   # 后端服务端口
   port: 8080
+  # 读取 Nginx 转发的协议与主机信息，保证 Waline OAuth 回调地址正确
+  forward-headers-strategy: framework
 
 spring:
   application:
@@ -83,6 +85,8 @@ lycan:
     # 是否信任代理头（反向代理后可开启，按 X-Forwarded-For 识别真实 IP）
     trust-forwarded-headers: false
   analytics:
+    # 前端生成的知识笔记统计索引，用于后台文章与主题关注分析
+    knowledge-stats-json-path: ${LYCAN_ANALYTICS_KNOWLEDGE_STATS_JSON_PATH:D:/Portfolio/Website/LycanClaw/docs/public/knowledge-stats.json}
     # 博客仓库绝对路径（用于读取 git log）
     repo-path: D:/Portfolio/Website/LycanClaw
     # 统计时区
@@ -91,6 +95,11 @@ lycan:
     days: 365
     # 统计目录，多个目录用英文逗号分隔
     scope: docs/thoughts,docs/knowledge
+    ip-region:
+      # ip2region IPv4 XDB 文件路径；留空时仅展示原始 IP
+      v4-xdb-path: ${LYCAN_IP2REGION_V4_XDB_PATH:}
+      # ip2region IPv6 XDB 文件路径；留空时不解析 IPv6 地区
+      v6-xdb-path: ${LYCAN_IP2REGION_V6_XDB_PATH:}
   music:
     # 首页随机流与关于页榜单固定账号 uid（与登录态解耦）
     playlist-owner-uid: 629126546
@@ -124,6 +133,15 @@ lycan:
   waline:
     # Waline 服务地址（用于评论/阅读统计聚合）
     base-url: http://127.0.0.1:8360
+    notification:
+      # 以下配置只用于管理端展示通知状态，实际发送仍由 Waline 环境变量负责
+      smtp-host: ${WALINE_SMTP_HOST:}
+      smtp-service: ${WALINE_SMTP_SERVICE:}
+      smtp-user: ${WALINE_SMTP_USER:}
+      smtp-pass: ${WALINE_SMTP_PASS:}
+      author-email: ${WALINE_AUTHOR_EMAIL:}
+      comment-audit: ${WALINE_COMMENT_AUDIT:false}
+      disable-author-notify: ${WALINE_DISABLE_AUTHOR_NOTIFY:false}
   tag:
     # 标签聚合读取的文章索引路径
     posts-json-path: D:/Portfolio/Website/LycanClaw/docs/public/posts.json

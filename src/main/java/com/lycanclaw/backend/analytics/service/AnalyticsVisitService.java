@@ -29,17 +29,20 @@ public class AnalyticsVisitService {
     private final AnalyticsVisitRepository repository;
     private final AnalyticsPathPolicy pathPolicy;
     private final ClientIpResolver clientIpResolver;
+    private final VisitorIdentityService visitorIdentityService;
     private final ZoneId zoneId;
 
     public AnalyticsVisitService(
             AnalyticsVisitRepository repository,
             AnalyticsPathPolicy pathPolicy,
             ClientIpResolver clientIpResolver,
+            VisitorIdentityService visitorIdentityService,
             @Value("${lycan.system.zone-id:Asia/Shanghai}") String zoneId
     ) {
         this.repository = repository;
         this.pathPolicy = pathPolicy;
         this.clientIpResolver = clientIpResolver;
+        this.visitorIdentityService = visitorIdentityService;
         this.zoneId = ZoneId.of(zoneId);
     }
 
@@ -63,7 +66,9 @@ public class AnalyticsVisitService {
         entity.setReferrer(truncate(request == null ? "" : request.referrer(), 1000));
         entity.setStartedAt(now());
         entity.setDurationMs(0);
+        entity.setMaxScrollPercent(0);
         repository.save(entity);
+        visitorIdentityService.ensureAnonymousIdentity(entity.getVisitorId(), entity.getStartedAt());
         return new VisitStartResponse(entity.getVisitId());
     }
 
@@ -78,6 +83,10 @@ public class AnalyticsVisitService {
         AnalyticsVisitEntity entity = repository.findByVisitId(request.visitId().trim())
                 .orElseThrow(() -> new IllegalArgumentException("访问记录不存在: " + request.visitId()));
         entity.setDurationMs(Math.max(entity.getDurationMs(), durationMs));
+        entity.setMaxScrollPercent(Math.max(
+                entity.getMaxScrollPercent(),
+                clampPercent(request.maxScrollPercent())
+        ));
         entity.setEndedAt(now());
         repository.save(entity);
         return new VisitEndResponse(entity.getVisitId(), entity.getDurationMs());
@@ -92,6 +101,13 @@ public class AnalyticsVisitService {
             return 0L;
         }
         return Math.min(value, MAX_DURATION_MS);
+    }
+
+    private int clampPercent(Integer value) {
+        if (value == null || value < 0) {
+            return 0;
+        }
+        return Math.min(value, 100);
     }
 
     private String normalizeVisitorId(String value) {

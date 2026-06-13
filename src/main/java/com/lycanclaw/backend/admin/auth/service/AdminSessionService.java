@@ -41,13 +41,13 @@ public class AdminSessionService {
     /**
      * 创建新的管理员会话，返回会话令牌与主体信息。
      */
-    public SessionToken createSession(AdminAuthPrincipal principal) {
+    public SessionToken createSession(AdminAuthPrincipal principal, String walineToken) {
         cleanupExpired();
         shrinkIfNeeded();
 
         String token = generateToken();
         Instant expiresAt = Instant.now().plus(Duration.ofSeconds(Math.max(60, sessionTtlSeconds)));
-        sessionStore.put(token, new SessionEntry(principal, expiresAt));
+        sessionStore.put(token, new SessionEntry(principal, expiresAt, walineToken));
 
         AdminAuthPrincipal sessionPrincipal = new AdminAuthPrincipal(
                 "session",
@@ -65,17 +65,10 @@ public class AdminSessionService {
      * 校验会话令牌；过期会自动清理。
      */
     public Optional<AdminAuthPrincipal> verify(String token) {
-        if (token == null || token.isBlank()) {
-            return Optional.empty();
-        }
-        SessionEntry entry = sessionStore.get(token);
-        if (entry == null) {
-            return Optional.empty();
-        }
-        if (entry.expiresAt().isBefore(Instant.now())) {
-            sessionStore.remove(token);
-            return Optional.empty();
-        }
+        Optional<SessionEntry> optionalEntry = findValidEntry(token);
+        if (optionalEntry.isEmpty()) return Optional.empty();
+
+        SessionEntry entry = optionalEntry.get();
         AdminAuthPrincipal source = entry.principal();
         return Optional.of(new AdminAuthPrincipal(
                 "session",
@@ -86,6 +79,16 @@ public class AdminSessionService {
                 source.role(),
                 appTimeProvider.toOffsetString(entry.expiresAt())
         ));
+    }
+
+    /**
+     * 获取当前管理会话绑定的 Waline token。
+     * 静态管理员 token 不会进入会话存储，因此无法取得 Waline 身份。
+     */
+    public Optional<String> findWalineToken(String token) {
+        return findValidEntry(token)
+                .map(SessionEntry::walineToken)
+                .filter(value -> value != null && !value.isBlank());
     }
 
     /**
@@ -102,6 +105,21 @@ public class AdminSessionService {
         byte[] bytes = new byte[36];
         SECURE_RANDOM.nextBytes(bytes);
         return TOKEN_ENCODER.encodeToString(bytes);
+    }
+
+    private Optional<SessionEntry> findValidEntry(String token) {
+        if (token == null || token.isBlank()) {
+            return Optional.empty();
+        }
+        SessionEntry entry = sessionStore.get(token);
+        if (entry == null) {
+            return Optional.empty();
+        }
+        if (entry.expiresAt().isBefore(Instant.now())) {
+            sessionStore.remove(token);
+            return Optional.empty();
+        }
+        return Optional.of(entry);
     }
 
     private void cleanupExpired() {
@@ -127,6 +145,6 @@ public class AdminSessionService {
     /**
      * 会话存储实体。
      */
-    private record SessionEntry(AdminAuthPrincipal principal, Instant expiresAt) {
+    private record SessionEntry(AdminAuthPrincipal principal, Instant expiresAt, String walineToken) {
     }
 }

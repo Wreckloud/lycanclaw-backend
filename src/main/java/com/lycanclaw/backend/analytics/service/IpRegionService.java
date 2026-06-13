@@ -1,0 +1,84 @@
+package com.lycanclaw.backend.analytics.service;
+
+import jakarta.annotation.PreDestroy;
+import org.lionsoul.ip2region.service.Config;
+import org.lionsoul.ip2region.service.ConfigBuilder;
+import org.lionsoul.ip2region.service.Ip2Region;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+/**
+ * IP 地区解析服务。
+ * 在外部 XDB 文件可用时解析国家、省市和运营商，缺失时返回空地区信息。
+ * @author Wreckloud
+ * @since 2026-06-09
+ */
+@Service
+public class IpRegionService {
+
+    private final Ip2Region ip2Region;
+
+    public IpRegionService(
+            @Value("${lycan.analytics.ip-region.v4-xdb-path:}") String v4Path,
+            @Value("${lycan.analytics.ip-region.v6-xdb-path:}") String v6Path
+    ) {
+        this.ip2Region = createService(v4Path, v6Path);
+    }
+
+    /**
+     * 查询地区原始文本；未配置数据库或查询失败时返回空字符串。
+     */
+    public String resolve(String ip) {
+        if (ip2Region == null || ip == null || ip.isBlank()) {
+            return "";
+        }
+        try {
+            String region = ip2Region.search(ip.trim());
+            return region == null ? "" : region.replace("|0", "").replace("0|", "").trim();
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    @PreDestroy
+    public void close() {
+        if (ip2Region != null) {
+            try {
+                ip2Region.close();
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    private Ip2Region createService(String v4Path, String v6Path) {
+        Config v4 = buildConfig(v4Path, true);
+        Config v6 = buildConfig(v6Path, false);
+        if (v4 == null && v6 == null) {
+            return null;
+        }
+        try {
+            return Ip2Region.create(v4, v6);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Config buildConfig(String value, boolean ipv4) {
+        if (value == null || value.isBlank() || !Files.isRegularFile(Path.of(value.trim()))) {
+            return null;
+        }
+        ConfigBuilder builder = Config.custom()
+                .setCachePolicy(Config.VIndexCache)
+                .setSearchers(4)
+                .setXdbPath(value.trim());
+        try {
+            return ipv4 ? builder.asV4() : builder.asV6();
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+}

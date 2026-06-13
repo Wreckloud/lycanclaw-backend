@@ -242,6 +242,7 @@ public class MusicFlowService {
         String artist = asText(detail.get("artist"));
         String cover = asText(detail.get("cover"));
         String url = asText(detail.get("url"));
+        String urlSource = asText(detail.get("source"));
 
         if (id.isBlank() || name.isBlank()) {
             throw new IllegalStateException("歌曲详情不完整，无法生成播放项");
@@ -255,6 +256,7 @@ public class MusicFlowService {
                 cover,
                 url,
                 source,
+                urlSource,
                 1,
                 Instant.now().toString()
         );
@@ -312,6 +314,7 @@ public class MusicFlowService {
                 "",
                 "",
                 source,
+                "",
                 1,
                 ""
         );

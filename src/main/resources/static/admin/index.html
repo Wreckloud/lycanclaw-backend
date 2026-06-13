@@ -34,13 +34,12 @@
     .app { min-height: 100vh; display: grid; grid-template-columns: 240px minmax(0, 1fr); }
     .sidebar { position: sticky; top: 0; height: 100vh; padding: 18px 14px; background: #0b1018; }
     .brand { display: flex; gap: 10px; align-items: center; padding: 4px 8px 18px; }
-    .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; background: var(--surface); color: var(--accent); font-weight: 800; }
+    .brand-logo { width: 34px; height: 34px; object-fit: contain; }
     .brand-title { font-weight: 800; }
     .brand-subtitle { margin-top: 2px; color: var(--muted); font-size: 12px; }
     .nav { display: grid; gap: 4px; }
     .nav-link { border: 0; width: 100%; color: var(--muted); background: transparent; text-align: left; padding: 10px 10px; display: flex; justify-content: space-between; align-items: center; }
     .nav-link:hover, .nav-link.active { color: var(--text); background: var(--surface); }
-    .nav-link span:last-child { color: var(--faint); font-size: 12px; }
     .main { min-width: 0; }
     .topbar { position: sticky; top: 0; z-index: 4; min-height: 64px; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #0d1119; }
     .page-title { margin: 0; font-size: 22px; }
@@ -54,8 +53,15 @@
     .section-head p { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
     .grid { display: grid; gap: 12px; }
     .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .grid.aside { grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); align-items: start; }
+    .recommendation-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+    .recommendation-primary { height: 100%; }
+    .recommendation-side { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 12px; }
+    .candidate-toolbar { margin-bottom: 14px; }
+    .music-grid { align-items: stretch; }
+    .music-grid > .card { height: 100%; }
     .card { background: var(--surface); padding: 16px; overflow: hidden; }
     .metric { min-height: 104px; display: flex; flex-direction: column; justify-content: space-between; }
     .metric-value { font-size: 29px; font-weight: 900; line-height: 1; color: var(--accent); }
@@ -94,9 +100,34 @@
     .field input, .field select { width: 100%; border: 0; background: var(--surface-soft); color: var(--text); padding: 9px 10px; outline: 0; }
     .field input:focus, .field select:focus { background: #202837; }
     .field-hint { color: var(--faint); font-size: 12px; }
-    .qr-wrap { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+    .filter-row { display: grid; grid-template-columns: 150px minmax(180px, 1fr) auto; gap: 8px; align-items: end; }
+    .filter-row.four { grid-template-columns: minmax(180px, 1fr) 140px 150px auto; }
+    .filter-row.compact { grid-template-columns: minmax(180px, 1fr) auto; }
+    .comment-list { display: grid; gap: 1px; margin-top: 12px; background: var(--surface-muted); }
+    .comment-item { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 12px; padding: 13px; background: var(--surface-soft); }
+    .comment-avatar { width: 42px; height: 42px; object-fit: cover; background: var(--surface-muted); }
+    .comment-main { min-width: 0; }
+    .comment-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 5px; }
+    .comment-content { color: var(--text); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+    .comment-actions { display: flex; gap: 4px; align-items: flex-start; flex-wrap: wrap; justify-content: flex-end; }
+    .comment-actions .btn { min-height: 30px; padding: 5px 8px; font-size: 12px; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th, .data-table td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--surface-muted); vertical-align: top; }
+    .data-table th { color: var(--muted); font-weight: 500; }
+    .data-table a, .article-link { color: var(--text); text-decoration: none; }
+    .data-table a:hover, .article-link:hover { color: var(--accent); }
+    .checkbox-cell { width: 30px; }
+    .drawer { display: none; margin-top: 14px; }
+    .drawer.active { display: block; }
+    .inline-config { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--surface-muted); }
+    .inline-config.active { display: block; }
+    .config-code { display: grid; gap: 5px; padding: 11px; background: var(--surface-soft); color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .pager { display: flex; justify-content: flex-end; align-items: center; gap: 9px; margin-top: 12px; color: var(--muted); font-size: 12px; }
+    .qr-card { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 16px; align-items: center; padding: 14px; background: var(--surface-soft); cursor: pointer; }
+    .qr-card:hover { background: #151c28; }
     .qr-box { width: 210px; height: 210px; background: #fff; display: grid; place-items: center; overflow: hidden; }
-    .qr-box img { width: 100%; height: 100%; object-fit: contain; }
+    .qr-box img { width: 100%; height: 100%; object-fit: contain; display: none; }
+    .qr-placeholder { color: #2f3b4d; font-weight: 800; text-align: center; padding: 18px; }
     .message { position: fixed; right: 20px; bottom: 20px; z-index: 20; max-width: min(460px, calc(100vw - 40px)); background: var(--surface); padding: 12px 14px; color: var(--muted); display: none; }
     .message.show { display: block; }
     .message.error { color: #ffd6da; }
@@ -107,13 +138,19 @@
       .nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
       .topbar { padding: 12px 16px; }
       .content { padding: 18px 16px 28px; }
-      .grid.two, .grid.four, .grid.aside { grid-template-columns: 1fr; }
+      .grid.two, .grid.three, .grid.four, .grid.aside, .recommendation-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 680px) {
       .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .topbar { align-items: flex-start; flex-direction: column; }
       .field-grid { grid-template-columns: 1fr; }
       .list-item { flex-direction: column; }
+      .qr-card { grid-template-columns: 1fr; }
+      .qr-box { width: 100%; max-width: 260px; height: auto; aspect-ratio: 1; }
+      .filter-row { grid-template-columns: 1fr; }
+      .comment-item { grid-template-columns: 36px minmax(0, 1fr); }
+      .comment-avatar { width: 36px; height: 36px; }
+      .comment-actions { grid-column: 2; justify-content: flex-start; }
     }
   </style>
 </head>
@@ -121,17 +158,15 @@
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-mark">LC</div>
+      <img class="brand-logo" src="/admin/logo.png" alt="LycanClaw" />
       <div><div class="brand-title">LycanClaw</div><div class="brand-subtitle">统一管理控制台</div></div>
     </div>
     <nav class="nav" id="nav">
-      <button class="nav-link active" data-section="overview">总览 <span>01</span></button>
-      <button class="nav-link" data-section="music">音乐 <span>02</span></button>
-      <button class="nav-link" data-section="recommendation">推荐 <span>03</span></button>
-      <button class="nav-link" data-section="comments">评论 <span>04</span></button>
-      <button class="nav-link" data-section="ops">运维 <span>05</span></button>
-      <button class="nav-link" data-section="security">安全 <span>06</span></button>
-      <button class="nav-link" data-section="config">配置 <span>07</span></button>
+      <button class="nav-link active" data-section="overview">总览</button>
+      <button class="nav-link" data-section="articles">文章</button>
+      <button class="nav-link" data-section="music">音乐</button>
+      <button class="nav-link" data-section="recommendation">推荐</button>
+      <button class="nav-link" data-section="comments">评论</button>
     </nav>
   </aside>
   <main class="main">
@@ -144,33 +179,60 @@
         <div class="section-head"><div><h2>总览</h2><p>访问趋势、热门文章、催更与关键服务状态。</p></div></div>
         <div class="grid four" id="overviewMetrics"></div>
         <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>访问趋势</h3><small>最近 30 天</small></div><div class="chart" id="visitTrendChart"></div></div><div class="card"><div class="card-title"><h3>催更趋势</h3><small>最近 30 天</small></div><div class="chart" id="encourageTrendChart"></div></div></div>
-        <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>热门文章</h3><small>访问量</small></div><div class="list" id="topArticleList"></div></div><div class="card"><div class="card-title"><h3>Tag 关注</h3><small>访问聚合</small></div><div class="chart small" id="tagFocusChart"></div></div></div>
-        <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>上游状态</h3><small id="overviewCheckedAt">-</small></div><div id="overviewServices" class="kv"></div></div><div class="card"><div class="card-title"><h3>推荐与评论</h3><small>聚合状态</small></div><div id="overviewGovernance" class="kv"></div></div></div>
+        <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>热门文章</h3><small><button class="btn link" data-open-section="articles">查看全部</button></small></div><div class="list" id="topArticleList"></div></div><div class="card"><div class="card-title"><h3>主题关注</h3><small>访问次数</small></div><div class="chart small" id="tagFocusChart"></div></div></div>
+        <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>催更排行</h3><small>访客结算</small></div><div class="list" id="encouragementRanking"></div></div><div class="card"><div class="card-title"><h3>关键状态</h3><small id="overviewCheckedAt">-</small></div><div id="overviewServices" class="kv"></div><div id="overviewRecommendation" class="kv" style="margin-top:10px;"></div></div></div>
+      </section>
+      <section class="section" id="section-articles">
+        <div class="section-head"><div><h2>文章</h2><p>查看文章访问、停留、阅读进度和访客构成。</p></div></div>
+        <div class="card">
+          <div class="filter-row four">
+            <div class="field"><label>标题搜索</label><input id="articleKeywordInput" placeholder="输入文章标题" /></div>
+            <div class="field"><label>时间范围</label><select id="articleDaysFilter"><option value="7">近 7 天</option><option value="30" selected>近 30 天</option><option value="90">近 90 天</option><option value="365">近一年</option></select></div>
+            <div class="field"><label>排序</label><select id="articleSortFilter"><option value="visits">访问次数</option><option value="duration">累计停留</option><option value="completion">读完率</option><option value="scroll">阅读进度</option></select></div>
+            <button class="btn primary" id="searchArticlesBtn">查询</button>
+          </div>
+          <div class="grid two" style="margin-top:16px;">
+            <div><div class="card-title"><h3>访问分布</h3><small>当前筛选结果</small></div><div class="chart small" id="articleTrafficChart"></div></div>
+            <div><div class="card-title"><h3>阅读质量</h3><small>停留与读完率</small></div><div class="chart small" id="articleEngagementChart"></div></div>
+          </div>
+          <div id="articleTable"></div>
+          <div class="pager"><button class="btn link" id="articlePrevBtn">上一页</button><span id="articlePageInfo">第 1 页</span><button class="btn link" id="articleNextBtn">下一页</button></div>
+        </div>
+        <div class="card" style="margin-top:12px;"><div class="card-title"><h3>最近访问</h3><small>文章阅读记录</small></div><div class="list" id="articleRecentVisits"></div></div>
+        <div class="card drawer" id="articleDetailCard"><div class="card-title"><h3 id="articleDetailTitle">文章详情</h3><button class="btn link" id="closeArticleDetailBtn">关闭</button></div><div id="articleDetailMetrics" class="grid three"></div><div class="grid three" style="margin-top:12px;"><div><div class="chart" id="articleTrendChart"></div></div><div><div class="card-title"><h3>访问来源</h3></div><div class="list" id="articleReferrerList"></div></div><div><div class="card-title"><h3>访客</h3></div><div class="list" id="articleVisitorList"></div></div></div></div>
+        <div class="card drawer" id="visitorProfileCard"><div class="card-title"><h3 id="visitorProfileTitle">访客画像</h3><button class="btn link" id="closeVisitorProfileBtn">关闭</button></div><div id="visitorProfileMetrics" class="grid four"></div><div class="grid three" style="margin-top:12px;"><div><div class="card-title"><h3>常看文章</h3></div><div class="list" id="visitorTopArticles"></div></div><div><div class="card-title"><h3>访问来源</h3></div><div class="list" id="visitorReferrers"></div></div><div><div class="card-title"><h3>常听歌曲</h3></div><div class="list" id="visitorTopSongs"></div></div></div></div>
       </section>
       <section class="section" id="section-music">
         <div class="section-head"><div><h2>音乐</h2><p>网易云扫码登录、账号状态与播放流配置。</p></div><div class="actions"><button class="btn" id="checkMusicBtn">检查状态</button><button class="btn danger" id="logoutMusicBtn">退出网易云</button></div></div>
-        <div class="grid aside"><div class="card"><div class="card-title"><h3>网易云扫码登录</h3><small id="musicStatusBadge">未检查</small></div><div class="qr-wrap"><div class="qr-box"><img id="qrImg" alt="网易云登录二维码" /></div><div style="flex:1; min-width:260px;"><div class="actions"><button class="btn primary" id="createQrBtn">生成二维码</button><button class="btn" id="startQrPollBtn">开始轮询</button><button class="btn" id="stopQrPollBtn">停止轮询</button></div><div class="list-meta" style="margin-top:12px;" id="qrStatus">等待生成二维码。</div><a class="list-meta" id="qrLink" href="#" target="_blank" rel="noopener"></a></div></div></div><div class="card"><div class="card-title"><h3>音乐配置</h3><small>运行时生效</small></div><div id="musicConfigSummary" class="kv"></div></div></div>
+        <div class="grid aside music-grid"><div class="card"><div class="card-title"><h3>网易云扫码登录</h3><small id="musicStatusBadge">未检查</small></div><div class="qr-card" id="qrCard"><div class="qr-box"><img id="qrImg" alt="网易云登录二维码" /><div class="qr-placeholder" id="qrPlaceholder">点击生成二维码</div></div><div><div class="list-title">点击卡片开始扫码登录</div><div class="list-meta" id="qrStatus">登录只用于公开播放失败后的会员回退。</div><a class="list-meta" id="qrLink" href="#" target="_blank" rel="noopener"></a></div></div></div><div class="grid"><div class="card"><div class="card-title"><h3>账号状态</h3><small>网易云</small></div><div id="musicStatusDetail" class="kv"></div></div><form class="card" id="musicConfigForm"><div class="card-title"><h3>音乐配置</h3><small>保存后立即生效</small></div><div class="field-grid"><div class="field"><label>歌单来源 UID</label><input name="playlistOwnerUid" inputmode="numeric" placeholder="629126546" /></div><div class="field"><label>默认音质</label><select name="preferredLevel"><option value="exhigh">exhigh</option><option value="higher">higher</option><option value="standard">standard</option><option value="lossless">lossless</option><option value="hires">hires</option><option value="jymaster">jymaster</option></select></div></div><div class="actions" style="margin-top:12px;"><button class="btn primary" type="button" id="saveMusicConfigBtn">保存音乐配置</button></div></form></div></div>
+        <div class="grid four" id="musicAnalyticsMetrics" style="margin-top:14px;"></div>
+        <div class="grid three" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>热门歌曲</h3><small>近 30 天</small></div><div class="list" id="musicTopSongs"></div></div><div class="card"><div class="card-title"><h3>播放来源</h3><small>入口分布</small></div><div class="list" id="musicSourceList"></div></div><div class="card"><div class="card-title"><h3>最近收听</h3><small>访客与来源</small></div><div class="list" id="musicRecentList"></div></div></div>
       </section>
       <section class="section" id="section-recommendation">
-        <div class="section-head"><div><h2>推荐</h2><p>手动推荐优先，空位由推荐聚合热度补齐。</p></div><div class="actions"><button class="btn" id="reloadRecommendationBtn">重新加载</button><button class="btn primary" id="saveRecommendationBtn">保存手动推荐</button><button class="btn" id="rebuildRecommendationBtn">触发聚合</button></div></div>
-        <div class="grid aside"><div class="card"><div class="card-title"><h3>手动推荐顺序</h3><small id="manualUpdatedAt">-</small></div><div class="field" style="margin-bottom:12px;"><label>手填文章链接</label><div style="display:flex; gap:8px;"><input id="manualInput" placeholder="/thoughts/文章.html" /><button class="btn" id="addManualInputBtn">加入</button></div><div class="field-hint">仅格式校验，展示顺序即首页推荐优先级。</div></div><div class="list" id="manualList"></div></div><div class="card"><div class="card-title"><h3>候选文章</h3><small>按时间倒序</small></div><div class="list" id="candidateList"></div></div></div>
+        <div class="section-head"><div><h2>推荐</h2><p>指定文章优先展示，其余位置由文章热度自动补齐。</p></div><button class="btn" id="rebuildRecommendationBtn">更新推荐热度</button></div>
+        <div class="grid recommendation-grid">
+          <div class="card recommendation-primary"><div class="card-title"><h3>当前首页推荐</h3><small id="manualUpdatedAt">-</small></div><div class="field-hint" style="margin-bottom:12px;">指定项可调整顺序；自动项可排除，后续文章会立即补位。</div><div class="list" id="manualList"></div></div>
+          <div class="recommendation-side">
+            <form class="card" id="recommendationConfigForm"><div class="card-title"><h3>推荐配置</h3><small>更新热度时生效</small></div><div class="field-grid"><div class="field"><label>最大候选文章数</label><input name="maxCandidatePosts" type="number" min="1" max="1000" /></div><div class="field"><label>浏览量权重</label><input name="pageviewWeight" type="number" min="0" max="1000" step="0.1" /></div><div class="field"><label>评论数权重</label><input name="commentWeight" type="number" min="0" max="1000" step="0.1" /></div></div><div class="actions" style="margin-top:12px;"><button class="btn primary" type="button" id="saveRecommendationConfigBtn">保存推荐配置</button></div></form>
+            <div class="card"><div class="card-title"><h3>候选文章</h3><small>按发布时间倒序</small></div><div class="filter-row compact candidate-toolbar"><div class="field"><input id="candidateKeywordInput" placeholder="搜索文章标题" /></div><button class="btn" id="searchCandidatesBtn">搜索</button></div><div class="list" id="candidateList"></div><div class="pager"><button class="btn link" id="candidatePrevBtn">上一页</button><span id="candidatePageInfo">第 1 页</span><button class="btn link" id="candidateNextBtn">下一页</button></div></div>
+          </div>
+        </div>
       </section>
       <section class="section" id="section-comments">
-        <div class="section-head"><div><h2>评论</h2><p>Waline 服务、最新评论采样与文章互动数据状态。</p></div><button class="btn" id="reloadCommentsBtn">刷新评论</button></div>
-        <div class="grid two"><div class="card"><div class="card-title"><h3>Waline 状态</h3><small>只读</small></div><div id="walineSummary" class="kv"></div></div><div class="card"><div class="card-title"><h3>最新评论</h3><small>最多 5 条</small></div><div class="list" id="recentComments"></div></div></div>
-      </section>
-      <section class="section" id="section-ops">
-        <div class="section-head"><div><h2>运维</h2><p>关键上游状态、索引文件与部署提示。</p></div><div class="actions"><button class="btn" id="refreshTagBtn">刷新标签缓存</button><button class="btn" id="reloadOpsBtn">刷新检查</button></div></div>
-        <div class="grid two"><div class="card"><div class="card-title"><h3>上游健康</h3><small>Waline / NCM</small></div><div id="opsServices" class="kv"></div></div><div class="card"><div class="card-title"><h3>常见错误提示</h3><small>部署排查</small></div><div class="list" id="opsHints"></div></div></div>
-        <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>索引文件</h3><small>posts / tag posts</small></div><div id="opsContentFiles" class="kv"></div></div><div class="card"><div class="card-title"><h3>标签缓存</h3><small>后台观察者</small></div><div id="opsTagCacheSummary" class="kv"></div></div></div>
-      </section>
-      <section class="section" id="section-security">
-        <div class="section-head"><div><h2>安全</h2><p>管理员身份、鉴权模式、限流与日志开关。</p></div></div>
-        <div class="grid two"><div class="card"><div class="card-title"><h3>当前管理员</h3><small>Waline 会话</small></div><div id="adminIdentity" class="kv"></div></div><div class="card"><div class="card-title"><h3>安全基线</h3><small>只读</small></div><div id="securitySummary" class="kv"></div></div></div>
-      </section>
-      <section class="section" id="section-config">
-        <div class="section-head"><div><h2>配置中心</h2><p>只允许修改非敏感配置；密钥、密码、Cookie、绝对路径仍走环境变量或 application.yml。</p></div><div class="actions"><button class="btn primary" id="saveRuntimeConfigBtn">保存配置</button><button class="btn danger" id="resetRuntimeConfigBtn">恢复默认</button></div></div>
-        <div class="grid aside"><form class="card" id="runtimeConfigForm"><div class="card-title"><h3>可编辑运行时配置</h3><small id="runtimeStoredState">-</small></div><div class="field-grid"><div class="field"><label>音乐来源 UID</label><input name="playlistOwnerUid" inputmode="numeric" /><div class="field-hint">首页随机流与关于页榜单来源。</div></div><div class="field"><label>默认音质</label><select name="preferredLevel"><option value="exhigh">exhigh</option><option value="higher">higher</option><option value="standard">standard</option><option value="lossless">lossless</option><option value="hires">hires</option><option value="jymaster">jymaster</option></select></div><div class="field"><label>最大候选文章数</label><input name="maxCandidatePosts" type="number" min="1" max="1000" /></div><div class="field"><label>推荐快照保鲜秒数</label><input name="snapshotFreshSeconds" type="number" min="60" max="86400" /></div><div class="field"><label>浏览量权重</label><input name="pageviewWeight" type="number" min="0" max="1000" step="0.1" /></div><div class="field"><label>评论数权重</label><input name="commentWeight" type="number" min="0" max="1000" step="0.1" /></div><div class="field"><label>标签缓存秒数</label><input name="tagCacheSeconds" type="number" min="5" max="86400" /></div></div></form><div class="card"><div class="card-title"><h3>只读配置摘要</h3><small>脱敏展示</small></div><div id="readonlyConfig" class="kv"></div></div></div>
+        <div class="section-head"><div><h2>评论</h2><p>在当前后台完成审核、置顶与删除，不再依赖 Waline 官方管理界面。</p></div><button class="btn" id="reloadCommentsBtn">刷新评论</button></div>
+        <div class="grid two"><div class="card"><div class="card-title"><h3>Waline 状态</h3><button class="btn link" id="toggleMailConfigBtn">邮件配置</button></div><div id="walineSummary" class="kv"></div><div id="mailNotificationStatus" class="kv" style="margin-top:10px;"></div><div class="inline-config" id="mailConfigPanel"><div class="config-code"><code>AUTHOR_EMAIL=你的邮箱</code><code>SMTP_SERVICE=QQ</code><code>SMTP_USER=你的 QQ 邮箱</code><code>SMTP_PASS=QQ 邮箱授权码</code><code>SMTP_SECURE=true</code></div><div class="field-hint" style="margin-top:8px;">写入 Waline 环境变量后重启服务。密码使用邮箱授权码，不是登录密码。 <a class="article-link" href="https://waline.js.org/reference/server/env.html" target="_blank" rel="noopener">查看 Waline 文档</a></div></div></div><div class="card"><div class="card-title"><h3>最新评论</h3><small>最多 5 条</small></div><div class="list" id="recentComments"></div></div></div>
+        <div class="card" style="margin-top:12px;">
+          <div class="card-title"><h3>评论管理</h3><small id="commentCountSummary">-</small></div>
+          <div class="filter-row">
+            <div class="field"><label>状态</label><select id="commentStatusFilter"><option value="all">全部评论</option><option value="approved">已通过</option><option value="waiting">待审核</option><option value="spam">垃圾评论</option></select></div>
+            <div class="field"><label>关键词</label><input id="commentKeywordInput" placeholder="昵称、邮箱或评论内容" /></div>
+            <button class="btn primary" id="searchCommentsBtn">查询</button>
+          </div>
+          <div id="commentManageNotice" class="field-hint" style="margin-top:10px;"></div>
+          <div class="actions" style="margin:10px 0;"><button class="btn link" data-comment-batch="approved">批量通过</button><button class="btn link" data-comment-batch="waiting">批量待审核</button><button class="btn link" data-comment-batch="spam">批量垃圾</button><button class="btn link danger" data-comment-batch="delete">批量删除</button></div>
+          <div id="managedCommentList" class="comment-list"></div>
+          <div class="pager"><button class="btn link" id="commentPrevBtn">上一页</button><span id="commentPageInfo">第 1 页</span><button class="btn link" id="commentNextBtn">下一页</button></div>
+        </div>
       </section>
     </div>
   </main>
@@ -181,17 +243,14 @@
 <script>
   const sections = {
     overview: ['总览', '访问趋势、热门文章、催更与关键服务状态。'],
+    articles: ['文章', '文章访问、停留、阅读进度和访客构成。'],
     music: ['音乐', '网易云扫码登录、账号状态与播放流配置。'],
-    recommendation: ['推荐', '手动推荐优先，聚合热度补齐。'],
-    comments: ['评论', 'Waline 评论和阅读统计状态。'],
-    ops: ['运维', '关键上游状态、索引文件与部署排查。'],
-    security: ['安全', '管理员身份、限流与日志开关。'],
-    config: ['配置中心', '非敏感配置在线修改。']
+    recommendation: ['推荐', '手动推荐优先，文章热度补齐。'],
+    comments: ['评论', 'Waline 评论和阅读统计状态。']
   };
-  const state = { me: null, console: null, ops: null, runtime: null, manualUrls: [], candidates: [], recentComments: [], qrKey: '', qrTimer: null, charts: {} };
+  const state = { me: null, console: null, ops: null, runtime: null, musicStatus: null, musicAnalytics: null, articles: null, articlePage: 1, manualUrls: [], excludedUrls: [], effectiveRecommendations: [], candidates: [], candidatePage: 1, candidateTotalPages: 1, recentComments: [], managedComments: null, commentNotification: null, commentPage: 1, commentManageError: '', qrKey: '', qrTimer: null, charts: {} };
   const $ = (selector) => document.querySelector(selector);
   const asArray = (value) => Array.isArray(value) ? value : [];
-  const yesNo = (value) => value ? '是' : '否';
 
   function escapeHtml(value) {
     return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
@@ -223,10 +282,64 @@
     if (!service) return '-';
     return service.ok ? '正常' : (service.error || '异常');
   }
+  function formatDateTime(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleString('zh-CN', { hour12: false });
+  }
+  function relativeTime(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    const diffMs = Date.now() - date.getTime();
+    const future = diffMs < 0;
+    const abs = Math.abs(diffMs);
+    const minute = 60_000;
+    const hour = 60 * minute;
+    const day = 24 * hour;
+    if (abs < minute) return '刚刚';
+    if (abs < hour) return `${Math.floor(abs / minute)} 分钟${future ? '后' : '前'}`;
+    if (abs < day) return `${Math.floor(abs / hour)} 小时${future ? '后' : '前'}`;
+    if (abs < 30 * day) return `${Math.floor(abs / day)} 天${future ? '后' : '前'}`;
+    return formatDateTime(value);
+  }
+  function durationText(ms) {
+    const value = Number(ms || 0);
+    if (!Number.isFinite(value) || value <= 0) return '-';
+    if (value < 1000) return `${Math.round(value)}ms`;
+    return `${(value / 1000).toFixed(1)}s`;
+  }
+  function durationSecondsText(seconds) {
+    const value = Math.max(0, Number(seconds || 0));
+    if (value < 60) return `${Math.round(value)} 秒`;
+    if (value < 3600) return `${Math.floor(value / 60)} 分 ${Math.round(value % 60)} 秒`;
+    return `${Math.floor(value / 3600)} 小时 ${Math.round((value % 3600) / 60)} 分`;
+  }
+  function decodePath(value) {
+    const raw = String(value || '');
+    try { return decodeURIComponent(raw); } catch { return raw; }
+  }
+  function pathTitle(value) {
+    const decoded = decodePath(value).split(/[?#]/)[0];
+    const filename = decoded.slice(decoded.lastIndexOf('/') + 1).replace(/\.html$/i, '');
+    return filename || '未命名文章';
+  }
+  function articleHref(path) {
+    const normalized = String(path || '').startsWith('/') ? String(path) : `/${path || ''}`;
+    if (['localhost', '127.0.0.1'].includes(location.hostname) && location.port !== '5173') {
+      return `http://localhost:5173${normalized}`;
+    }
+    return normalized;
+  }
   function aggregationText(data) {
     if (!data) return '-';
-    if (data.running) return '运行中';
-    return data.hasSnapshot ? `快照可用 / ${data.expired ? '已过期' : '新鲜'}` : '暂无快照';
+    if (data.running) return '正在更新文章热度';
+    if (!data.hasSnapshot) return '尚未生成文章热度';
+    const status = data.expired ? '已有数据，建议更新' : '文章热度已更新';
+    const updated = data.lastSuccessAt || data.updatedAt || data.lastFinishedAt;
+    const count = data.metricCount ?? data.successCount ?? data.candidateCount;
+    return [status, updated ? `${relativeTime(updated)}` : '', count != null ? `${count} 篇文章` : ''].filter(Boolean).join(' · ');
   }
   async function api(url, options = {}, authRequired = true) {
     return adminCommon.requestJson(url, options, authRequired);
@@ -240,52 +353,96 @@
     $('#pageTitle').textContent = sections[section][0];
     $('#pageSubtitle').textContent = sections[section][1];
     if (location.hash !== `#${section}`) history.replaceState(null, '', `#${section}`);
-    if (section === 'overview') {
-      window.setTimeout(() => Object.values(state.charts).forEach((chart) => chart.resize()), 50);
-    }
+    window.setTimeout(() => Object.values(state.charts).forEach((chart) => chart.resize()), 50);
   }
   function renderMe() {
     const me = state.me || {};
     $('#meInfo').textContent = `${me.nickname || '管理员'}${me.qq ? ` / QQ ${me.qq}` : ''}`;
-    $('#adminIdentity').innerHTML = kvRows([['昵称', me.nickname || '-'], ['QQ', me.qq || '-'], ['模式', me.mode || '-'], ['会话过期时间', me.expiresAt || '-']]);
   }
   async function refreshConsole() {
     state.console = await api('/api/admin/console/summary');
     state.runtime = state.console.runtimeConfig || null;
     renderOverview();
     renderMusicConfig();
-    renderSecurity();
-    renderRuntimeConfig();
+    renderRecommendationConfig();
   }
   async function refreshOps() {
     state.ops = await api('/api/admin/ops/checks');
-    renderOps();
     renderComments();
-    renderOpsContent();
     if (state.console) renderOverview();
   }
   async function refreshRecommendation() {
-    const [config, candidates] = await Promise.all([api('/api/recommendations/admin/config'), api('/api/recommendations/admin/candidates?limit=200')]);
+    const [config, recommendations] = await Promise.all([
+      api('/api/recommendations/admin/config'),
+      api('/api/recommendations?limit=5')
+    ]);
     state.manualUrls = asArray(config.manualUrls);
-    state.candidates = asArray(candidates);
-    $('#manualUpdatedAt').textContent = config.updatedAt || '未设置';
-    renderManualList();
+    state.excludedUrls = asArray(config.excludedUrls);
+    state.effectiveRecommendations = asArray(recommendations);
+    $('#manualUpdatedAt').textContent = config.updatedAt ? `更新于 ${relativeTime(config.updatedAt)}` : '未设置';
+    renderRecommendationSlots();
+    await refreshCandidates(state.candidatePage);
+  }
+  async function refreshCandidates(page = state.candidatePage) {
+    const keyword = $('#candidateKeywordInput')?.value.trim() || '';
+    const query = new URLSearchParams({ keyword, page: String(Math.max(1, page)), pageSize: '6' });
+    const result = await api(`/api/recommendations/admin/candidates?${query}`);
+    state.candidates = asArray(result.items);
+    state.candidatePage = Number(result.page || 1);
+    state.candidateTotalPages = Number(result.totalPages || 1);
     renderCandidateList();
+    $('#candidatePageInfo').textContent = `第 ${state.candidatePage} / ${state.candidateTotalPages} 页`;
+    $('#candidatePrevBtn').disabled = state.candidatePage <= 1;
+    $('#candidateNextBtn').disabled = state.candidatePage >= state.candidateTotalPages;
   }
   async function refreshComments() {
     state.recentComments = await api('/api/comments/recent?limit=5');
     renderRecentComments();
   }
+  async function refreshManagedComments(page = state.commentPage) {
+    state.commentPage = Math.max(1, page);
+    const status = $('#commentStatusFilter').value;
+    const keyword = $('#commentKeywordInput').value.trim();
+    const query = new URLSearchParams({ status, keyword, page: String(state.commentPage) });
+    try {
+      state.managedComments = await api(`/api/admin/comments?${query}`);
+      state.commentManageError = '';
+    } catch (error) {
+      state.managedComments = null;
+      state.commentManageError = error.message || String(error);
+    }
+    renderManagedComments();
+  }
+  async function refreshCommentNotification() {
+    state.commentNotification = await api('/api/admin/comments/notification');
+    renderCommentNotification();
+  }
+  async function refreshArticles(page = state.articlePage) {
+    const query = new URLSearchParams({
+      days: $('#articleDaysFilter')?.value || '30',
+      keyword: $('#articleKeywordInput')?.value.trim() || '',
+      sort: $('#articleSortFilter')?.value || 'visits',
+      page: String(Math.max(1, page)),
+      pageSize: '12'
+    });
+    state.articles = await api(`/api/admin/analytics/articles?${query}`);
+    state.articlePage = Number(state.articles.page || 1);
+    renderArticleTable();
+  }
+  async function refreshMusicAnalytics() {
+    state.musicAnalytics = await api('/api/admin/analytics/music?days=30');
+    renderMusicAnalytics();
+  }
   async function refreshMusicStatus() {
     const status = await api('/api/music/auth/status');
+    state.musicStatus = status;
     renderMusicStatus(status);
   }
   async function refreshAll() {
     try {
       $('#refreshAllBtn').disabled = true;
-      await Promise.all([refreshConsole(), refreshOps(), refreshRecommendation(), refreshComments(), refreshMusicStatus()]);
+      await Promise.all([refreshConsole(), refreshOps(), refreshRecommendation(), refreshComments(), refreshManagedComments(), refreshCommentNotification(), refreshMusicStatus(), refreshMusicAnalytics(), refreshArticles()]);
       renderOverview();
-      renderOpsContent();
       showMessage('控制台已刷新');
     } catch (error) {
       showMessage(error.message || String(error), true);
@@ -298,19 +455,20 @@
     const music = dashboard.music || {};
     const insights = dashboard.writingInsights || {};
     const governance = dashboard.governance || {};
-    const risk = dashboard.riskControl || {};
-    const level = statusLevel(governance.syncLevel);
+    const sync = state.ops?.sync || {};
+    const aggregation = governance.recommendationAggregation || sync.recommendationAggregation || {};
     $('#overviewMetrics').innerHTML = [
       metricCard(insights.visits ?? 0, '近 30 天访问', `独立访客 ${insights.uniqueVisitors ?? 0}`),
       metricCard(`${insights.averageDurationSeconds ?? 0}s`, '平均停留', '只统计页面可见时间'),
       metricCard(insights.totalEncouragements ?? 0, '总催更', `今日 ${insights.encouragement?.today ?? 0}`),
       metricCard(music.loggedIn ? '已登录' : '未登录', '网易云账号', music.nickname || music.message || '-')
     ].join('');
-    $('#overviewCheckedAt').textContent = dashboard.checkedAt || state.console?.checkedAt || '-';
-    $('#overviewServices').innerHTML = kvRows([['音乐登录', `${music.loggedIn ? '已登录' : '未登录'} ${music.nickname || ''}`], ['Waline', serviceText(state.ops?.services?.waline)], ['NCM 上游', serviceText(state.ops?.services?.ncmUpstream)], ['推荐聚合', aggregationText(governance.recommendationAggregation)]]);
-    $('#overviewGovernance').innerHTML = `<div class="kv-row"><span>同步等级</span><span><span class="status-dot ${level}"></span>${statusText(governance.syncLevel)}</span></div>${kvRows([['随想文章', governance.thoughtPostCount ?? 0], ['随想标签', governance.thoughtTagCount ?? 0], ['最新评论采样', governance.recentCommentCount ?? 0], ['推荐聚合', aggregationText(governance.recommendationAggregation)]])}`;
+    $('#overviewCheckedAt').textContent = `检查于 ${relativeTime(dashboard.checkedAt || state.console?.checkedAt || new Date())}`;
+    $('#overviewServices').innerHTML = kvRows([['音乐登录', `${music.loggedIn ? '已登录' : '未登录'} ${music.nickname || ''}`.trim()], ['Waline', serviceText(state.ops?.services?.waline)], ['NCM 上游', serviceText(state.ops?.services?.ncmUpstream)]]);
+    $('#overviewRecommendation').innerHTML = kvRows([['推荐热度', aggregationText(aggregation)], ['成功文章', aggregation.successCount ?? aggregation.metricCount ?? 0], ['失败文章', aggregation.failureCount ?? 0], ['更新时间', relativeTime(aggregation.lastSuccessAt || aggregation.updatedAt || aggregation.lastFinishedAt)]]);
     renderWritingInsightCharts(insights);
     renderTopArticles(insights.topArticles || []);
+    renderEncouragementRanking(insights.encouragement?.topVisitors || []);
   }
   function chartColors() {
     return { text: '#9ca8bb', grid: 'rgba(156,168,187,.16)', green: '#19c56f', yellow: '#d7a441', surface: '#151a24' };
@@ -326,6 +484,7 @@
     const colors = chartColors();
     const trend = asArray(insights.trend);
     const dates = trend.map((item) => item.date);
+    const tags = asArray(insights.topTags).slice(0, 8);
     const visitChart = getChart('visitTrendChart');
     if (visitChart) {
       visitChart.setOption({
@@ -351,12 +510,15 @@
         series: [{ name: '催更', type: 'bar', data: trend.map((item) => item.encouragements || 0), itemStyle: { color: colors.green } }]
       });
     }
-    const tags = asArray(insights.topTags).slice(0, 8);
     const tagChart = getChart('tagFocusChart');
     if (tagChart) {
       tagChart.setOption({
         backgroundColor: 'transparent',
-        tooltip: { trigger: 'axis' },
+        tooltip: { trigger: 'axis', formatter: (items) => {
+          const index = items?.[0]?.dataIndex ?? 0;
+          const item = tags.slice().reverse()[index] || {};
+          return `${escapeHtml(item.tag || '')}<br/>访问 ${item.visits || 0}<br/>平均停留 ${item.averageDurationSeconds || 0}s<br/>关联文章 ${item.articleCount || 0}`;
+        } },
         grid: { left: 70, right: 18, top: 16, bottom: 18 },
         xAxis: { type: 'value', splitLine: { lineStyle: { color: colors.grid } }, axisLabel: { color: colors.text } },
         yAxis: { type: 'category', data: tags.map((item) => item.tag).reverse(), axisLine: { lineStyle: { color: colors.grid } }, axisLabel: { color: colors.text } },
@@ -369,17 +531,178 @@
       $('#topArticleList').innerHTML = '<div class="empty">暂无访问数据。</div>';
       return;
     }
-    $('#topArticleList').innerHTML = articles.slice(0, 6).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.title || item.path)}</div><div class="list-meta">访问 ${item.visits ?? 0} · 访客 ${item.uniqueVisitors ?? 0} · 平均停留 ${item.averageDurationSeconds ?? 0}s</div><div class="list-meta">${escapeHtml(item.path || '-')}</div></div></div>`).join('');
+    $('#topArticleList').innerHTML = articles.slice(0, 6).map((item) => `<div class="list-item"><div><a class="list-title article-link" href="${escapeHtml(articleHref(item.path))}" target="_blank" rel="noopener">${escapeHtml(item.title || pathTitle(item.path))}</a><div class="list-meta">访问 ${item.visits ?? 0} · 平均停留 ${item.averageDurationSeconds ?? 0}s · 阅读 ${item.averageScrollPercent ?? 0}% · 评论 ${item.commentCount ?? 0}</div></div><button class="btn link" data-article-detail="${escapeHtml(item.path)}">详情</button></div>`).join('');
+  }
+  function renderEncouragementRanking(items) {
+    if (!items.length) {
+      $('#encouragementRanking').innerHTML = '<div class="empty">暂无催更记录。</div>';
+      return;
+    }
+    $('#encouragementRanking').innerHTML = items.slice(0, 8).map((item) => `<div class="list-item"><div><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button><div class="list-meta">${escapeHtml(item.region || item.ip || '未知地区')} · 结算 ${item.settlements || 0} 次 · 最近 ${relativeTime(item.lastAt)}</div></div><strong>${item.totalDelta || 0}</strong></div>`).join('');
+  }
+  function renderArticleTable() {
+    const result = state.articles || {};
+    const items = asArray(result.items);
+    $('#articleRecentVisits').innerHTML = asArray(result.recentVisits).map((item) => `<div class="list-item"><div><a class="list-title article-link" href="${escapeHtml(articleHref(item.path))}" target="_blank" rel="noopener">${escapeHtml(item.title || pathTitle(item.path))}</a><div class="list-meta"><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button> · ${escapeHtml(item.region || '未知地区')} · 停留 ${durationSecondsText(item.durationSeconds || 0)} · 阅读 ${item.maxScrollPercent || 0}% · ${relativeTime(item.visitedAt)}</div></div></div>`).join('') || '<div class="empty">暂无最近访问。</div>';
+    $('#articlePageInfo').textContent = `第 ${result.page || 1} / ${result.totalPages || 1} 页`;
+    $('#articlePrevBtn').disabled = Number(result.page || 1) <= 1;
+    $('#articleNextBtn').disabled = Number(result.page || 1) >= Number(result.totalPages || 1);
+    if (!items.length) {
+      $('#articleTable').innerHTML = '<div class="empty">暂无匹配文章数据。</div>';
+      renderArticleCharts([]);
+      return;
+    }
+    $('#articleTable').innerHTML = `<table class="data-table"><thead><tr><th>文章</th><th>站内访问</th><th>Waline 阅读</th><th>访客</th><th>平均停留</th><th>阅读进度</th><th>读完率</th><th>评论</th><th>点赞</th></tr></thead><tbody>${items.map((item) => `<tr><td><a href="${escapeHtml(articleHref(item.path))}" target="_blank" rel="noopener">${escapeHtml(item.title || pathTitle(item.path))}</a><br/><button class="btn link" data-article-detail="${escapeHtml(item.path)}">查看详情</button></td><td>${item.visits || 0}</td><td>${item.pageviewCount || 0}</td><td>${item.uniqueVisitors || 0}<br/><span class="list-meta">复访 ${item.revisitRate || 0}%</span></td><td>${durationSecondsText(item.averageDurationSeconds || 0)}</td><td>${item.averageScrollPercent || 0}%</td><td>${item.completionRate || 0}%</td><td>${item.commentCount || 0}</td><td>${item.likeCount || 0}<br/><span class="list-meta">${item.likeRate || 0}%</span></td></tr>`).join('')}</tbody></table>`;
+    renderArticleCharts(items);
+  }
+  function renderArticleCharts(items) {
+    const colors = chartColors();
+    const ranked = [...items].sort((left, right) => Number(right.visits || 0) - Number(left.visits || 0)).slice(0, 10).reverse();
+    const trafficChart = getChart('articleTrafficChart');
+    if (trafficChart) trafficChart.setOption({
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      grid: { left: 90, right: 18, top: 16, bottom: 24 },
+      xAxis: { type: 'value', splitLine: { lineStyle: { color: colors.grid } }, axisLabel: { color: colors.text } },
+      yAxis: { type: 'category', data: ranked.map((item) => item.title || pathTitle(item.path)), axisLabel: { color: colors.text, width: 78, overflow: 'truncate' } },
+      series: [{ type: 'bar', data: ranked.map((item) => item.visits || 0), itemStyle: { color: colors.green } }]
+    }, true);
+    const engagementChart = getChart('articleEngagementChart');
+    if (engagementChart) engagementChart.setOption({
+      tooltip: { formatter: ({ data }) => `${escapeHtml(data[3])}<br/>平均停留 ${data[0]}s<br/>读完率 ${data[1]}%<br/>访问 ${data[2]}` },
+      grid: { left: 46, right: 18, top: 18, bottom: 36 },
+      xAxis: { name: '平均停留/秒', type: 'value', splitLine: { lineStyle: { color: colors.grid } }, axisLabel: { color: colors.text } },
+      yAxis: { name: '读完率/%', type: 'value', min: 0, max: 100, splitLine: { lineStyle: { color: colors.grid } }, axisLabel: { color: colors.text } },
+      series: [{ type: 'scatter', data: items.map((item) => [item.averageDurationSeconds || 0, item.completionRate || 0, item.visits || 0, item.title || pathTitle(item.path)]), symbolSize: (data) => Math.max(8, Math.min(24, 8 + Math.sqrt(data[2] || 0) * 3)), itemStyle: { color: colors.green, opacity: .78 } }]
+    }, true);
+  }
+  async function openArticleDetail(path) {
+    const days = $('#articleDaysFilter').value || '30';
+    const data = await api(`/api/admin/analytics/article?days=${encodeURIComponent(days)}&path=${encodeURIComponent(path)}`);
+    const metric = data.metric || {};
+    $('#articleDetailTitle').textContent = metric.title || '文章详情';
+    $('#articleDetailMetrics').innerHTML = [
+      metricCard(metric.visits || 0, '站内访问', `访客 ${metric.uniqueVisitors || 0}`),
+      metricCard(`${metric.averageDurationSeconds || 0}s`, '平均停留', `累计 ${metric.totalDurationSeconds || 0}s`),
+      metricCard(`${metric.averageScrollPercent || 0}%`, '平均进度', `读完率 ${metric.completionRate || 0}%`),
+      metricCard(metric.pageviewCount || 0, 'Waline 阅读', `复访率 ${metric.revisitRate || 0}%`),
+      metricCard(metric.commentCount || 0, '评论', 'Waline 评论统计'),
+      metricCard(metric.likeCount || 0, '点赞', `点赞率 ${metric.likeRate || 0}%`)
+    ].join('');
+    $('#articleVisitorList').innerHTML = asArray(data.visitors).slice(0, 12).map((item) => `<div class="list-item"><div><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button><div class="list-meta">${escapeHtml(item.region || item.ip || '未知地区')} · ${item.visits || 0} 次 · ${item.totalDurationSeconds || 0}s · 最深 ${item.maxScrollPercent || 0}%</div></div></div>`).join('') || '<div class="empty">暂无访客数据。</div>';
+    $('#articleReferrerList').innerHTML = asArray(data.referrers).map((item) => `<div class="list-item"><span>${escapeHtml(item.name || '直接访问')}</span><strong>${item.value || 0}</strong></div>`).join('') || '<div class="empty">暂无来源数据。</div>';
+    const chart = getChart('articleTrendChart');
+    const trend = asArray(data.trend);
+    if (chart) chart.setOption({ tooltip: { trigger: 'axis' }, grid: { left: 36, right: 16, top: 20, bottom: 28 }, xAxis: { type: 'category', data: trend.map((item) => item.date) }, yAxis: { type: 'value' }, series: [{ type: 'line', smooth: true, data: trend.map((item) => item.visits || 0), lineStyle: { color: '#19c56f' }, areaStyle: { color: 'rgba(25,197,111,.12)' } }] });
+    $('#articleDetailCard').classList.add('active');
+  }
+  async function openVisitorProfile(visitorId) {
+    if (!visitorId) return;
+    const data = await api(`/api/admin/analytics/visitor?visitorId=${encodeURIComponent(visitorId)}&days=365`);
+    setSection('articles');
+    $('#visitorProfileTitle').textContent = data.nickname || '匿名访客';
+    $('#visitorProfileMetrics').innerHTML = [
+      metricCard(data.visits || 0, '访问次数', data.region || data.ip || '未知地区'),
+      metricCard(durationSecondsText(data.totalDurationSeconds), '累计阅读', data.device || '未知设备'),
+      metricCard(data.encouragements || 0, '催更点击', data.provider ? `已关联 ${data.provider}` : '匿名身份'),
+      metricCard(durationSecondsText(data.listenedSeconds), '累计收听', data.visitorId || '')
+    ].join('');
+    $('#visitorTopArticles').innerHTML = asArray(data.topArticles).map((item) => `<div class="list-item"><div><a class="article-link" href="${escapeHtml(articleHref(item.path))}" target="_blank" rel="noopener">${escapeHtml(item.title || pathTitle(item.path))}</a><div class="list-meta">${item.visits || 0} 次 · ${durationSecondsText(item.totalDurationSeconds)}</div></div></div>`).join('') || '<div class="empty">暂无文章访问。</div>';
+    $('#visitorReferrers').innerHTML = asArray(data.referrers).map((item) => `<div class="list-item"><span>${escapeHtml(item.name || '直接访问')}</span><strong>${item.value || 0}</strong></div>`).join('') || '<div class="empty">暂无来源数据。</div>';
+    $('#visitorTopSongs').innerHTML = asArray(data.topSongs).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.name || '未知歌曲')}</div><div class="list-meta">播放 ${item.value || 0} 次 · ${durationSecondsText(item.secondaryValue || 0)}</div></div></div>`).join('') || '<div class="empty">暂无收听记录。</div>';
+    $('#visitorProfileCard').classList.add('active');
+    $('#visitorProfileCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function renderMusicAnalytics() {
+    const data = state.musicAnalytics || {};
+    const sourceLabel = (value) => ({
+      'home-random': '首页随机',
+      'about-ranking': '关于页排行',
+      'article-embed': '文中播放器',
+      'interrupt-single': '插入单曲',
+      'global-player': '悬浮播放器',
+      public: '公开地址',
+      login: '会员回退'
+    })[value] || value || '未知来源';
+    $('#musicAnalyticsMetrics').innerHTML = [
+      metricCard(data.plays || 0, '播放次数', `听众 ${data.uniqueListeners || 0}`),
+      metricCard(`${data.averageProgressPercent || 0}%`, '平均播放进度', '按歌曲完成度统计'),
+      metricCard(`${data.completionRate || 0}%`, '播完率', '播放达到 90% 视为完成'),
+      metricCard(sourceLabel(asArray(data.sources)[0]?.name || '-'), '主要来源', `${asArray(data.sources)[0]?.value || 0} 次`)
+    ].join('');
+    $('#musicTopSongs').innerHTML = asArray(data.topSongs).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.songName || '未知歌曲')} · ${escapeHtml(item.artist || '')}</div><div class="list-meta">播放 ${item.plays || 0} 次 · 听众 ${item.uniqueListeners || 0} · 平均 ${item.averageProgressPercent || 0}% · 播完 ${item.completionRate || 0}%</div></div></div>`).join('') || '<div class="empty">暂无收听数据。</div>';
+    const playbackSources = asArray(data.sources);
+    const urlSources = asArray(data.urlSources);
+    $('#musicSourceList').innerHTML = [
+      playbackSources.length ? '<div class="list-meta">播放入口</div>' : '',
+      ...playbackSources.map((item) => `<div class="list-item"><span>${escapeHtml(sourceLabel(item.name))}</span><strong>${item.value || 0}</strong></div>`),
+      urlSources.length ? '<div class="list-meta" style="margin-top:8px;">地址来源</div>' : '',
+      ...urlSources.map((item) => `<div class="list-item"><span>${escapeHtml(sourceLabel(item.name))}</span><strong>${item.value || 0}</strong></div>`)
+    ].join('') || '<div class="empty">暂无来源数据。</div>';
+    $('#musicRecentList').innerHTML = asArray(data.recent).slice(0, 12).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.songName)} · ${escapeHtml(item.artist)}</div><div class="list-meta"><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button> · ${escapeHtml(sourceLabel(item.source))} · ${escapeHtml(sourceLabel(item.urlSource))} · 播放 ${item.progressPercent || 0}% · ${relativeTime(item.updatedAt)}</div></div></div>`).join('') || '<div class="empty">暂无收听数据。</div>';
   }
   function renderMusicStatus(status) {
-    $('#musicStatusBadge').innerHTML = status.loggedIn ? '<span class="tag green">已登录</span>' : '<span class="tag yellow">未登录</span>';
-    $('#qrStatus').textContent = status.loggedIn ? `当前账号：${status.nickname || '未知'}（${status.message || '已登录'}）` : (status.message || '当前未登录，可生成二维码扫码。');
+    const loggedIn = Boolean(status.loggedIn);
+    $('#musicStatusBadge').innerHTML = loggedIn ? '<span class="tag green">已登录</span>' : '<span class="tag yellow">未登录</span>';
+    $('#musicStatusDetail').innerHTML = kvRows([['登录状态', loggedIn ? '已登录' : '未登录'], ['昵称', status.nickname || '-'], ['用户 ID', status.userId || status.uid || '-'], ['提示', status.message || '-']]);
+    if (loggedIn) {
+      stopQrPoll();
+      $('#qrStatus').textContent = `当前账号：${status.nickname || '未知'}，无需重复扫码。`;
+    } else if (!state.qrKey) {
+      $('#qrStatus').textContent = status.message || '点击二维码区域生成登录二维码。';
+    }
   }
   function renderMusicConfig() {
-    const music = state.runtime?.editable?.music || {};
-    $('#musicConfigSummary').innerHTML = kvRows([['歌单来源 UID', music.playlistOwnerUid || '-'], ['默认音质', music.preferredLevel || '-'], ['NCM 上游', state.runtime?.readonly?.services?.ncmUpstreamBaseUrl || '-']]);
+    const form = $('#musicConfigForm');
+    if (!form || !state.runtime) return;
+    const music = state.runtime.editable?.music || state.runtime.defaults?.music || {};
+    form.elements.playlistOwnerUid.value = music.playlistOwnerUid || '';
+    form.elements.preferredLevel.value = music.preferredLevel || 'exhigh';
+  }
+  function renderRecommendationConfig() {
+    const form = $('#recommendationConfigForm');
+    if (!form || !state.runtime) return;
+    const recommendation = state.runtime.editable?.recommendation || state.runtime.defaults?.recommendation || {};
+    form.elements.maxCandidatePosts.value = recommendation.maxCandidatePosts ?? '';
+    form.elements.pageviewWeight.value = recommendation.pageviewWeight ?? '';
+    form.elements.commentWeight.value = recommendation.commentWeight ?? '';
+  }
+  function mergedRuntimeConfig() {
+    const editable = state.runtime?.editable || {};
+    const defaults = state.runtime?.defaults || {};
+    return {
+      music: { ...(defaults.music || {}), ...(editable.music || {}) },
+      recommendation: { ...(defaults.recommendation || {}), ...(editable.recommendation || {}) },
+      tag: { ...(defaults.tag || {}), ...(editable.tag || {}) }
+    };
+  }
+  async function saveMusicConfig() {
+    const form = $('#musicConfigForm');
+    const next = mergedRuntimeConfig();
+    next.music.playlistOwnerUid = form.elements.playlistOwnerUid.value.trim();
+    next.music.preferredLevel = form.elements.preferredLevel.value;
+    state.runtime = await api('/api/admin/config/runtime', { method: 'PUT', body: JSON.stringify(next) });
+    renderMusicConfig();
+    await refreshConsole();
+    showMessage('音乐配置已保存');
+  }
+  async function saveRecommendationConfig() {
+    const form = $('#recommendationConfigForm');
+    const next = mergedRuntimeConfig();
+    next.recommendation.maxCandidatePosts = Number(form.elements.maxCandidatePosts.value);
+    next.recommendation.pageviewWeight = Number(form.elements.pageviewWeight.value);
+    next.recommendation.commentWeight = Number(form.elements.commentWeight.value);
+    state.runtime = await api('/api/admin/config/runtime', { method: 'PUT', body: JSON.stringify(next) });
+    renderRecommendationConfig();
+    showMessage('推荐配置已保存，权重变更后建议更新一次推荐热度');
   }
   async function createQr() {
+    if (state.musicStatus?.loggedIn) {
+      showMessage('网易云已登录，无需重复扫码');
+      return;
+    }
+    stopQrPoll();
+    $('#qrStatus').textContent = '正在生成二维码...';
+    $('#qrLink').textContent = '';
     const keyResp = await api('/api/music/auth/qr/key');
     state.qrKey = keyResp.key || keyResp.unikey || '';
     if (!state.qrKey) throw new Error('未获取到二维码 key');
@@ -387,66 +710,72 @@
     const imageSrc = String(qrResp.qrimg || '').trim();
     if (!imageSrc) throw new Error('上游未返回二维码图片');
     $('#qrImg').src = imageSrc;
+    $('#qrImg').style.display = 'block';
+    $('#qrPlaceholder').style.display = 'none';
     $('#qrLink').href = qrResp.qrurl || '#';
-    $('#qrLink').textContent = qrResp.qrurl ? '二维码链接（图片异常时打开）' : '';
+    $('#qrLink').textContent = qrResp.qrurl ? '二维码链接' : '';
     $('#qrStatus').textContent = '二维码已生成，请用网易云音乐扫码。';
+    startQrPoll();
   }
   async function pollQrOnce() {
     if (!state.qrKey) throw new Error('请先生成二维码');
     const data = await api(`/api/music/auth/qr/check?key=${encodeURIComponent(state.qrKey)}`);
-    $('#qrStatus').textContent = `${data.message || '等待扫码'}（code=${data.code ?? '-'}）`;
-    if (data.code === 803 || data.code === '803') {
+    const code = String(data.code ?? '');
+    const messages = { '800': '二维码已过期，请重新点击生成。', '801': '等待扫码。', '802': '已扫码，请在手机上确认。', '803': '登录成功。' };
+    $('#qrStatus').textContent = data.message || messages[code] || '等待扫码状态更新。';
+    if (code === '803') {
       stopQrPoll();
       await refreshMusicStatus();
       await refreshConsole();
       showMessage('网易云登录成功');
     }
-    if (data.code === 800 || data.code === '800') stopQrPoll();
+    if (code === '800') stopQrPoll();
   }
   function startQrPoll() {
     if (state.qrTimer) return;
     state.qrTimer = window.setInterval(() => pollQrOnce().catch((e) => $('#qrStatus').textContent = e.message), 2000);
-    $('#qrStatus').textContent = '开始轮询扫码状态。';
   }
   function stopQrPoll() {
     if (!state.qrTimer) return;
     window.clearInterval(state.qrTimer);
     state.qrTimer = null;
   }
-  function normalizeManualUrl(value) {
-    const raw = String(value || '').trim();
-    return raw ? (raw.startsWith('/') ? raw : `/${raw}`) : '';
+  async function addManual(url) {
+    if (!state.manualUrls.includes(url)) state.manualUrls.push(url);
+    state.excludedUrls = state.excludedUrls.filter((item) => item !== url);
+    await saveRecommendation('已加入指定推荐');
   }
-  function isThoughtPostUrl(value) {
-    return /^\/thoughts\/(?!index\.html$)(?!tags\.html$).+\.html$/i.test(value);
-  }
-  function addManual(url) {
-    const normalized = normalizeManualUrl(url);
-    if (!isThoughtPostUrl(normalized)) throw new Error('链接格式无效，仅支持 /thoughts/*.html');
-    if (!state.manualUrls.includes(normalized)) state.manualUrls.push(normalized);
-    renderManualList();
-    renderCandidateList();
-  }
-  function removeManual(url) {
+  async function excludeRecommendation(url) {
     state.manualUrls = state.manualUrls.filter((item) => item !== url);
-    renderManualList();
-    renderCandidateList();
+    if (!state.excludedUrls.includes(url)) state.excludedUrls.push(url);
+    await saveRecommendation('已移除并自动补位');
   }
-  function moveManual(url, direction) {
+  async function restoreCandidate(url) {
+    state.excludedUrls = state.excludedUrls.filter((item) => item !== url);
+    await saveRecommendation('文章已恢复为自动候选');
+  }
+  async function moveManual(url, direction) {
     const index = state.manualUrls.indexOf(url);
     const next = index + direction;
     if (index < 0 || next < 0 || next >= state.manualUrls.length) return;
     const copy = [...state.manualUrls];
     [copy[index], copy[next]] = [copy[next], copy[index]];
     state.manualUrls = copy;
-    renderManualList();
+    await saveRecommendation('推荐顺序已更新');
   }
-  function renderManualList() {
-    if (!state.manualUrls.length) {
-      $('#manualList').innerHTML = '<div class="empty">暂无手动推荐，右侧候选可直接加入。</div>';
+  function renderRecommendationSlots() {
+    if (!state.effectiveRecommendations.length) {
+      $('#manualList').innerHTML = '<div class="empty">暂无可展示的推荐文章。</div>';
       return;
     }
-    $('#manualList').innerHTML = state.manualUrls.map((url) => `<div class="list-item" data-url="${escapeHtml(url)}"><div><div class="list-title">${escapeHtml(url)}</div><div class="list-meta">手动推荐优先展示，当前位置决定展示顺序。</div></div><div class="actions"><button class="btn link" data-action="manual-up">上移</button><button class="btn link" data-action="manual-down">下移</button><button class="btn link" data-action="manual-remove">移除</button></div></div>`).join('');
+    $('#manualList').innerHTML = state.effectiveRecommendations.map((item, slot) => {
+      const manual = Boolean(item.manualPinned);
+      const position = state.manualUrls.indexOf(item.url);
+      const orderActions = manual
+        ? `<button class="btn link" data-action="manual-up" ${position <= 0 ? 'disabled' : ''}>上移</button><button class="btn link" data-action="manual-down" ${position < 0 || position >= state.manualUrls.length - 1 ? 'disabled' : ''}>下移</button>`
+        : '';
+      return `<div class="list-item" data-url="${escapeHtml(item.url)}"><div><a class="list-title article-link" href="${escapeHtml(articleHref(item.url))}" target="_blank" rel="noopener">${slot + 1}. ${escapeHtml(item.title || pathTitle(item.url))}</a><div class="list-meta"><span class="tag ${manual ? 'green' : ''}">${manual ? '指定' : '自动'}</span> · 浏览 ${item.pageviewCount ?? 0} · 评论 ${item.commentCount ?? 0} · 热度 ${Number(item.hotScore || 0).toFixed(1)}</div></div><div class="actions">${orderActions}<button class="btn link danger" data-action="recommendation-exclude">移除</button></div></div>`;
+    }).join('');
   }
   function renderCandidateList() {
     if (!state.candidates.length) {
@@ -454,101 +783,152 @@
       return;
     }
     $('#candidateList').innerHTML = state.candidates.map((item) => {
-      const added = state.manualUrls.includes(item.url);
-      return `<div class="list-item" data-url="${escapeHtml(item.url)}"><div><div class="list-title">${escapeHtml(item.title || item.url)}</div><div class="list-meta">${escapeHtml(item.date || '-')} · 浏览 ${item.pageviewCount ?? 0} · 评论 ${item.commentCount ?? 0} · 热度 ${Number(item.hotScore || 0).toFixed(1)}</div><div class="list-meta">${escapeHtml(item.url)}</div></div><button class="btn ${added ? '' : 'primary'}" data-action="candidate-add" ${added ? 'disabled' : ''}>${added ? '已加入' : '加入'}</button></div>`;
+      const manual = state.manualUrls.includes(item.url);
+      const excluded = state.excludedUrls.includes(item.url);
+      const action = excluded ? 'candidate-restore' : 'candidate-add';
+      const label = manual ? '已指定' : excluded ? '恢复' : '加入';
+      return `<div class="list-item" data-url="${escapeHtml(item.url)}"><div><a class="list-title article-link" href="${escapeHtml(articleHref(item.url))}" target="_blank" rel="noopener">${escapeHtml(item.title || pathTitle(item.url))}</a><div class="list-meta">${escapeHtml(item.date || '-')} · 浏览 ${item.pageviewCount ?? 0} · 评论 ${item.commentCount ?? 0} · 热度 ${Number(item.hotScore || 0).toFixed(1)}</div></div><button class="btn ${manual ? '' : 'primary'}" data-action="${action}" ${manual ? 'disabled' : ''}>${label}</button></div>`;
     }).join('');
   }
-  async function saveRecommendation() {
-    const saved = await api('/api/recommendations/admin/config', { method: 'PUT', body: JSON.stringify({ manualUrls: state.manualUrls }) });
+  async function saveRecommendation(message) {
+    const saved = await api('/api/recommendations/admin/config', {
+      method: 'PUT',
+      body: JSON.stringify({ manualUrls: state.manualUrls, excludedUrls: state.excludedUrls })
+    });
     state.manualUrls = asArray(saved.manualUrls);
-    $('#manualUpdatedAt').textContent = saved.updatedAt || '刚刚更新';
-    renderManualList();
-    renderCandidateList();
-    showMessage('手动推荐已保存');
+    state.excludedUrls = asArray(saved.excludedUrls);
+    $('#manualUpdatedAt').textContent = saved.updatedAt ? `更新于 ${relativeTime(saved.updatedAt)}` : '刚刚更新';
+    await refreshRecommendation();
+    showMessage(message || '推荐配置已保存');
   }
   async function rebuildRecommendation() {
     const result = await api('/api/admin/governance/recommendations/rebuild', { method: 'POST' });
-    showMessage(result?.result?.accepted === false ? '推荐聚合正在运行中' : '推荐聚合任务已受理');
+    showMessage(result?.result?.accepted === false ? '推荐热度正在更新中' : '推荐热度更新任务已受理');
     await Promise.all([refreshConsole(), refreshOps(), refreshRecommendation()]);
   }
   function renderWalineSummary() {
     const waline = state.ops?.services?.waline || {};
-    $('#walineSummary').innerHTML = kvRows([['服务状态', waline.ok ? '正常' : (waline.error || '异常')], ['服务地址', waline.baseUrl || state.runtime?.readonly?.services?.walineBaseUrl || '-'], ['最新评论采样', waline.sampleRecentCount ?? '-'], ['首页阅读量采样', waline.samplePageview ?? '-']]);
+    $('#walineSummary').innerHTML = kvRows([['服务状态', serviceText(waline)], ['最新评论', waline.sampleRecentCount ?? state.recentComments.length ?? '-'], ['首页阅读量', waline.samplePageview ?? '-']]);
   }
   function renderRecentComments() {
     if (!state.recentComments.length) {
       $('#recentComments').innerHTML = '<div class="empty">暂无最新评论。</div>';
       return;
     }
-    $('#recentComments').innerHTML = state.recentComments.map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.nick || '匿名')}</div><div class="list-meta">${escapeHtml(item.createdAt || '-')} · ${escapeHtml(item.url || item.path || '-')}</div><div class="list-meta">${escapeHtml(item.comment || '')}</div></div></div>`).join('');
+    $('#recentComments').innerHTML = state.recentComments.map((item) => {
+      const path = item.url || item.path || '';
+      return `<div class="list-item"><div><div class="list-title">${escapeHtml(item.nick || '匿名')}</div><div class="list-meta">${escapeHtml(relativeTime(item.createdAt))} · <a class="article-link" href="${escapeHtml(articleHref(path))}" target="_blank" rel="noopener">${escapeHtml(item.articleTitle || pathTitle(path))}</a></div><div class="list-meta">${escapeHtml(item.comment || '')}</div></div></div>`;
+    }).join('');
+  }
+  function renderCommentNotification() {
+    const data = state.commentNotification || {};
+    $('#mailNotificationStatus').innerHTML = kvRows([
+      ['SMTP', data.smtpConfigured ? '已配置' : '未配置'],
+      ['作者邮箱', data.authorEmailConfigured ? '已配置' : '未配置'],
+      ['评论审核', data.commentAuditEnabled ? '已开启' : '未开启'],
+      ['作者通知', data.authorNotificationEnabled ? '已开启' : '未开启']
+    ]);
+  }
+  function commentStatusText(status) {
+    return { all: '全部评论', approved: '已通过', waiting: '待审核', spam: '垃圾评论' }[status] || status || '-';
+  }
+  function renderManagedComments() {
+    const notice = $('#commentManageNotice');
+    if (state.commentManageError) {
+      notice.textContent = state.commentManageError.includes('Waline QQ 或 GitHub')
+        ? '当前是静态管理员凭证。评论管理需要退出后使用 Waline QQ 或 GitHub 登录。'
+        : state.commentManageError;
+      $('#managedCommentList').innerHTML = '<div class="empty">评论管理暂不可用。</div>';
+      $('#commentCountSummary').textContent = '-';
+      $('#commentPageInfo').textContent = `第 ${state.commentPage} 页`;
+      $('#commentPrevBtn').disabled = true;
+      $('#commentNextBtn').disabled = true;
+      return;
+    }
+
+    notice.textContent = '评论操作通过后端代理执行，Waline token 不会暴露给浏览器。';
+    const result = state.managedComments || {};
+    const comments = asArray(result.data);
+    const totalPages = Math.max(0, Number(result.totalPages || 0));
+    const currentPage = Math.max(1, Number(result.page || state.commentPage));
+    state.commentPage = currentPage;
+    $('#commentCountSummary').textContent = `待审核 ${result.waitingCount ?? 0} · 垃圾 ${result.spamCount ?? 0} · 全部 ${result.totalCount ?? 0}`;
+    $('#commentPageInfo').textContent = totalPages > 0 ? `第 ${currentPage} / ${totalPages} 页` : `第 ${currentPage} 页`;
+    $('#commentPrevBtn').disabled = currentPage <= 1;
+    $('#commentNextBtn').disabled = totalPages <= 0 || currentPage >= totalPages;
+
+    if (!comments.length) {
+      $('#managedCommentList').innerHTML = '<div class="empty">当前筛选下暂无评论。</div>';
+      return;
+    }
+
+    $('#managedCommentList').innerHTML = comments.map((item) => {
+      const status = item.status || $('#commentStatusFilter').value;
+      const statusClass = status === 'approved' ? 'green' : status === 'spam' ? 'red' : 'yellow';
+      const stickyAction = !item.rid && status === 'approved'
+        ? `<button class="btn link" data-comment-action="sticky">${item.sticky ? '取消置顶' : '置顶'}</button>`
+        : '';
+      return `<article class="comment-item" data-comment-id="${escapeHtml(item.id)}">
+        <img class="comment-avatar" src="${escapeHtml(item.avatar || '/admin/default.png')}" alt="" onerror="this.onerror=null;this.src='/admin/default.png'" />
+        <div class="comment-main">
+          <div class="comment-head"><input type="checkbox" data-comment-select value="${escapeHtml(item.id)}" aria-label="选择评论" /><strong>${escapeHtml(item.nick || '匿名')}</strong><span class="tag ${statusClass}">${escapeHtml(commentStatusText(status))}</span>${item.sticky ? '<span class="tag green">置顶</span>' : ''}</div>
+          <div class="comment-content">${escapeHtml(item.comment || '')}</div>
+          <div class="list-meta">${escapeHtml(relativeTime(item.createdAt))} · <a class="article-link" href="${escapeHtml(articleHref(item.url))}" target="_blank" rel="noopener">${escapeHtml(item.articleTitle || pathTitle(item.url))}</a></div>
+          <div class="list-meta">${escapeHtml([item.region || item.ip, item.browser, item.os, item.userType].filter(Boolean).join(' · '))}</div>
+        </div>
+        <div class="comment-actions">
+          <button class="btn link" data-comment-action="edit">编辑</button>
+          <button class="btn link" data-comment-action="reply">回复</button>
+          ${status !== 'approved' ? '<button class="btn link" data-comment-action="approved">通过</button>' : ''}
+          ${status !== 'waiting' ? '<button class="btn link" data-comment-action="waiting">待审核</button>' : ''}
+          ${status !== 'spam' ? '<button class="btn link" data-comment-action="spam">垃圾</button>' : ''}
+          ${stickyAction}
+          <button class="btn link" data-comment-action="delete">删除</button>
+        </div>
+      </article>`;
+    }).join('');
+  }
+  async function updateManagedComment(id, action) {
+    const item = asArray(state.managedComments?.data).find((comment) => comment.id === id);
+    if (!item) return;
+    if (action === 'delete') {
+      if (!window.confirm(`确认删除 ${item.nick || '匿名'} 的这条评论？`)) return;
+      await api(`/api/admin/comments/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    } else if (action === 'edit') {
+      const comment = window.prompt('修改评论正文', item.comment || '');
+      if (comment === null || !comment.trim()) return;
+      await api(`/api/admin/comments/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ comment: comment.trim() }) });
+    } else if (action === 'reply') {
+      const comment = window.prompt(`回复 ${item.nick || '匿名'}`);
+      if (comment === null || !comment.trim()) return;
+      await api(`/api/admin/comments/${encodeURIComponent(id)}/reply`, {
+        method: 'POST',
+        body: JSON.stringify({ comment: comment.trim(), url: item.url, rootId: item.rid || item.id })
+      });
+    } else {
+      const body = action === 'sticky'
+        ? { sticky: !item.sticky }
+        : { status: action };
+      await api(`/api/admin/comments/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(body) });
+    }
+    await Promise.all([refreshManagedComments(), refreshComments(), refreshOps()]);
+    showMessage(action === 'delete' ? '评论已删除' : action === 'reply' ? '回复已提交' : action === 'edit' ? '评论已修改' : '评论状态已更新');
+  }
+  async function batchManagedComments(action) {
+    const ids = [...document.querySelectorAll('[data-comment-select]:checked')].map((input) => input.value);
+    if (!ids.length) throw new Error('请先选择评论');
+    if (action === 'delete' && !window.confirm(`确认删除选中的 ${ids.length} 条评论？`)) return;
+    await api('/api/admin/comments/batch', {
+      method: 'POST',
+      body: JSON.stringify({ ids, action })
+    });
+    await Promise.all([refreshManagedComments(), refreshComments(), refreshOps()]);
+    showMessage(`已处理 ${ids.length} 条评论`);
   }
   function renderComments() {
     renderWalineSummary();
     renderRecentComments();
-  }
-  function renderOpsContent() {
-    const sync = state.ops?.sync || {};
-    const posts = sync.postsJson || {};
-    const tagPosts = sync.tagPostsJson || {};
-    const governance = state.console?.dashboard?.governance || {};
-    $('#opsContentFiles').innerHTML = kvRows([['推荐 posts.json', `${posts.exists ? '存在' : '缺失'} · ${posts.size ?? 0} bytes`], ['推荐 posts 路径', posts.path || '-'], ['标签 posts.json', `${tagPosts.exists ? '存在' : '缺失'} · ${tagPosts.size ?? 0} bytes`], ['标签 posts 路径', tagPosts.path || '-']]);
-    $('#opsTagCacheSummary').innerHTML = kvRows([['随想文章', governance.thoughtPostCount ?? '-'], ['随想标签', governance.thoughtTagCount ?? '-'], ['同步状态', statusText(governance.syncLevel)], ['缓存秒数', state.runtime?.editable?.tag?.tagCacheSeconds ?? '-']]);
-  }
-  async function refreshTags() {
-    const result = await api('/api/admin/governance/tags/refresh', { method: 'POST' });
-    showMessage(`标签缓存已刷新：${result?.checkedAt || ''}`);
-    await Promise.all([refreshConsole(), refreshOps()]);
-  }
-  function renderOps() {
-    const ops = state.ops || {};
-    $('#opsServices').innerHTML = kvRows([['Waline', serviceText(ops.services?.waline)], ['Waline 地址', ops.services?.waline?.baseUrl || '-'], ['NCM', serviceText(ops.services?.ncmUpstream)], ['NCM code', ops.services?.ncmUpstream?.sampleStatusCode ?? '-'], ['NCM 登录态', ops.services?.ncmUpstream?.loginState || '-'], ['推荐聚合', aggregationText(ops.sync?.recommendationAggregation)]]);
-    const hints = asArray(ops.commonErrors);
-    $('#opsHints').innerHTML = hints.length ? hints.map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.title || '问题')}</div><div class="list-meta">原因：${escapeHtml(item.cause || '-')}</div><div class="list-meta">建议：${escapeHtml(item.suggestion || '-')}</div></div></div>`).join('') : '<div class="empty">暂无提示。</div>';
-  }
-  function renderSecurity() {
-    const readonly = state.runtime?.readonly || {};
-    const risk = state.console?.dashboard?.riskControl || {};
-    const security = readonly.security || {};
-    $('#securitySummary').innerHTML = kvRows([['鉴权模式', risk.authMode || '-'], ['管理员 token 已配置', yesNo(security.adminTokenConfigured)], ['QQ 白名单', security.adminQqWhitelist || '-'], ['要求 Waline 管理员', yesNo(security.adminRequireWalineAdministrator)], ['管理限流', `${security.adminRateLimitPerMinute ?? risk.adminApiRateLimitPerMinute ?? '-'} / min`], ['公开音乐限流', `${security.musicRateLimitPerMinute ?? risk.publicMusicRateLimitPerMinute ?? '-'} / min`], ['会员 Cookie 全局限流', `${security.musicLoginUrlGlobalLimitPerMinute ?? '-'} / min`], ['管理访问日志', yesNo(security.adminAuthLogEnabled)], ['公共访问日志', yesNo(security.publicAccessLogEnabled)], ['信任代理头', yesNo(security.trustForwardedHeaders)]]);
-  }
-  function renderRuntimeConfig() {
-    const runtime = state.runtime;
-    if (!runtime) return;
-    const form = $('#runtimeConfigForm');
-    const music = runtime.editable?.music || {};
-    const recommendation = runtime.editable?.recommendation || {};
-    const tag = runtime.editable?.tag || {};
-    form.elements.playlistOwnerUid.value = music.playlistOwnerUid || '';
-    form.elements.preferredLevel.value = music.preferredLevel || 'exhigh';
-    form.elements.maxCandidatePosts.value = recommendation.maxCandidatePosts ?? '';
-    form.elements.snapshotFreshSeconds.value = recommendation.snapshotFreshSeconds ?? '';
-    form.elements.pageviewWeight.value = recommendation.pageviewWeight ?? '';
-    form.elements.commentWeight.value = recommendation.commentWeight ?? '';
-    form.elements.tagCacheSeconds.value = tag.tagCacheSeconds ?? '';
-    $('#runtimeStoredState').textContent = runtime.stored ? `已持久化：${runtime.updatedAt || '-'}` : '使用 application.yml 默认值';
-    const readonly = runtime.readonly || {};
-    $('#readonlyConfig').innerHTML = kvRows([['数据库地址', readonly.database?.url || '-'], ['数据库用户', readonly.database?.username || '-'], ['数据库密码已配置', yesNo(readonly.database?.passwordConfigured)], ['Waline 地址', readonly.services?.walineBaseUrl || '-'], ['NCM 地址', readonly.services?.ncmUpstreamBaseUrl || '-'], ['推荐 posts 路径', readonly.paths?.recommendationPostsJsonPath || '-'], ['手动推荐配置', readonly.paths?.recommendationManualConfigPath || '-'], ['标签 posts 路径', readonly.paths?.tagPostsJsonPath || '-']]);
-  }
-  function readRuntimeConfigForm() {
-    const form = $('#runtimeConfigForm');
-    return {
-      music: { playlistOwnerUid: form.elements.playlistOwnerUid.value.trim(), preferredLevel: form.elements.preferredLevel.value },
-      recommendation: { maxCandidatePosts: Number(form.elements.maxCandidatePosts.value), snapshotFreshSeconds: Number(form.elements.snapshotFreshSeconds.value), pageviewWeight: Number(form.elements.pageviewWeight.value), commentWeight: Number(form.elements.commentWeight.value) },
-      tag: { tagCacheSeconds: Number(form.elements.tagCacheSeconds.value) }
-    };
-  }
-  async function saveRuntimeConfig() {
-    state.runtime = await api('/api/admin/config/runtime', { method: 'PUT', body: JSON.stringify(readRuntimeConfigForm()) });
-    renderRuntimeConfig();
-    renderMusicConfig();
-    showMessage('运行时配置已保存；推荐权重变化后建议手动触发一次聚合。');
-  }
-  async function resetRuntimeConfig() {
-    if (!confirm('确认恢复 application.yml 默认配置？')) return;
-    state.runtime = await api('/api/admin/config/runtime/reset', { method: 'POST' });
-    renderRuntimeConfig();
-    renderMusicConfig();
-    showMessage('运行时配置已恢复默认');
+    renderManagedComments();
   }
   function bindEvents() {
     $('#nav').addEventListener('click', (event) => {
@@ -560,32 +940,86 @@
     $('#logoutBtn').addEventListener('click', async () => { try { await adminCommon.logout(); } finally { location.href = '/admin/auth.html'; } });
     $('#checkMusicBtn').addEventListener('click', () => refreshMusicStatus().catch((e) => showMessage(e.message, true)));
     $('#logoutMusicBtn').addEventListener('click', async () => { await api('/api/music/auth/logout', { method: 'POST' }); await refreshMusicStatus(); showMessage('网易云登录态已清理'); });
-    $('#createQrBtn').addEventListener('click', () => createQr().catch((e) => showMessage(e.message, true)));
-    $('#startQrPollBtn').addEventListener('click', startQrPoll);
-    $('#stopQrPollBtn').addEventListener('click', stopQrPoll);
-    $('#reloadRecommendationBtn').addEventListener('click', () => refreshRecommendation().catch((e) => showMessage(e.message, true)));
-    $('#saveRecommendationBtn').addEventListener('click', () => saveRecommendation().catch((e) => showMessage(e.message, true)));
+    $('#qrCard').addEventListener('click', () => createQr().catch((e) => showMessage(e.message, true)));
+    $('#saveMusicConfigBtn').addEventListener('click', () => saveMusicConfig().catch((e) => showMessage(e.message, true)));
     $('#rebuildRecommendationBtn').addEventListener('click', () => rebuildRecommendation().catch((e) => showMessage(e.message, true)));
-    $('#addManualInputBtn').addEventListener('click', () => { try { addManual($('#manualInput').value); $('#manualInput').value = ''; } catch (e) { showMessage(e.message, true); } });
     $('#manualList').addEventListener('click', (event) => {
       const item = event.target.closest('.list-item');
       const action = event.target.closest('[data-action]')?.dataset.action;
       if (!item || !action) return;
-      if (action === 'manual-up') moveManual(item.dataset.url, -1);
-      if (action === 'manual-down') moveManual(item.dataset.url, 1);
-      if (action === 'manual-remove') removeManual(item.dataset.url);
+      const task = action === 'manual-up'
+        ? moveManual(item.dataset.url, -1)
+        : action === 'manual-down'
+          ? moveManual(item.dataset.url, 1)
+          : action === 'recommendation-exclude'
+            ? excludeRecommendation(item.dataset.url)
+            : null;
+      task?.catch((error) => showMessage(error.message || String(error), true));
     });
     $('#candidateList').addEventListener('click', (event) => {
       const item = event.target.closest('.list-item');
-      if (event.target.closest('[data-action="candidate-add"]') && item) {
-        try { addManual(item.dataset.url); } catch (e) { showMessage(e.message, true); }
+      const action = event.target.closest('[data-action]')?.dataset.action;
+      if (!item || !action) return;
+      const task = action === 'candidate-add'
+        ? addManual(item.dataset.url)
+        : action === 'candidate-restore'
+          ? restoreCandidate(item.dataset.url)
+          : null;
+      task?.catch((error) => showMessage(error.message || String(error), true));
+    });
+    $('#searchCandidatesBtn').addEventListener('click', () => refreshCandidates(1).catch((e) => showMessage(e.message, true)));
+    $('#candidateKeywordInput').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') refreshCandidates(1).catch((e) => showMessage(e.message, true));
+    });
+    $('#candidatePrevBtn').addEventListener('click', () => refreshCandidates(state.candidatePage - 1).catch((e) => showMessage(e.message, true)));
+    $('#candidateNextBtn').addEventListener('click', () => refreshCandidates(state.candidatePage + 1).catch((e) => showMessage(e.message, true)));
+    $('#searchArticlesBtn').addEventListener('click', () => refreshArticles(1).catch((e) => showMessage(e.message, true)));
+    $('#articleKeywordInput').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') refreshArticles(1).catch((e) => showMessage(e.message, true));
+    });
+    $('#articleDaysFilter').addEventListener('change', () => refreshArticles(1).catch((e) => showMessage(e.message, true)));
+    $('#articleSortFilter').addEventListener('change', () => refreshArticles(1).catch((e) => showMessage(e.message, true)));
+    $('#articlePrevBtn').addEventListener('click', () => refreshArticles(state.articlePage - 1).catch((e) => showMessage(e.message, true)));
+    $('#articleNextBtn').addEventListener('click', () => refreshArticles(state.articlePage + 1).catch((e) => showMessage(e.message, true)));
+    $('#closeArticleDetailBtn').addEventListener('click', () => $('#articleDetailCard').classList.remove('active'));
+    $('#closeVisitorProfileBtn').addEventListener('click', () => $('#visitorProfileCard').classList.remove('active'));
+    $('#reloadCommentsBtn').addEventListener('click', () => Promise.all([refreshOps(), refreshComments(), refreshManagedComments(), refreshCommentNotification()]).catch((e) => showMessage(e.message, true)));
+    $('#toggleMailConfigBtn').addEventListener('click', () => $('#mailConfigPanel').classList.toggle('active'));
+    $('#searchCommentsBtn').addEventListener('click', () => refreshManagedComments(1));
+    $('#commentStatusFilter').addEventListener('change', () => refreshManagedComments(1));
+    $('#commentKeywordInput').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') refreshManagedComments(1);
+    });
+    $('#commentPrevBtn').addEventListener('click', () => refreshManagedComments(state.commentPage - 1));
+    $('#commentNextBtn').addEventListener('click', () => refreshManagedComments(state.commentPage + 1));
+    $('#managedCommentList').addEventListener('click', (event) => {
+      const action = event.target.closest('[data-comment-action]')?.dataset.commentAction;
+      const item = event.target.closest('[data-comment-id]');
+      if (!action || !item) return;
+      updateManagedComment(item.dataset.commentId, action).catch((error) => showMessage(error.message || String(error), true));
+    });
+    document.querySelectorAll('[data-comment-batch]').forEach((button) => {
+      button.addEventListener('click', () => batchManagedComments(button.dataset.commentBatch).catch((error) => showMessage(error.message || String(error), true)));
+    });
+    $('.content').addEventListener('click', (event) => {
+      const sectionButton = event.target.closest('[data-open-section]');
+      if (sectionButton) {
+        setSection(sectionButton.dataset.openSection);
+        return;
+      }
+      const articleButton = event.target.closest('[data-article-detail]');
+      if (articleButton) {
+        setSection('articles');
+        openArticleDetail(articleButton.dataset.articleDetail).catch((error) => showMessage(error.message || String(error), true));
+        return;
+      }
+      const visitorButton = event.target.closest('[data-visitor-id]');
+      if (visitorButton) {
+        openVisitorProfile(visitorButton.dataset.visitorId).catch((error) => showMessage(error.message || String(error), true));
       }
     });
-    $('#reloadCommentsBtn').addEventListener('click', () => Promise.all([refreshOps(), refreshComments()]).catch((e) => showMessage(e.message, true)));
-    $('#refreshTagBtn').addEventListener('click', () => refreshTags().catch((e) => showMessage(e.message, true)));
-    $('#reloadOpsBtn').addEventListener('click', () => refreshOps().catch((e) => showMessage(e.message, true)));
-    $('#saveRuntimeConfigBtn').addEventListener('click', () => saveRuntimeConfig().catch((e) => showMessage(e.message, true)));
-    $('#resetRuntimeConfigBtn').addEventListener('click', () => resetRuntimeConfig().catch((e) => showMessage(e.message, true)));
+    $('#saveRecommendationConfigBtn').addEventListener('click', () => saveRecommendationConfig().catch((e) => showMessage(e.message, true)));
+    window.addEventListener('beforeunload', stopQrPoll);
     window.addEventListener('resize', () => Object.values(state.charts).forEach((chart) => chart.resize()));
   }
   (async function bootstrap() {

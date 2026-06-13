@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lycanclaw.backend.waline.config.WalineProperties;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +36,7 @@ import java.util.regex.Pattern;
 @RestController
 public class WalineProxyController {
 
+    private static final Logger log = LoggerFactory.getLogger(WalineProxyController.class);
     private static final String PROXY_PREFIX = "/waline";
     private static final Set<String> ALLOWED_OAUTH_PROVIDERS = Set.of("github", "qq");
     private static final Pattern OAUTH_SERVICES_PATTERN = Pattern.compile(
@@ -47,10 +50,8 @@ public class WalineProxyController {
                 --lycan-bg: #0d1119;
                 --lycan-surface: #151a24;
                 --lycan-surface-soft: #10151e;
-                --lycan-surface-active: #202837;
                 --lycan-text: #eef3ff;
                 --lycan-muted: #9ca8bb;
-                --lycan-faint: #6f7a8d;
                 --lycan-accent: #19c56f;
               }
 
@@ -69,16 +70,16 @@ public class WalineProxyController {
 
               body .typecho-head-nav {
                 position: static !important;
-                width: min(420px, calc(100% - 32px)) !important;
-                margin: min(14vh, 88px) auto 0 !important;
+                width: min(380px, calc(100% - 32px)) !important;
+                margin: min(18vh, 110px) auto 0 !important;
                 padding: 0 !important;
                 background: transparent !important;
                 box-shadow: none !important;
               }
 
               body .waline-header {
-                min-height: 68px !important;
-                padding: 16px 20px !important;
+                min-height: 56px !important;
+                padding: 12px 16px !important;
                 background: var(--lycan-surface) !important;
                 border: 0 !important;
                 border-radius: 0 !important;
@@ -92,127 +93,62 @@ public class WalineProxyController {
               }
 
               body .waline-brand-mark {
-                width: 34px !important;
-                height: 34px !important;
-                display: grid !important;
-                place-items: center !important;
-                background: var(--lycan-surface-soft) !important;
-                background-image: none !important;
-                color: var(--lycan-accent) !important;
+                width: 30px !important;
+                height: 30px !important;
+                background: transparent url("/admin/logo.png") center / contain no-repeat !important;
                 font-size: 0 !important;
-              }
-
-              body .waline-brand-mark::after {
-                content: "LC";
-                font-size: 13px;
-                font-weight: 800;
-                line-height: 1;
               }
 
               body .waline-brand-copy strong {
                 color: var(--lycan-text) !important;
-                font-size: 16px !important;
+                font-size: 15px !important;
                 font-weight: 800 !important;
               }
 
-              body .language-select select {
-                min-height: 38px !important;
-                padding: 0 34px 0 12px !important;
-                border: 0 !important;
-                border-radius: 0 !important;
-                outline: 0 !important;
-                color: var(--lycan-muted) !important;
-                background-color: var(--lycan-surface-soft) !important;
-                box-shadow: none !important;
+              body .language-select {
+                display: none !important;
               }
 
               body .typecho-login-wrap {
-                width: min(420px, calc(100% - 32px)) !important;
-                margin: 12px auto 32px !important;
+                width: min(380px, calc(100% - 32px)) !important;
+                margin: 8px auto 32px !important;
                 padding: 0 !important;
               }
 
               body .typecho-login {
                 width: 100% !important;
                 margin: 0 !important;
-                padding: 22px !important;
+                padding: 20px 16px 18px !important;
                 background: var(--lycan-surface) !important;
                 border: 0 !important;
                 border-radius: 0 !important;
                 box-shadow: none !important;
+                text-align: center !important;
               }
 
-              body .typecho-login form > p {
-                margin: 0 0 12px !important;
+              body .typecho-login::before {
+                content: "使用 QQ 或 GitHub 登录";
+                display: block;
+                margin-bottom: 16px;
+                color: var(--lycan-muted);
+                font-size: 13px;
               }
 
-              body .typecho-login input[type="text"],
-              body .typecho-login input[type="email"],
-              body .typecho-login input[type="password"] {
-                width: 100% !important;
-                min-height: 42px !important;
-                padding: 9px 11px !important;
-                border: 0 !important;
-                border-radius: 0 !important;
-                outline: 0 !important;
-                color: var(--lycan-text) !important;
-                background: var(--lycan-surface-soft) !important;
-                box-shadow: none !important;
-              }
-
-              body .typecho-login input::placeholder {
-                color: var(--lycan-faint) !important;
-              }
-
-              body .typecho-login input:focus {
-                background: var(--lycan-surface-active) !important;
-                box-shadow: inset 3px 0 0 var(--lycan-accent) !important;
-              }
-
-              body .typecho-login .submit {
-                margin-top: 16px !important;
-              }
-
-              body .typecho-login .btn.primary {
-                min-height: 42px !important;
-                border: 0 !important;
-                border-radius: 0 !important;
-                color: #d9ffe8 !important;
-                background: rgba(25, 197, 111, .18) !important;
-                box-shadow: none !important;
-                font-weight: 700 !important;
-              }
-
-              body .typecho-login .btn.primary:hover,
-              body .typecho-login .btn.primary:focus {
-                color: #ecfff4 !important;
-                background: rgba(25, 197, 111, .28) !important;
-              }
-
-              body .typecho-login label,
-              body .typecho-login a {
-                color: var(--lycan-muted) !important;
-              }
-
-              body .typecho-login a:hover,
-              body .typecho-login a:focus {
-                color: var(--lycan-text) !important;
-              }
-
-              body .typecho-login .checkbox {
-                accent-color: var(--lycan-accent);
+              body .typecho-login form,
+              body .typecho-login .more-link {
+                display: none !important;
               }
 
               body .social-accounts {
                 display: flex !important;
                 justify-content: center !important;
-                gap: 10px !important;
-                margin: 20px 0 18px !important;
+                gap: 12px !important;
+                margin: 0 !important;
               }
 
               body .social-accounts a {
-                width: 44px !important;
-                height: 44px !important;
+                width: 42px !important;
+                height: 42px !important;
                 display: grid !important;
                 place-items: center !important;
                 background: var(--lycan-surface-soft) !important;
@@ -223,24 +159,19 @@ public class WalineProxyController {
 
               body .social-accounts a:hover,
               body .social-accounts a:focus {
-                background: var(--lycan-surface-active) !important;
+                color: var(--lycan-accent) !important;
+                background: #1b222f !important;
                 transform: none !important;
               }
 
               body .social-accounts .social-icon {
-                width: 28px !important;
-                height: 28px !important;
-              }
-
-              body .more-link {
-                margin: 0 !important;
-                color: var(--lycan-faint) !important;
-                text-align: center !important;
+                width: 26px !important;
+                height: 26px !important;
               }
 
               body .message.popup {
                 color: var(--lycan-text) !important;
-                background: var(--lycan-surface-active) !important;
+                background: #1b222f !important;
                 border: 0 !important;
                 border-radius: 0 !important;
                 box-shadow: none !important;
@@ -248,7 +179,7 @@ public class WalineProxyController {
 
               @media (max-width: 520px) {
                 body .typecho-head-nav {
-                  margin-top: 24px !important;
+                  margin-top: 32px !important;
                 }
 
                 body .waline-header,
@@ -333,12 +264,12 @@ public class WalineProxyController {
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public WalineProxyController(WalineProperties properties) {
+    public WalineProxyController(WalineProperties properties, ObjectMapper objectMapper) {
         this.properties = properties;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(8))
                 .build();
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -353,9 +284,11 @@ public class WalineProxyController {
             );
             return buildResponse(request, response);
         } catch (IOException ex) {
-            return textResponse(HttpStatus.BAD_GATEWAY, "Waline 代理请求失败: " + ex.getMessage());
+            log.warn("Waline proxy request failed: {}", request.getRequestURI(), ex);
+            return textResponse(HttpStatus.BAD_GATEWAY, "Waline 代理请求失败");
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
+            log.warn("Waline proxy request interrupted: {}", request.getRequestURI(), ex);
             return textResponse(HttpStatus.BAD_GATEWAY, "Waline 代理请求被中断");
         }
     }

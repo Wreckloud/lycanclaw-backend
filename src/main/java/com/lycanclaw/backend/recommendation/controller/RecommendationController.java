@@ -4,6 +4,7 @@ import com.lycanclaw.backend.common.api.ApiResponse;
 import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
 import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigUpdateRequest;
 import com.lycanclaw.backend.recommendation.dto.RecommendationPostDto;
+import com.lycanclaw.backend.recommendation.dto.RecommendationCandidatePageDto;
 import com.lycanclaw.backend.recommendation.service.RecommendationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -54,11 +55,15 @@ public class RecommendationController {
 
     @Operation(summary = "获取候选文章列表（管理员）")
     @GetMapping("/admin/candidates")
-    public ApiResponse<List<RecommendationPostDto>> listCandidates(
-            @Parameter(description = "返回条数，默认 100，最大为配置上限")
-            @RequestParam(value = "limit", defaultValue = "100") int limit
+    public ApiResponse<RecommendationCandidatePageDto> listCandidates(
+            @Parameter(description = "标题关键词")
+            @RequestParam(value = "keyword", defaultValue = "") String keyword,
+            @Parameter(description = "页码，从 1 开始")
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @Parameter(description = "每页条数，默认 12")
+            @RequestParam(value = "pageSize", defaultValue = "12") int pageSize
     ) {
-        return ApiResponse.ok(recommendationService.listCandidates(limit));
+        return ApiResponse.ok(recommendationService.listCandidates(keyword, page, pageSize));
     }
 
     @Operation(summary = "更新手动推荐配置（管理员）")
@@ -66,6 +71,6 @@ public class RecommendationController {
     public ApiResponse<RecommendationManualConfigDto> updateManualConfig(
             @Valid @RequestBody RecommendationManualConfigUpdateRequest request
     ) {
-        return ApiResponse.ok(recommendationService.updateManualConfig(request.manualUrls()));
+        return ApiResponse.ok(recommendationService.updateManualConfig(request.manualUrls(), request.excludedUrls()));
     }
 }

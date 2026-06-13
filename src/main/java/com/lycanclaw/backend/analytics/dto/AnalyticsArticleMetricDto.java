@@ -22,7 +22,23 @@ public record AnalyticsArticleMetricDto(
         double averageDurationSeconds,
         @Schema(description = "总停留秒数")
         long totalDurationSeconds,
+        @Schema(description = "访问量占统计窗口总访问的百分比")
+        double visitSharePercent,
+        @Schema(description = "复访率")
+        double revisitRate,
+        @Schema(description = "平均阅读进度")
+        double averageScrollPercent,
+        @Schema(description = "读完率，阅读进度达到 90% 视为读完")
+        double completionRate,
         @Schema(description = "催更次数")
-        long encouragements
+        long encouragements,
+        @Schema(description = "Waline 阅读量")
+        int pageviewCount,
+        @Schema(description = "Waline 评论数")
+        int commentCount,
+        @Schema(description = "文章点赞数")
+        int likeCount,
+        @Schema(description = "点赞占 Waline 阅读量百分比")
+        double likeRate
 ) {
 }

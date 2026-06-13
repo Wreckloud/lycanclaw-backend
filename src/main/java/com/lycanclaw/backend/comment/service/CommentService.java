@@ -3,9 +3,12 @@ package com.lycanclaw.backend.comment.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lycanclaw.backend.comment.dto.RecentCommentDto;
 import com.lycanclaw.backend.common.json.JsonNodeExtractors;
+import com.lycanclaw.backend.analytics.service.AnalyticsContentIndexService;
+import com.lycanclaw.backend.analytics.service.AnalyticsPathPolicy;
 import com.lycanclaw.backend.waline.service.WalineGatewayClient;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,10 +25,22 @@ public class CommentService {
 
     private final WalineGatewayClient walineGatewayClient;
     private final JsonNodeExtractors jsonNodeExtractors;
+    private final CommentTextNormalizer commentTextNormalizer;
+    private final AnalyticsContentIndexService contentIndexService;
+    private final AnalyticsPathPolicy pathPolicy;
 
-    public CommentService(WalineGatewayClient walineGatewayClient, JsonNodeExtractors jsonNodeExtractors) {
+    public CommentService(
+            WalineGatewayClient walineGatewayClient,
+            JsonNodeExtractors jsonNodeExtractors,
+            CommentTextNormalizer commentTextNormalizer,
+            AnalyticsContentIndexService contentIndexService,
+            AnalyticsPathPolicy pathPolicy
+    ) {
         this.walineGatewayClient = walineGatewayClient;
         this.jsonNodeExtractors = jsonNodeExtractors;
+        this.commentTextNormalizer = commentTextNormalizer;
+        this.contentIndexService = contentIndexService;
+        this.pathPolicy = pathPolicy;
     }
 
     /**
@@ -62,14 +77,32 @@ public class CommentService {
     private RecentCommentDto parseRecentComment(JsonNode item) {
         String url = firstText(item, "url", "path");
         String path = firstText(item, "path", "url");
+        String normalizedPath = pathPolicy.normalizePath(path.isBlank() ? url : path);
+        AnalyticsContentIndexService.PostInfo post = contentIndexService.loadPostMap().get(normalizedPath);
         return new RecentCommentDto(
                 firstText(item, "objectId", "id"),
                 firstText(item, "nick", "name"),
-                firstText(item, "comment", "content"),
+                commentTextNormalizer.toPlainText(firstText(item, "orig", "comment", "content")),
                 url,
-                path,
-                firstText(item, "createdAt", "insertedAt")
+                normalizedPath,
+                post == null ? fallbackTitle(normalizedPath) : post.title(),
+                commentTime(item)
         );
+    }
+
+    private String commentTime(JsonNode item) {
+        String timestamp = firstText(item, "createdAt", "insertedAt");
+        if (!timestamp.isBlank()) {
+            return timestamp;
+        }
+        long epochMillis = item.path("time").asLong(0);
+        return epochMillis > 0 ? Instant.ofEpochMilli(epochMillis).toString() : "";
+    }
+
+    private String fallbackTitle(String path) {
+        int slash = path.lastIndexOf('/');
+        String filename = slash >= 0 ? path.substring(slash + 1) : path;
+        return filename.endsWith(".html") ? filename.substring(0, filename.length() - 5) : filename;
     }
 
     private String firstText(JsonNode node, String... fields) {

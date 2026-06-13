@@ -13,6 +13,8 @@ public record VisitEndRequest(
         @Schema(description = "访问记录 ID")
         String visitId,
         @Schema(description = "有效停留毫秒数", example = "120000")
-        Long durationMs
+        Long durationMs,
+        @Schema(description = "文章正文最大阅读进度，范围 0-100", example = "86")
+        Integer maxScrollPercent
 ) {
 }

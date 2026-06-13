@@ -2,6 +2,7 @@ package com.lycanclaw.backend.recommendation.service;
 
 import com.lycanclaw.backend.recommendation.config.RecommendationProperties;
 import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
+import com.lycanclaw.backend.recommendation.dto.RecommendationCandidatePageDto;
 import com.lycanclaw.backend.recommendation.dto.RecommendationPostDto;
 import com.lycanclaw.backend.recommendation.entity.RecommendationMetricEntity;
 import com.lycanclaw.backend.runtimeconfig.service.RuntimeConfigService;
@@ -60,6 +61,7 @@ public class RecommendationService {
         String normalizedExcludePath = normalizeUrl(excludePath);
 
         RecommendationManualConfigDto manualConfig = manualConfigService.read();
+        Set<String> excludedUrls = new HashSet<>(manualConfig.excludedUrls());
         List<RecommendationPostDto> hotPosts = buildHotPostsFromMetrics();
         Map<String, RecommendationSourceService.RecommendationCandidate> candidateByUrl = sourceService.loadAllCandidates().stream()
                 .collect(Collectors.toMap(
@@ -83,9 +85,11 @@ public class RecommendationService {
                 RecommendationSourceService.RecommendationCandidate candidate = candidateByUrl.get(manualUrl);
                 if (candidate != null) {
                     post = buildRecommendation(candidate, null);
+                } else {
+                    post = buildManualFallback(manualUrl);
                 }
             }
-            if (post == null || seen.contains(post.url())) {
+            if (seen.contains(post.url())) {
                 continue;
             }
             result.add(toManualPinned(post));
@@ -96,7 +100,9 @@ public class RecommendationService {
         }
 
         for (RecommendationPostDto post : hotPosts) {
-            if (post.url().equals(normalizedExcludePath) || seen.contains(post.url())) {
+            if (post.url().equals(normalizedExcludePath)
+                    || seen.contains(post.url())
+                    || excludedUrls.contains(post.url())) {
                 continue;
             }
             result.add(post);
@@ -119,8 +125,8 @@ public class RecommendationService {
     /**
      * 更新手动推荐配置。
      */
-    public RecommendationManualConfigDto updateManualConfig(List<String> manualUrls) {
-        return manualConfigService.update(manualUrls);
+    public RecommendationManualConfigDto updateManualConfig(List<String> manualUrls, List<String> excludedUrls) {
+        return manualConfigService.update(manualUrls, excludedUrls);
     }
 
     /**
@@ -144,6 +150,30 @@ public class RecommendationService {
                 .map(candidate -> buildRecommendation(candidate, metricsByUrl.get(candidate.url())))
                 .limit(safeLimit)
                 .toList();
+    }
+
+    /**
+     * 按标题关键词和分页条件返回管理端候选文章。
+     */
+    public RecommendationCandidatePageDto listCandidates(String keyword, int page, int pageSize) {
+        String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
+        int safePageSize = Math.max(1, Math.min(pageSize, 50));
+        List<RecommendationPostDto> candidates = listCandidates(runtimeConfigService.maxCandidatePosts()).stream()
+                .filter(item -> normalizedKeyword.isBlank()
+                        || item.title().toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                        || item.url().toLowerCase(Locale.ROOT).contains(normalizedKeyword))
+                .toList();
+        int totalPages = Math.max(1, (int) Math.ceil(candidates.size() / (double) safePageSize));
+        int safePage = Math.max(1, Math.min(page, totalPages));
+        int from = Math.min(candidates.size(), (safePage - 1) * safePageSize);
+        int to = Math.min(candidates.size(), from + safePageSize);
+        return new RecommendationCandidatePageDto(
+                safePage,
+                safePageSize,
+                candidates.size(),
+                totalPages,
+                candidates.subList(from, to)
+        );
     }
 
     /**
@@ -217,6 +247,26 @@ public class RecommendationService {
                 pageviewCount,
                 commentCount,
                 hotScore,
+                false
+        );
+    }
+
+    private RecommendationPostDto buildManualFallback(String url) {
+        String decoded = java.net.URLDecoder.decode(url, java.nio.charset.StandardCharsets.UTF_8);
+        int slash = decoded.lastIndexOf('/');
+        String filename = slash >= 0 ? decoded.substring(slash + 1) : decoded;
+        String title = filename.endsWith(".html")
+                ? filename.substring(0, filename.length() - ".html".length())
+                : filename;
+        return new RecommendationPostDto(
+                url,
+                title.isBlank() ? "未命名文章" : title,
+                "",
+                "",
+                List.of(),
+                0,
+                0,
+                0,
                 false
         );
     }

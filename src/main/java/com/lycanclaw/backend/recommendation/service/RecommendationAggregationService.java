@@ -83,7 +83,10 @@ public class RecommendationAggregationService {
     /**
      * 每 5 分钟触发一次聚合任务。
      */
-    @Scheduled(fixedDelayString = "${lycan.recommendation.aggregation-interval-millis:300000}")
+    @Scheduled(
+            fixedDelayString = "${lycan.recommendation.aggregation-interval-millis:300000}",
+            initialDelayString = "${lycan.recommendation.aggregation-interval-millis:300000}"
+    )
     public void runScheduledAggregation() {
         triggerAsyncAggregation("scheduled");
     }
@@ -205,6 +208,13 @@ public class RecommendationAggregationService {
 
         int parallelism = Math.max(1, properties.getAggregationFetchParallelism());
         int timeoutSeconds = Math.max(2, properties.getAggregationFetchTimeoutSeconds());
+        Map<String, RecommendationMetricEntity> existingByUrl = metricRepository.findAllByUrlIn(
+                candidates.stream().map(RecommendationSourceService.RecommendationCandidate::url).toList()
+        ).stream().collect(Collectors.toMap(
+                RecommendationMetricEntity::getUrl,
+                metric -> metric,
+                (left, right) -> left
+        ));
 
         ExecutorService executor = Executors.newFixedThreadPool(parallelism);
         try {
@@ -233,7 +243,7 @@ public class RecommendationAggregationService {
                     result = MetricFetchResult.failed(candidate.url(), errorMessage(ex));
                 }
 
-                RecommendationMetricEntity entity = toEntity(result);
+                RecommendationMetricEntity entity = toEntity(result, existingByUrl.get(result.url()));
                 entities.add(entity);
 
                 if (result.success()) {
@@ -252,8 +262,9 @@ public class RecommendationAggregationService {
 
     private MetricFetchResult fetchSingleMetric(RecommendationSourceService.RecommendationCandidate candidate) {
         List<String> errors = new ArrayList<>();
-        int pageviewCount = 0;
-        int commentCount = 0;
+        Integer pageviewCount = null;
+        Integer commentCount = null;
+        Integer reactionCount = null;
 
         try {
             pageviewCount = Math.max(0, walineGatewayClient.fetchPageview(candidate.url()));
@@ -267,21 +278,55 @@ public class RecommendationAggregationService {
             errors.add("comment: " + errorMessage(ex));
         }
 
-        double score = pageviewCount * runtimeConfigService.pageviewWeight()
-                + commentCount * runtimeConfigService.commentWeight();
+        try {
+            reactionCount = Math.max(0, walineGatewayClient.fetchArticleCounter(candidate.url(), "reaction0"));
+        } catch (Exception ex) {
+            errors.add("reaction: " + errorMessage(ex));
+        }
 
         if (errors.isEmpty()) {
-            return MetricFetchResult.success(candidate.url(), pageviewCount, commentCount, roundScore(score));
+            return MetricFetchResult.success(
+                    candidate.url(),
+                    pageviewCount,
+                    commentCount,
+                    reactionCount
+            );
         }
-        return MetricFetchResult.partial(candidate.url(), pageviewCount, commentCount, roundScore(score), String.join("; ", errors));
+        if (pageviewCount == null && commentCount == null && reactionCount == null) {
+            return MetricFetchResult.failed(candidate.url(), String.join("; ", errors));
+        }
+        return MetricFetchResult.partial(
+                candidate.url(),
+                pageviewCount,
+                commentCount,
+                reactionCount,
+                String.join("; ", errors)
+        );
     }
 
-    private RecommendationMetricEntity toEntity(MetricFetchResult result) {
-        RecommendationMetricEntity entity = new RecommendationMetricEntity();
+    private RecommendationMetricEntity toEntity(
+            MetricFetchResult result,
+            RecommendationMetricEntity existing
+    ) {
+        RecommendationMetricEntity entity = existing == null ? new RecommendationMetricEntity() : existing;
+        int pageviewCount = result.pageviewCount() == null
+                ? entity.getPageviewCount()
+                : result.pageviewCount();
+        int commentCount = result.commentCount() == null
+                ? entity.getCommentCount()
+                : result.commentCount();
+        int reactionCount = result.reactionCount() == null
+                ? entity.getReactionCount()
+                : result.reactionCount();
+
         entity.setUrl(result.url());
-        entity.setPageviewCount(result.pageviewCount());
-        entity.setCommentCount(result.commentCount());
-        entity.setHotScore(result.hotScore());
+        entity.setPageviewCount(pageviewCount);
+        entity.setCommentCount(commentCount);
+        entity.setReactionCount(reactionCount);
+        entity.setHotScore(roundScore(
+                pageviewCount * runtimeConfigService.pageviewWeight()
+                        + commentCount * runtimeConfigService.commentWeight()
+        ));
         entity.setUpdatedAt(OffsetDateTime.now(ZoneOffset.ofHours(8)));
         entity.setSourceStatus(result.sourceStatus());
         entity.setLastError(result.errorMessage());
@@ -314,19 +359,38 @@ public class RecommendationAggregationService {
 
     private record MetricFetchResult(
             String url,
-            int pageviewCount,
-            int commentCount,
-            double hotScore,
+            Integer pageviewCount,
+            Integer commentCount,
+            Integer reactionCount,
             String sourceStatus,
             String errorMessage,
             boolean success
     ) {
-        static MetricFetchResult success(String url, int pageviewCount, int commentCount, double hotScore) {
-            return new MetricFetchResult(url, pageviewCount, commentCount, hotScore, "ok", "", true);
+        static MetricFetchResult success(
+                String url,
+                int pageviewCount,
+                int commentCount,
+                int reactionCount
+        ) {
+            return new MetricFetchResult(url, pageviewCount, commentCount, reactionCount, "ok", "", true);
         }
 
-        static MetricFetchResult partial(String url, int pageviewCount, int commentCount, double hotScore, String errorMessage) {
-            return new MetricFetchResult(url, pageviewCount, commentCount, hotScore, "partial_error", errorMessage, false);
+        static MetricFetchResult partial(
+                String url,
+                Integer pageviewCount,
+                Integer commentCount,
+                Integer reactionCount,
+                String errorMessage
+        ) {
+            return new MetricFetchResult(
+                    url,
+                    pageviewCount,
+                    commentCount,
+                    reactionCount,
+                    "partial_error",
+                    errorMessage,
+                    false
+            );
         }
 
         static MetricFetchResult timeout(String url) {
@@ -334,7 +398,7 @@ public class RecommendationAggregationService {
         }
 
         static MetricFetchResult failed(String url, String errorMessage) {
-            return new MetricFetchResult(url, 0, 0, 0.0D, "failed", errorMessage, false);
+            return new MetricFetchResult(url, null, null, null, "failed", errorMessage, false);
         }
     }
 

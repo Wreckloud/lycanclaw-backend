@@ -1,180 +1,107 @@
-# Docker Compose + Nginx 一键部署（LycanClaw）
+# Docker Compose 部署
 
-本目录提供可直接落地的部署方案，包含：
+本目录使用一套 Compose 编排：
 
-- `nginx`：统一入口（静态站点 + `/api` + `/waline`）
-- `backend`：Spring Boot 后端
-- `waline`：评论服务
-- `mysql`：Waline 数据库
-- `ncm-api`：网易云 API 上游服务
+- `nginx`：统一入口和前端静态文件。
+- `backend`：Spring Boot API 与管理端。
+- `waline`：评论和 OAuth 登录。
+- `mysql`：Waline 与博客统计共享数据库。
+- `ncm-api`：网易云音乐上游。
 
-## 1. 前置准备
-
-1. 本机已安装 Docker Desktop（含 `docker compose`）
-2. 前端先构建一次静态产物：
+## 准备
 
 ```powershell
 cd D:\Portfolio\Website\LycanClaw
 pnpm run build
-```
 
-3. 编辑部署配置：
-
-```powershell
 cd D:\Portfolio\Website\LycanClawBackend\deploy
 Copy-Item .env.example .env
 ```
 
-重点改这些：
+编辑 `.env` 中的域名、数据库密码、Waline JWT、邮件配置和宿主机路径。
 
-- `DOMAIN`
-- `MYSQL_ROOT_PASSWORD`
-- `WALINE_DB_PASSWORD`
-- `WALINE_JWT_TOKEN`
-- `BACKEND_ADMIN_TOKEN`
-- `WALINE_OWNER_EMAIL`
-- 三个宿主机路径：`BLOG_REPO_HOST_PATH`、`POSTS_JSON_HOST_PATH`、`FRONTEND_DIST_HOST_PATH`
+IP 地区解析是可选能力。需要地区信息时，准备 ip2region XDB 文件并填写对应路径；未准备时后台仍可显示原始 IP。
 
-## 2. 一键启动
+## 启停
 
-Linux/macOS：
-
-```bash
-cd /path/to/LycanClawBackend/deploy/scripts
-bash deploy.sh --build
-```
-
-Windows PowerShell：
+Windows：
 
 ```powershell
 cd D:\Portfolio\Website\LycanClawBackend\deploy\scripts
 .\up.ps1 -Build
+.\down.ps1
 ```
 
-查看状态：
+Linux：
+
+```bash
+cd /path/to/LycanClawBackend/deploy/scripts
+bash deploy.sh --build
+docker compose -f ../docker-compose.yml --env-file ../.env down
+```
+
+查看容器：
 
 ```powershell
 docker compose -f ..\docker-compose.yml --env-file ..\.env ps
 ```
 
-停止：
+## 路由
 
-```powershell
-.\down.ps1
-```
+- `https://你的域名/`：博客。
+- `https://你的域名/api/*`：后端接口。
+- `https://你的域名/admin/auth.html`：管理登录。
+- `https://你的域名/admin/index.html`：统一管理控制台。
+- `https://你的域名/waline/*`：Waline 评论与登录代理。
 
-Linux/macOS 停止：
+Waline 必须经过后端代理，才能统一 OAuth 回调、登录入口过滤和站点样式。
 
-```bash
-docker compose -f ../docker-compose.yml --env-file ../.env down
-```
+## Waline 管理员
 
-## 3. 路由约定（统一域名）
-
-- `https://你的域名/` -> VitePress 静态站点
-- `https://你的域名/api/*` -> 后端 API
-- `https://你的域名/waline/*` -> Waline（评论 + 阅读统计）
-- `https://你的域名/admin/*` -> 后端内置管理端（操作请求需管理员令牌）
-
-这样前端只需要同域名请求，减少跨域和环境切换复杂度。
-其中评论统计与阅读统计已经走 `/api/*` 聚合接口；评论发布仍通过 `/waline` 组件路径。
-
-## 4. 评论增强（Waline 自维护 + 只有你是管理员）
-
-### 4.1 建议配置
-
-- `LOGIN=force`（已在 compose 中设置）
-- `WALINE_COMMENT_AUDIT=true/false` 按你需求选择
-- 建议用 Waline 的 QQ 登录能力做管理员识别（只保留你自己的账号为 administrator）
-
-### 4.2 把管理员强制白名单为你自己
-
-先用你的账号登录一次 Waline（让用户记录入库），再执行：
+先用你的 QQ 或 GitHub 登录一次，再执行：
 
 ```powershell
 cd D:\Portfolio\Website\LycanClawBackend\deploy\scripts
 .\enforce-waline-admin.ps1
 ```
 
-该脚本会把 `WALINE_OWNER_EMAIL` 设为 `administrator`，其他人降为 `user`。
+脚本按 `WALINE_OWNER_EMAIL` 保留唯一管理员。管理端评论操作必须使用 Waline 登录会话；静态管理员令牌不能代替 Waline 评论身份。
 
-> 注意：如果你换了主邮箱，重新跑一次脚本即可。
+## 邮件通知
 
-## 4.3 运维检查页面
+在 `.env` 中填写：
 
-部署后可访问：
+- `WALINE_SMTP_HOST` 或 `WALINE_SMTP_SERVICE`
+- `WALINE_SMTP_PORT`
+- `WALINE_SMTP_SECURE`
+- `WALINE_SMTP_USER`
+- `WALINE_SMTP_PASS`
+- `WALINE_AUTHOR_EMAIL`
+- `WALINE_SENDER_NAME`
+- `WALINE_SENDER_EMAIL`
 
-- `/admin/index.html`
-- `/admin/ops-checks.html`
+修改后重启 Waline。管理端只显示配置状态，不读取或展示 SMTP 密码。
 
-用于查看：
-
-- Waline/NCM 上游状态
-- 推荐手动配置更新时间
-- 推荐聚合任务状态（上次成功时间、耗时、失败数）
-- posts.json 挂载是否生效
-- 常见错误与处理建议
-
-## 4.4 管理端与二次保护
-
-管理入口：
-
-- `/admin/index.html`
-
-当前默认策略：
-
-- 管理接口使用管理员令牌 + 会话令牌鉴权
-- 管理接口分钟级限流
-- 管理接口访问日志
-
-## 5. HTTPS
-
-当前模板默认暴露 `80` 端口。生产建议加 HTTPS（Cloudflare 或证书反代层）。
-
-## 6. 数据备份与恢复（标准化）
-
-备份：
+## 备份与恢复
 
 ```bash
 cd /path/to/LycanClawBackend/deploy/scripts
 bash backup.sh
+bash restore.sh /path/to/backups/<timestamp>
 ```
 
-恢复：
+备份包含：
 
-```bash
-bash restore.sh /path/to/LycanClawBackend/deploy/backups/<timestamp>
-```
+- 共享 MySQL 数据库。
+- 后端 `data/` 持久化目录。
+- 当次 Compose 环境快照。
 
-备份内容包含：
+## 本地数据库
 
-- Waline MySQL 数据（`waline.sql`）
-- 后端运行目录（`backend-data.tar.gz`，含推荐手动配置等）
-- 当次 `compose` 环境快照（`compose.env.snapshot`）
-
-## 6.1 本地测试数据库初始化（可选）
-
-如果你准备把“文章索引 / 推荐管理 / 评论快照 / 阅读统计 / 推荐聚合快照”逐步迁到本地 MySQL，可先执行：
+不使用 Compose 时，可执行：
 
 ```sql
 SOURCE D:/Portfolio/Website/LycanClawBackend/deploy/sql/local-test-init.sql;
 ```
 
-脚本会创建数据库 `lycanclaw_local_test` 及基础表结构，供本地联调使用。
-
-## 7. 常见问题
-
-### Q1：`Waline 统计转发到后端统一域名` 是什么意思？
-
-有两种做法：
-
-1. **Waline 直连路径**：前端请求 `https://域名/waline/*`（评论发布/登录）。
-2. **后端聚合路径**：前端请求 `https://域名/api/*`（最新评论、评论数、阅读量）。
-
-第二种的好处：
-
-- 前端只认一个 API 域名
-- 可以在后端统一鉴权、限流、日志、缓存
-- 后续替换 Waline 存储实现时，前端几乎不用改
-
-你现在已经具备 `/api/comments/*` 和 `/api/stats/pageview*` 聚合接口，可直接用于生产切换。
+Spring JPA 本地默认使用 `ddl-auto=update`。生产环境可改为 `validate`，并由 SQL 迁移维护表结构。

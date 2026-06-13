@@ -65,6 +65,9 @@ public class AnalyticsVisitEntity {
     @Column(name = "duration_ms", nullable = false)
     private long durationMs;
 
+    @Column(name = "max_scroll_percent", nullable = false)
+    private int maxScrollPercent;
+
     public Long getId() {
         return id;
     }
@@ -155,5 +158,13 @@ public class AnalyticsVisitEntity {
 
     public void setDurationMs(long durationMs) {
         this.durationMs = durationMs;
+    }
+
+    public int getMaxScrollPercent() {
+        return maxScrollPercent;
+    }
+
+    public void setMaxScrollPercent(int maxScrollPercent) {
+        this.maxScrollPercent = maxScrollPercent;
     }
 }

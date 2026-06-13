@@ -39,6 +39,16 @@ services:
       LOGIN: force
       COMMENT_AUDIT: ${WALINE_COMMENT_AUDIT}
       OAUTH_URL: ${WALINE_OAUTH_URL}
+      SMTP_HOST: ${WALINE_SMTP_HOST}
+      SMTP_SERVICE: ${WALINE_SMTP_SERVICE}
+      SMTP_PORT: ${WALINE_SMTP_PORT}
+      SMTP_SECURE: ${WALINE_SMTP_SECURE}
+      SMTP_USER: ${WALINE_SMTP_USER}
+      SMTP_PASS: ${WALINE_SMTP_PASS}
+      AUTHOR_EMAIL: ${WALINE_AUTHOR_EMAIL}
+      SENDER_NAME: ${WALINE_SENDER_NAME}
+      SENDER_EMAIL: ${WALINE_SENDER_EMAIL}
+      DISABLE_AUTHOR_NOTIFY: ${WALINE_DISABLE_AUTHOR_NOTIFY}
     depends_on:
       mysql:
         condition: service_healthy
@@ -65,18 +75,31 @@ services:
       SERVER_PORT: 8080
       LYCAN_CORS_ALLOWED_ORIGINS: https://${DOMAIN},https://www.${DOMAIN}
       LYCAN_SECURITY_ADMIN_TOKEN: ${BACKEND_ADMIN_TOKEN}
+      LYCAN_SECURITY_TRUST_FORWARDED_HEADERS: "true"
       LYCAN_DB_URL: jdbc:mysql://mysql:3306/${WALINE_DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       LYCAN_DB_USERNAME: ${WALINE_DB_USER}
       LYCAN_DB_PASSWORD: ${WALINE_DB_PASSWORD}
       LYCAN_ANALYTICS_REPO_PATH: /workspace/blog
+      LYCAN_ANALYTICS_KNOWLEDGE_STATS_JSON_PATH: /workspace/blog/docs/public/knowledge-stats.json
       LYCAN_MUSIC_UPSTREAM_BASE_URL: http://ncm-api:3000
       LYCAN_RECOMMENDATION_POSTS_JSON_PATH: /data/posts.json
       LYCAN_RECOMMENDATION_AGGREGATION_INTERVAL_MILLIS: 300000
       LYCAN_WALINE_BASE_URL: http://waline:8360
       LYCAN_TAG_POSTS_JSON_PATH: /data/posts.json
+      LYCAN_IP2REGION_V4_XDB_PATH: /data/ip2region_v4.xdb
+      LYCAN_IP2REGION_V6_XDB_PATH: /data/ip2region_v6.xdb
+      WALINE_SMTP_HOST: ${WALINE_SMTP_HOST}
+      WALINE_SMTP_SERVICE: ${WALINE_SMTP_SERVICE}
+      WALINE_SMTP_USER: ${WALINE_SMTP_USER}
+      WALINE_SMTP_PASS: ${WALINE_SMTP_PASS}
+      WALINE_AUTHOR_EMAIL: ${WALINE_AUTHOR_EMAIL}
+      WALINE_COMMENT_AUDIT: ${WALINE_COMMENT_AUDIT}
+      WALINE_DISABLE_AUTHOR_NOTIFY: ${WALINE_DISABLE_AUTHOR_NOTIFY}
     volumes:
       - ${BLOG_REPO_HOST_PATH}:/workspace/blog:ro
       - ${POSTS_JSON_HOST_PATH}:/data/posts.json:ro
+      - ${IP2REGION_V4_XDB_HOST_PATH}:/data/ip2region_v4.xdb:ro
+      - ${IP2REGION_V6_XDB_HOST_PATH}:/data/ip2region_v6.xdb:ro
       - backend_data:/app/data
     depends_on:
       - ncm-api
@@ -97,7 +120,6 @@ services:
       - ${FRONTEND_DIST_HOST_PATH}:/usr/share/nginx/html:ro
     depends_on:
       - backend
-      - waline
     networks:
       - lycan_net
 

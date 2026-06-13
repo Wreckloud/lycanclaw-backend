@@ -78,7 +78,7 @@ public class AdminAuthService {
                 role.isBlank() ? "administrator" : role,
                 ""
         );
-        AdminSessionService.SessionToken session = adminSessionService.createSession(principal);
+        AdminSessionService.SessionToken session = adminSessionService.createSession(principal, walineToken.trim());
         AdminAuthPrincipal sessionPrincipal = session.principal();
 
         return new AdminAuthSessionDto(

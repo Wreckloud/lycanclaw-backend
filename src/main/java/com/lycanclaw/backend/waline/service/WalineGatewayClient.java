@@ -3,11 +3,13 @@ package com.lycanclaw.backend.waline.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.lycanclaw.backend.common.exception.UpstreamServiceException;
 import com.lycanclaw.backend.waline.config.WalineProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
 import java.io.IOException;
 import java.net.URI;
@@ -59,14 +61,33 @@ public class WalineGatewayClient {
     }
 
     /**
+     * 查询站点已通过评论总数。
+     */
+    public int fetchApprovedCommentCount() {
+        MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
+        query.add("type", "count");
+        JsonNode node = get("/api/comment", query);
+        return parseInteger(node);
+    }
+
+    /**
      * 查询指定文章路径的阅读量。
      */
     public int fetchPageview(String path) {
+        return fetchArticleCounter(path, "time");
+    }
+
+    /**
+     * 查询指定文章的 Waline 计数器。
+     */
+    public int fetchArticleCounter(String path, String type) {
         String normalizedPath = normalizePath(path);
+        String normalizedType = normalizeCounterType(type);
         MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
         query.add("path", normalizedPath);
+        query.add("type", normalizedType);
         JsonNode node = get("/api/article", query);
-        return parseInteger(node);
+        return parseArticleCounter(node, normalizedType);
     }
 
     /**
@@ -101,6 +122,52 @@ public class WalineGatewayClient {
         return (data.isMissingNode() || data.isNull()) ? node : data;
     }
 
+    /**
+     * 使用管理员 Waline token 查询评论分页原始数据。
+     */
+    public JsonNode fetchAdminComments(
+            String walineToken,
+            int page,
+            String status,
+            String keyword
+    ) {
+        MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
+        query.add("type", "list");
+        query.add("owner", "all");
+        if (status != null && !status.isBlank() && !"all".equalsIgnoreCase(status)) {
+            query.add("status", status);
+        }
+        query.add("keyword", keyword == null ? "" : keyword.trim());
+        query.add("page", Integer.toString(Math.max(1, page)));
+        query.add("lang", "zh-CN");
+        return authenticatedRequest("GET", "/api/comment", query, null, walineToken);
+    }
+
+    /**
+     * 使用管理员 Waline token 更新评论状态或置顶字段。
+     */
+    public JsonNode updateAdminComment(String walineToken, String commentId, JsonNode body) {
+        String path = "/api/comment/" + encodePathSegment(commentId);
+        return authenticatedRequest("PUT", path, new LinkedMultiValueMap<>(), body, walineToken);
+    }
+
+    /**
+     * 使用管理员 Waline token 删除评论。
+     */
+    public void deleteAdminComment(String walineToken, String commentId) {
+        String path = "/api/comment/" + encodePathSegment(commentId);
+        MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
+        query.add("lang", "zh-CN");
+        authenticatedRequest("DELETE", path, query, null, walineToken);
+    }
+
+    /**
+     * 使用管理员 Waline token 创建评论或回复。
+     */
+    public JsonNode createAdminComment(String walineToken, JsonNode body) {
+        return authenticatedRequest("POST", "/api/comment", new LinkedMultiValueMap<>(), body, walineToken);
+    }
+
     private JsonNode get(String path, MultiValueMap<String, String> query) {
         URI uri = buildUri(path, query);
         HttpRequest request = buildGetRequest(uri).build();
@@ -119,6 +186,31 @@ public class WalineGatewayClient {
         return send(request);
     }
 
+    private JsonNode authenticatedRequest(
+            String method,
+            String path,
+            MultiValueMap<String, String> query,
+            JsonNode body,
+            String walineToken
+    ) {
+        if (walineToken == null || walineToken.isBlank()) {
+            throw new IllegalArgumentException("Waline token 不能为空");
+        }
+
+        HttpRequest.BodyPublisher publisher = body == null
+                ? HttpRequest.BodyPublishers.noBody()
+                : HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8);
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(buildUri(path, query))
+                .timeout(Duration.ofSeconds(12))
+                .header("Accept", "application/json")
+                .header("Authorization", "Bearer " + walineToken.trim())
+                .header("User-Agent", "LycanClawBackend/1.0");
+        if (body != null) {
+            requestBuilder.header("Content-Type", "application/json");
+        }
+        return unwrapSuccessfulData(send(requestBuilder.method(method, publisher).build()));
+    }
+
     private JsonNode send(HttpRequest request) {
         try {
             HttpResponse<String> response = httpClient.send(
@@ -126,14 +218,15 @@ public class WalineGatewayClient {
                     HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
             );
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new IllegalStateException("Waline 请求失败，状态码: " + response.statusCode());
+                throw new UpstreamServiceException("Waline 请求失败，状态码: " + response.statusCode());
             }
-            return objectMapper.readTree(response.body());
+            String body = response.body();
+            return body == null || body.isBlank() ? objectMapper.nullNode() : objectMapper.readTree(body);
         } catch (IOException e) {
-            throw new IllegalStateException("解析 Waline 返回失败", e);
+            throw new UpstreamServiceException("解析 Waline 返回失败", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Waline 请求被中断", e);
+            throw new UpstreamServiceException("Waline 请求被中断", e);
         }
     }
 
@@ -148,7 +241,7 @@ public class WalineGatewayClient {
     private URI buildUri(String path, MultiValueMap<String, String> query) {
         String baseUrl = normalizeBaseUrl(properties.getBaseUrl());
         return UriComponentsBuilder
-                .fromHttpUrl(baseUrl + path)
+                .fromUriString(baseUrl + path)
                 .queryParams(query)
                 .build()
                 .encode(StandardCharsets.UTF_8)
@@ -171,6 +264,33 @@ public class WalineGatewayClient {
         }
         String trimmed = path.trim();
         return trimmed.startsWith("/") ? trimmed : "/" + trimmed;
+    }
+
+    private String encodePathSegment(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("评论 ID 不能为空");
+        }
+        return UriUtils.encodePathSegment(value.trim(), StandardCharsets.UTF_8);
+    }
+
+    private String normalizeCounterType(String value) {
+        String type = value == null ? "" : value.trim();
+        if (!type.matches("[A-Za-z][A-Za-z0-9_]{0,31}")) {
+            throw new IllegalArgumentException("Waline 计数器类型无效");
+        }
+        return type;
+    }
+
+    private JsonNode unwrapSuccessfulData(JsonNode node) {
+        if (node == null || node.isNull()) {
+            return objectMapper.nullNode();
+        }
+        int errno = node.path("errno").asInt(0);
+        if (errno != 0) {
+            throw new UpstreamServiceException(node.path("errmsg").asText("Waline 管理请求失败"));
+        }
+        JsonNode data = node.get("data");
+        return data == null || data.isNull() ? node : data;
     }
 
     /**
@@ -201,6 +321,17 @@ public class WalineGatewayClient {
             return parseIntegerValue(payload.get(0));
         }
         return parseIntegerValue(payload);
+    }
+
+    private int parseArticleCounter(JsonNode node, String type) {
+        JsonNode payload = unwrapData(node);
+        if (payload == null || payload.isNull()) return 0;
+        if (payload.isNumber()) return Math.max(0, payload.asInt(0));
+        JsonNode value = payload.isArray() && payload.size() > 0 ? payload.get(0) : payload;
+        if (value != null && value.has(type) && value.get(type).isNumber()) {
+            return Math.max(0, value.get(type).asInt(0));
+        }
+        return parseIntegerValue(value);
     }
 
     private int parseIntegerValue(JsonNode node) {

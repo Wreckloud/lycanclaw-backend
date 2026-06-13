@@ -1,9 +1,13 @@
 package com.lycanclaw.backend.analytics.controller;
 
 import com.lycanclaw.backend.analytics.dto.AdminAnalyticsSummaryDto;
+import com.lycanclaw.backend.analytics.dto.AnalyticsArticleDetailDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsArticleMetricDto;
+import com.lycanclaw.backend.analytics.dto.AnalyticsArticlePageDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsTagMetricDto;
+import com.lycanclaw.backend.analytics.dto.AnalyticsVisitorProfileDto;
 import com.lycanclaw.backend.analytics.dto.EncouragementSummaryDto;
+import com.lycanclaw.backend.analytics.dto.MusicAnalyticsSummaryDto;
 import com.lycanclaw.backend.analytics.service.AdminAnalyticsService;
 import com.lycanclaw.backend.common.api.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,10 +47,24 @@ public class AdminAnalyticsController {
 
     @Operation(summary = "获取文章访问指标")
     @GetMapping("/articles")
-    public ApiResponse<List<AnalyticsArticleMetricDto>> articles(
-            @Parameter(description = "统计天数") @RequestParam(defaultValue = "30") int days
+    public ApiResponse<AnalyticsArticlePageDto> articles(
+            @Parameter(description = "统计天数") @RequestParam(defaultValue = "30") int days,
+            @Parameter(description = "标题关键词") @RequestParam(defaultValue = "") String keyword,
+            @Parameter(description = "排序：visits、duration、completion、scroll")
+            @RequestParam(defaultValue = "visits") String sort,
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") int page,
+            @Parameter(description = "每页条数") @RequestParam(defaultValue = "12") int pageSize
     ) {
-        return ApiResponse.ok(adminAnalyticsService.articleMetrics(days));
+        return ApiResponse.ok(adminAnalyticsService.articleMetrics(days, keyword, sort, page, pageSize));
+    }
+
+    @Operation(summary = "获取文章洞察详情")
+    @GetMapping("/article")
+    public ApiResponse<AnalyticsArticleDetailDto> article(
+            @RequestParam String path,
+            @RequestParam(defaultValue = "30") int days
+    ) {
+        return ApiResponse.ok(adminAnalyticsService.articleDetail(days, path));
     }
 
     @Operation(summary = "获取标签关注指标")
@@ -63,5 +81,22 @@ public class AdminAnalyticsController {
             @Parameter(description = "统计天数") @RequestParam(defaultValue = "30") int days
     ) {
         return ApiResponse.ok(adminAnalyticsService.encouragementSummary(days));
+    }
+
+    @Operation(summary = "获取访客画像")
+    @GetMapping("/visitor")
+    public ApiResponse<AnalyticsVisitorProfileDto> visitor(
+            @RequestParam String visitorId,
+            @RequestParam(defaultValue = "30") int days
+    ) {
+        return ApiResponse.ok(adminAnalyticsService.visitorProfile(days, visitorId));
+    }
+
+    @Operation(summary = "获取音乐收听分析")
+    @GetMapping("/music")
+    public ApiResponse<MusicAnalyticsSummaryDto> music(
+            @RequestParam(defaultValue = "30") int days
+    ) {
+        return ApiResponse.ok(adminAnalyticsService.musicAnalytics(days));
     }
 }

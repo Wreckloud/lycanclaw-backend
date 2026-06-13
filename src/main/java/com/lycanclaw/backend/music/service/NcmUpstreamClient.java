@@ -2,6 +2,7 @@ package com.lycanclaw.backend.music.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lycanclaw.backend.common.exception.UpstreamServiceException;
 import com.lycanclaw.backend.music.config.MusicUpstreamProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
@@ -42,7 +43,7 @@ public class NcmUpstreamClient {
      */
     public JsonNode get(String path, Map<String, String> queryParams) {
         URI uri = UriComponentsBuilder
-                .fromHttpUrl(normalizeBaseUrl(properties.getBaseUrl()) + path)
+                .fromUriString(normalizeBaseUrl(properties.getBaseUrl()) + path)
                 .queryParams(toMultiValueMap(queryParams))
                 // query 中会包含原始 cookie（含 ; = 等字符），必须由 Spring 负责编码。
                 .build()
@@ -62,14 +63,14 @@ public class NcmUpstreamClient {
                     HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
             );
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new IllegalStateException("上游音乐服务请求失败，状态码: " + response.statusCode());
+                throw new UpstreamServiceException("上游音乐服务请求失败，状态码: " + response.statusCode());
             }
             return objectMapper.readTree(response.body());
         } catch (IOException e) {
-            throw new IllegalStateException("解析上游音乐服务返回内容失败", e);
+            throw new UpstreamServiceException("解析上游音乐服务返回内容失败", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("请求上游音乐服务时线程被中断", e);
+            throw new UpstreamServiceException("请求上游音乐服务时线程被中断", e);
         }
     }
 

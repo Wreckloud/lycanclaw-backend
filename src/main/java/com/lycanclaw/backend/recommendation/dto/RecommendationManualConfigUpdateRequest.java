@@ -15,6 +15,8 @@ import java.util.List;
 public record RecommendationManualConfigUpdateRequest(
         @NotNull(message = "manualUrls 不能为空")
         @Schema(description = "手动置顶文章 URL 列表")
-        List<String> manualUrls
+        List<String> manualUrls,
+        @Schema(description = "不参与自动补位的文章 URL 列表")
+        List<String> excludedUrls
 ) {
 }

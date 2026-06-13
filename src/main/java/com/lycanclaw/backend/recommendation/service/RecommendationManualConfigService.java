@@ -48,12 +48,13 @@ public class RecommendationManualConfigService {
     public synchronized RecommendationManualConfigDto read() {
         Path path = resolveConfigPath();
         if (!Files.exists(path)) {
-            return new RecommendationManualConfigDto(List.of(), null);
+            return new RecommendationManualConfigDto(List.of(), List.of(), null);
         }
 
         try {
             JsonNode root = objectMapper.readTree(Files.readString(path));
             List<String> manualUrls = new ArrayList<>();
+            List<String> excludedUrls = new ArrayList<>();
             JsonNode urlsNode = root.path("manualUrls");
             if (urlsNode.isArray()) {
                 for (JsonNode urlNode : urlsNode) {
@@ -63,7 +64,20 @@ public class RecommendationManualConfigService {
                     }
                 }
             }
-            return new RecommendationManualConfigDto(deduplicate(manualUrls), root.path("updatedAt").asText(null));
+            JsonNode excludedNode = root.path("excludedUrls");
+            if (excludedNode.isArray()) {
+                for (JsonNode urlNode : excludedNode) {
+                    String value = normalizeUrl(urlNode.asText(null));
+                    if (value != null) {
+                        excludedUrls.add(value);
+                    }
+                }
+            }
+            return new RecommendationManualConfigDto(
+                    deduplicate(manualUrls),
+                    deduplicate(excludedUrls),
+                    root.path("updatedAt").asText(null)
+            );
         } catch (IOException e) {
             throw new IllegalStateException("读取手动推荐配置失败", e);
         }
@@ -71,8 +85,11 @@ public class RecommendationManualConfigService {
     /**
      * 更新手动推荐 URL 列表，并写入配置文件。
      */
-    public synchronized RecommendationManualConfigDto update(List<String> manualUrls) {
+    public synchronized RecommendationManualConfigDto update(List<String> manualUrls, List<String> excludedUrls) {
         List<String> sanitized = sanitizeManualUrls(manualUrls);
+        List<String> sanitizedExcluded = sanitizeManualUrls(excludedUrls).stream()
+                .filter(url -> !sanitized.contains(url))
+                .toList();
         String updatedAt = appTimeProvider.nowOffsetString();
 
         Path path = resolveConfigPath();
@@ -87,10 +104,14 @@ public class RecommendationManualConfigService {
             for (String url : sanitized) {
                 arrayNode.add(url);
             }
+            ArrayNode excludedArray = root.putArray("excludedUrls");
+            for (String url : sanitizedExcluded) {
+                excludedArray.add(url);
+            }
             root.put("updatedAt", updatedAt);
 
             Files.writeString(path, objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(root));
-            return new RecommendationManualConfigDto(sanitized, updatedAt);
+            return new RecommendationManualConfigDto(sanitized, sanitizedExcluded, updatedAt);
         } catch (IOException e) {
             throw new IllegalStateException("写入手动推荐配置失败", e);
         }

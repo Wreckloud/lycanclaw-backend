@@ -20,6 +20,8 @@ public record RecentCommentDto(
         String url,
         @Schema(description = "文章路径")
         String path,
+        @Schema(description = "文章标题")
+        String articleTitle,
         @Schema(description = "评论时间")
         String createdAt
 ) {

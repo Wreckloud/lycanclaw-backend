@@ -24,6 +24,8 @@ public record MusicQueueItemDto(
         String url,
         @Schema(description = "来源标识")
         String source,
+        @Schema(description = "播放地址来源，例如 public、login 或 trial")
+        String urlSource,
         @Schema(description = "优先级")
         int priority,
         @Schema(description = "入队时间（ISO-8601）")

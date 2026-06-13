@@ -2,6 +2,8 @@ package com.lycanclaw.backend.common.exception;
 
 import com.lycanclaw.backend.common.api.ErrorCode;
 import com.lycanclaw.backend.common.api.ApiResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -16,6 +18,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
      * 参数校验类异常统一返回 400。
@@ -38,12 +42,24 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 外部服务故障统一返回 502，并保留可理解的上游错误摘要。
+     */
+    @ExceptionHandler(UpstreamServiceException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUpstream(UpstreamServiceException ex) {
+        log.warn("Upstream service request failed: {}", ex.getMessage(), ex);
+        return ResponseEntity
+                .status(HttpStatus.BAD_GATEWAY)
+                .body(ApiResponse.fail(ErrorCode.UPSTREAM_ERROR, ex.getMessage()));
+    }
+
+    /**
      * 未被显式处理的异常统一返回 500。
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception ex) {
+        log.error("Unhandled request error", ex);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.fail(ErrorCode.INTERNAL_ERROR, ex.getMessage()));
+                .body(ApiResponse.fail(ErrorCode.INTERNAL_ERROR));
     }
 }

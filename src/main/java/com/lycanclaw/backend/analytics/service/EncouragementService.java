@@ -25,15 +25,18 @@ public class EncouragementService {
 
     private final EncouragementEventRepository repository;
     private final ClientIpResolver clientIpResolver;
+    private final VisitorIdentityService visitorIdentityService;
     private final ZoneId zoneId;
 
     public EncouragementService(
             EncouragementEventRepository repository,
             ClientIpResolver clientIpResolver,
+            VisitorIdentityService visitorIdentityService,
             @Value("${lycan.system.zone-id:Asia/Shanghai}") String zoneId
     ) {
         this.repository = repository;
         this.clientIpResolver = clientIpResolver;
+        this.visitorIdentityService = visitorIdentityService;
         this.zoneId = ZoneId.of(zoneId);
     }
 
@@ -51,6 +54,7 @@ public class EncouragementService {
         entity.setDelta(delta);
         entity.setCreatedAt(OffsetDateTime.now(zoneId));
         repository.save(entity);
+        visitorIdentityService.ensureAnonymousIdentity(entity.getVisitorId(), entity.getCreatedAt());
         return new EncouragementSettleResponse(true, delta);
     }
 

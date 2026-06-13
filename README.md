@@ -1,227 +1,117 @@
-# LycanClaw 后端
+# LycanClaw Backend
 
-这是 LycanClaw 博客后端项目，基于 Spring Boot。
+LycanClaw 个人博客后端，基于 Spring Boot 3、MySQL、Waline 和网易云音乐上游服务。
 
 ## 技术栈
 
 - Java 17
-- Spring Boot 3.4.x
+- Spring Boot 3.4
+- Spring Data JPA
+- MySQL 8
+- Waline
 - Maven
-- MySQL（推荐聚合、访问分析、催更统计依赖数据库）
 
-## 已初始化内容
+## 模块职责
 
-- 统一接口前缀：`/api`（不使用 `/v1`）
-- 统一响应模型：`ApiResponse`
-- 全局异常处理
-- 基础健康检查接口：`GET /api/health`
-- 业务骨架：
-  - 标签：`/api/tags/*`
-  - 音乐：`/api/music/*`
-  - 日贡献：`/api/contributions/daily`
-  - 评论聚合：`/api/comments/*`
-  - 阅读统计聚合：`/api/stats/pageview`
-  - 推荐：`/api/recommendations`
+- `analytics`：访问、阅读进度、催更、访客身份和音乐收听统计。
+- `comment`：最新评论聚合与管理端 Waline 评论管理。
+- `music`：网易云登录、歌曲数据、播放地址和播放流。
+- `recommendation`：文章候选、手动推荐和离线热度聚合。
+- `tag`：管理端读取 VitePress 索引并检查标签状态。
+- `admin`：统一管理控制台、管理会话和运维摘要。
+- `waline`：Waline HTTP 网关与同源登录代理。
+- `common`：统一响应、错误码、时间、IP 解析和限流。
 
-## 当前已落地的第一个真实 API
+前台标签筛选仍由 VitePress 静态数据完成，后端标签模块只服务管理端检查。
 
-`GET /api/contributions/daily`
+## 主要入口
 
-- 数据口径：`additions + deletions`
-- 默认范围：过去 365 天
-- 默认统计目录：`docs/thoughts`、`docs/knowledge`
-- 数据来源：博客仓库 Git 日志（服务端执行 `git log --numstat`）
+- 博客管理登录：`http://127.0.0.1:8080/admin/auth.html`
+- 统一管理控制台：`http://127.0.0.1:8080/admin/index.html`
+- Swagger UI：`http://127.0.0.1:8080/swagger-ui.html`
+- Knife4j：`http://127.0.0.1:8080/doc.html`
+- Actuator 健康检查：`http://127.0.0.1:8080/actuator/health`
 
-可选参数：
+管理端主流程使用 Waline QQ/GitHub 登录换取后端内存会话。静态管理员令牌仅作为可选应急入口，默认不配置。
 
-- `days`：统计天数（例如 `?days=90`）
+## 主要 API
 
-## 音乐登录（二维码）已打通
+### 前台
 
-已提供管理员专用接口（需要管理员令牌）：
+- `GET /api/contributions/daily`：Git 日贡献热力图。
+- `GET /api/recommendations`：手动推荐优先，数据库热度快照补齐。
+- `GET /api/comments/recent`：最新评论摘要。
+- `GET|POST /api/stats/pageview`：文章阅读量。
+- `POST /api/analytics/visit/start|end`：访问和有效停留结算。
+- `POST /api/analytics/identity/waline`：关联已验证的 Waline 身份。
+- `POST /api/encouragement/settle`：首页催更批量结算。
+- `POST /api/music/analytics/settle`：音乐收听会话结算。
+- `/api/music/*`：歌曲、歌词、排行和播放流。
 
-- `GET /api/music/auth/qr/key`
-- `GET /api/music/auth/qr/create?key=...`
-- `GET /api/music/auth/qr/check?key=...`
-- `GET /api/music/auth/status`
-- `POST /api/music/auth/refresh`
-- `POST /api/music/auth/logout`
+### 管理端
 
-管理页面：
+- `/api/admin/auth/*`：Waline 身份交换、当前身份和退出。
+- `/api/admin/analytics/*`：文章、访客、主题、催更和音乐洞察。
+- `/api/admin/comments/*`：评论查询、审核、回复、置顶和删除。
+- `/api/recommendations/admin/*`：推荐候选与手动顺序。
+- `/api/admin/governance/recommendations/rebuild`：异步更新推荐热度。
+- `/api/admin/console/summary`：管理控制台总览。
 
-- `GET /admin/index.html`
-- `GET /admin/music-login.html`
-- `GET /admin/recommendation-admin.html`
-- `GET /admin/ops-checks.html`
+除登录交换接口外，管理接口均由 `X-Lycan-Admin-Token` 鉴权。
 
-> 说明：二维码登录是否需要二次确认，取决于网易云 App 安全策略。  
-> 后端不绕过验证，只托管你扫码后获得的登录态。
+## 数据存储
 
-## 管理员登录（Waline 会话）已落地
+MySQL 当前保存：
 
-- `POST /api/admin/auth/waline/exchange`
-  - 入参：`{ "walineToken": "..." }`
-  - 说明：Waline QQ 登录成功后，用该 token 换取后端管理会话 token
-- `GET /api/admin/auth/me`
-  - 查询当前管理凭证对应身份（静态 token / 会话 token）
-- `POST /api/admin/auth/logout`
-  - 注销当前后端管理会话
+- 推荐热度快照。
+- 页面访问、有效停留时间和阅读进度。
+- 匿名访客与已验证 Waline 身份的关联。
+- 首页催更结算记录。
+- 音乐收听会话。
+- Waline 自身评论数据。
 
-管理页面入口：
+手动推荐顺序和管理端非敏感运行时配置保存在 `data/`，部署时由持久化卷保存。
 
-- `GET /admin/auth.html`（先登录）
-- `GET /admin/index.html`
-- `GET /admin/music-login.html`
-- `GET /admin/recommendation-admin.html`
-- `GET /admin/ops-checks.html`
+## 本地启动
 
-## 音乐数据接口（已切后端）
+1. 创建数据库：
 
-- `GET /api/music/ranking/weekly?limit=20`
-- `GET /api/music/track/url?id=歌曲ID&level=jymaster`
-- `GET /api/music/track/detail-with-url?id=歌曲ID&level=jymaster`
-- `GET /api/music/queue?limit=30`
-- `POST /api/music/queue/enqueue`
-- `POST /api/music/queue/next`
-- `POST /api/music/queue/clear?keepCurrent=true`
+```sql
+SOURCE D:/Portfolio/Website/LycanClawBackend/deploy/sql/local-test-init.sql;
+```
 
-说明：
+2. 复制并填写环境变量：
 
-- 排行榜和随机流使用 `lycan.music.playlist-owner-uid`，与登录态解耦。
-- 周榜响应里的 `source` 固定为 `playlist-owner`，用于标记榜单来自配置账号。
-- 播放地址默认先尝试公开链路（`exhigh -> higher -> standard`），全部失败后才尝试登录链路。
-- 会员登录链路有全局限流保护（`lycan.security.music-login-url-global-limit-per-minute`）。
-- 歌曲详情与 URL 解析结果在内存做短缓存，减少上游请求。
-- 队列策略为“只向前播放”，`snapshot` 仅返回预览（最多 3 首），不返回完整等待队列。
-- 入队请求仅保留 `id/source/level` 三个字段，历史扩展字段会被忽略。
+```powershell
+Copy-Item .env.example .env
+```
 
-## 推荐阅读接口（已落地）
+3. 启动 MySQL、Waline 和网易云上游后运行：
 
-- `GET /api/recommendations?limit=5&excludePath=/thoughts/xxx.html`
-  - 热门分算法：`浏览量 * pageviewWeight + 评论数 * commentWeight`
-  - 数据来源：`posts.json + Waline(article/comment)`
-- `GET /api/recommendations/admin/config`（管理员）
-- `GET /api/recommendations/admin/candidates?limit=200`（管理员）
-- `PUT /api/recommendations/admin/config`（管理员）
-  - Body: `{ \"manualUrls\": [\"/thoughts/xxx.html\"] }`
-  - 管理员手动置顶优先于热门分排序
-
-## 标签接口（已落地）
-
-- `GET /api/tags/thoughts`
-  - 返回标签列表与文章计数
-- `GET /api/tags/thoughts/filter?tag=反刍日志&page=1&pageSize=10`
-  - 返回指定标签下文章列表（服务端分页）
-
-## 评论与阅读统计聚合接口（已落地）
-
-- `GET /api/comments/recent?limit=5`
-- `GET /api/comments/count?path=/thoughts/xxx.html`
-- `GET /api/stats/pageview?path=/thoughts/xxx.html`
-- `POST /api/stats/pageview`
-  - Body: `{ \"path\": \"/thoughts/xxx.html\" }`
-
-说明：
-
-- 以上接口由后端转发到 Waline，前端不再直接请求 Waline 的统计查询接口。
-- 评论发布与登录态仍由 Waline 前端组件负责（`/waline` 路由）。
-- 管理员身份建议直接在 Waline 侧维护（QQ 登录后仅你的账号设为 administrator）。
-
-## 运维检查项接口（管理员）
-
-- `GET /api/admin/ops/checks`
-  - 返回服务状态、同步状态、常见错误提示
-
-## 推荐与索引接口（管理员）
-
-- `POST /api/admin/governance/recommendations/rebuild`
-  - 手动触发推荐缓存重算
-- `POST /api/admin/governance/tags/refresh`
-  - 手动刷新标签缓存
-- `GET /api/admin/governance/sync-status`
-  - 返回红黄绿同步状态与缓存状态
-
-说明：
-
-- 管理端接口统一使用 `X-Lycan-Admin-Token` 鉴权；
-- 支持双模式：admin 静态 token（应急）+ Waline 交换会话 token（主流程）；
-- 管理端启用分钟级限流与访问日志（IP / URI / method / 结果）；
-- 已取消 IP 白名单机制，避免换网/代理误锁后台；
-- 公共 API 默认记录访问日志（访客 IP / URI / User-Agent），用于后续访客分析与风控回放。
-
-## 启动
-
-```bash
+```powershell
 mvn spring-boot:run
 ```
 
-默认地址：
-
-- `http://localhost:8080`
-
-部署方案：
-
-- `deploy/README.md`（Docker Compose + Nginx 一键部署）
-- `deploy.md`（首发部署 + 升级 + 备份恢复清单）
-
-接口文档地址（已接入）：
-
-- Swagger UI: `http://localhost:8080/swagger-ui.html`
-- Knife4j UI: `http://localhost:8080/doc.html`
-- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+默认端口为 `8080`。前端开发环境默认连接 `http://127.0.0.1:8080`，生产环境默认使用同源 `/api` 和 `/waline`。
 
 ## 关键配置
 
-`src/main/resources/application.yml`：
+- `LYCAN_DB_*`：MySQL 连接。
+- `LYCAN_SECURITY_ADMIN_TOKEN`：可选静态管理员令牌。
+- `LYCAN_ANALYTICS_REPO_PATH`：博客 Git 仓库路径。
+- `LYCAN_ANALYTICS_KNOWLEDGE_STATS_JSON_PATH`：知识笔记统计索引。
+- `LYCAN_MUSIC_UPSTREAM_BASE_URL`：网易云 API 上游。
+- `LYCAN_MUSIC_PLAYLIST_OWNER_UID`：随机流和榜单来源 UID。
+- `LYCAN_WALINE_BASE_URL`：Waline 服务地址。
+- `LYCAN_RECOMMENDATION_POSTS_JSON_PATH`：VitePress 文章索引。
+- `LYCAN_IP2REGION_V4_XDB_PATH`、`LYCAN_IP2REGION_V6_XDB_PATH`：可选 IP 地区数据库。
 
-- `lycan.analytics.repo-path`：博客仓库路径
-- `lycan.analytics.scope`：统计目录（逗号分隔）
-- `lycan.analytics.days`：默认统计天数
-- `lycan.cors.allowed-origins`：允许跨域来源
-- `lycan.security.admin-token`：静态管理员令牌（应急保底）
-- `lycan.security.admin-qq-whitelist`：可换取后端会话的 QQ 白名单（逗号分隔）
-- `lycan.security.admin-require-waline-administrator`：是否强制 Waline 角色为 administrator
-- `lycan.security.admin-session-ttl-seconds`：后端会话有效期（秒）
-- `lycan.security.admin-session-max-size`：内存会话最大数量
-- `lycan.security.auth-rate-limit-per-minute`：登录接口限流阈值
-- `lycan.security.music-rate-limit-per-minute`：公开音乐接口限流阈值
-- `lycan.security.music-queue-write-require-admin`：是否要求管理员凭证才能修改音乐队列
-- `lycan.security.music-login-url-global-limit-per-minute`：会员 cookie 调用上游 URL 的全局限流
-- `lycan.security.admin-auth-log-enabled`：管理端鉴权访问日志开关
-- `lycan.security.public-access-log-enabled`：公共 API 访问日志开关
-- `lycan.music.upstream.base-url`：api-enhanced 服务地址
-- `lycan.music.preferred-level`：默认音质级别（建议 `exhigh`）
-- `lycan.recommendation.posts-json-path`：前端 posts.json 路径
-- `lycan.recommendation.manual-config-path`：手动推荐持久化文件路径
-- `lycan.recommendation.score.*`：热门分权重配置
-- `lycan.waline.base-url`：Waline 服务地址（评论与阅读统计聚合）
-- `lycan.tag.posts-json-path`：标签聚合读取的 posts.json 路径
-- `lycan.tag.cache-seconds`：标签聚合缓存秒数
+完整默认值和注释见 `src/main/resources/application.yml`。
 
-环境变量模板：
+## 验证
 
-- `D:/Portfolio/Website/LycanClawBackend/.env.example`（后端）
-- `D:/Portfolio/Website/LycanClawBackend/deploy/waline.env.example`（Waline）
-- `D:/Portfolio/Website/LycanClaw/.env.example`（前端，单一 `VITE_BACKEND_API_BASE`）
+```powershell
+mvn test
+```
 
-> 当前阶段已经接入 MySQL。运行本地测试或部署到服务器前，需要先准备数据库并通过环境变量配置连接信息。
-
-## 分阶段需求（与你当前规划对齐）
-
-### P0（先做）
-
-1. 热力图后端化（已开始并打通 API）
-2. 音乐数据后端化（周听歌榜、队列接口）- 已完成基础版
-3. 推荐、标签、评论统计接口后端化 - 已完成基础版
-
-### P1（随后）
-
-1. 首页筛选与统计模块进一步统一到后端 API
-2. 推荐算法 API
-3. 评论增强能力（自维护 Waline 周边能力）
-
-### P2（后续）
-
-1. 画作/图库能力
-2. 管理端写入接口
-3. 监控与安全加固
+Docker Compose、Nginx、备份和恢复说明见 `deploy/README.md` 与 `deploy.md`。

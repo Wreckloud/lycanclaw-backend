@@ -1,6 +1,9 @@
 package com.lycanclaw.backend.analytics.service;
 
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriUtils;
+
+import java.nio.charset.StandardCharsets;
 
 /**
  * 统计路径策略。
@@ -26,6 +29,11 @@ public class AnalyticsPathPolicy {
         }
         if (!normalized.startsWith("/")) {
             normalized = "/" + normalized;
+        }
+        try {
+            normalized = UriUtils.decode(normalized, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException ignored) {
+            // 非法转义路径保留原值，避免统计接口因单个坏 URL 中断。
         }
         return normalized.isBlank() ? "/" : normalized;
     }
