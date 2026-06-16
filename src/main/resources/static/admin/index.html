@@ -116,6 +116,16 @@
     .data-table th { color: var(--muted); font-weight: 500; }
     .data-table a, .article-link { color: var(--text); text-decoration: none; }
     .data-table a:hover, .article-link:hover { color: var(--accent); }
+    .article-title { color: var(--text); font-weight: 700; }
+    .article-detail-row td { padding: 0 8px 12px; background: var(--surface-soft); }
+    .article-inline-detail { padding: 16px; }
+    .article-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .article-detail-visitors { margin-top: 12px; }
+    .recent-visitor { padding: 0; background: var(--surface-soft); }
+    .recent-visitor-toggle { width: 100%; border: 0; padding: 11px; color: var(--text); background: transparent; text-align: left; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .recent-visitor-details { display: none; padding: 0 11px 11px; }
+    .recent-visitor.open .recent-visitor-details { display: grid; gap: 6px; }
+    .recent-visit-entry { padding-top: 8px; border-top: 1px solid var(--surface-muted); }
     .checkbox-cell { width: 30px; }
     .drawer { display: none; margin-top: 14px; }
     .drawer.active { display: block; }
@@ -138,7 +148,7 @@
       .nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
       .topbar { padding: 12px 16px; }
       .content { padding: 18px 16px 28px; }
-      .grid.two, .grid.three, .grid.four, .grid.aside, .recommendation-grid { grid-template-columns: 1fr; }
+      .grid.two, .grid.three, .grid.four, .grid.aside, .recommendation-grid, .article-detail-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 680px) {
       .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -198,15 +208,14 @@
           <div id="articleTable"></div>
           <div class="pager"><button class="btn link" id="articlePrevBtn">上一页</button><span id="articlePageInfo">第 1 页</span><button class="btn link" id="articleNextBtn">下一页</button></div>
         </div>
-        <div class="card" style="margin-top:12px;"><div class="card-title"><h3>最近访问</h3><small>文章阅读记录</small></div><div class="list" id="articleRecentVisits"></div></div>
-        <div class="card drawer" id="articleDetailCard"><div class="card-title"><h3 id="articleDetailTitle">文章详情</h3><button class="btn link" id="closeArticleDetailBtn">关闭</button></div><div id="articleDetailMetrics" class="grid three"></div><div class="grid three" style="margin-top:12px;"><div><div class="chart" id="articleTrendChart"></div></div><div><div class="card-title"><h3>访问来源</h3></div><div class="list" id="articleReferrerList"></div></div><div><div class="card-title"><h3>访客</h3></div><div class="list" id="articleVisitorList"></div></div></div></div>
+        <div class="card" style="margin-top:12px;"><div class="card-title"><h3>最近访客</h3><small>展开查看最近阅读记录</small></div><div class="list" id="articleRecentVisits"></div></div>
         <div class="card drawer" id="visitorProfileCard"><div class="card-title"><h3 id="visitorProfileTitle">访客画像</h3><button class="btn link" id="closeVisitorProfileBtn">关闭</button></div><div id="visitorProfileMetrics" class="grid four"></div><div class="grid three" style="margin-top:12px;"><div><div class="card-title"><h3>常看文章</h3></div><div class="list" id="visitorTopArticles"></div></div><div><div class="card-title"><h3>访问来源</h3></div><div class="list" id="visitorReferrers"></div></div><div><div class="card-title"><h3>常听歌曲</h3></div><div class="list" id="visitorTopSongs"></div></div></div></div>
       </section>
       <section class="section" id="section-music">
         <div class="section-head"><div><h2>音乐</h2><p>网易云扫码登录、账号状态与播放流配置。</p></div><div class="actions"><button class="btn" id="checkMusicBtn">检查状态</button><button class="btn danger" id="logoutMusicBtn">退出网易云</button></div></div>
         <div class="grid aside music-grid"><div class="card"><div class="card-title"><h3>网易云扫码登录</h3><small id="musicStatusBadge">未检查</small></div><div class="qr-card" id="qrCard"><div class="qr-box"><img id="qrImg" alt="网易云登录二维码" /><div class="qr-placeholder" id="qrPlaceholder">点击生成二维码</div></div><div><div class="list-title">点击卡片开始扫码登录</div><div class="list-meta" id="qrStatus">登录只用于公开播放失败后的会员回退。</div><a class="list-meta" id="qrLink" href="#" target="_blank" rel="noopener"></a></div></div></div><div class="grid"><div class="card"><div class="card-title"><h3>账号状态</h3><small>网易云</small></div><div id="musicStatusDetail" class="kv"></div></div><form class="card" id="musicConfigForm"><div class="card-title"><h3>音乐配置</h3><small>保存后立即生效</small></div><div class="field-grid"><div class="field"><label>歌单来源 UID</label><input name="playlistOwnerUid" inputmode="numeric" placeholder="629126546" /></div><div class="field"><label>默认音质</label><select name="preferredLevel"><option value="exhigh">exhigh</option><option value="higher">higher</option><option value="standard">standard</option><option value="lossless">lossless</option><option value="hires">hires</option><option value="jymaster">jymaster</option></select></div></div><div class="actions" style="margin-top:12px;"><button class="btn primary" type="button" id="saveMusicConfigBtn">保存音乐配置</button></div></form></div></div>
-        <div class="grid four" id="musicAnalyticsMetrics" style="margin-top:14px;"></div>
-        <div class="grid three" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>热门歌曲</h3><small>近 30 天</small></div><div class="list" id="musicTopSongs"></div></div><div class="card"><div class="card-title"><h3>播放来源</h3><small>入口分布</small></div><div class="list" id="musicSourceList"></div></div><div class="card"><div class="card-title"><h3>最近收听</h3><small>访客与来源</small></div><div class="list" id="musicRecentList"></div></div></div>
+        <div class="grid three" id="musicAnalyticsMetrics" style="margin-top:14px;"></div>
+        <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>热门歌曲</h3><small>近 30 天</small></div><div class="list" id="musicTopSongs"></div></div><div class="card"><div class="card-title"><h3>最近收听</h3><small>访客与完成度</small></div><div class="list" id="musicRecentList"></div></div></div>
       </section>
       <section class="section" id="section-recommendation">
         <div class="section-head"><div><h2>推荐</h2><p>指定文章优先展示，其余位置由文章热度自动补齐。</p></div><button class="btn" id="rebuildRecommendationBtn">更新推荐热度</button></div>
@@ -220,7 +229,7 @@
       </section>
       <section class="section" id="section-comments">
         <div class="section-head"><div><h2>评论</h2><p>在当前后台完成审核、置顶与删除，不再依赖 Waline 官方管理界面。</p></div><button class="btn" id="reloadCommentsBtn">刷新评论</button></div>
-        <div class="grid two"><div class="card"><div class="card-title"><h3>Waline 状态</h3><button class="btn link" id="toggleMailConfigBtn">邮件配置</button></div><div id="walineSummary" class="kv"></div><div id="mailNotificationStatus" class="kv" style="margin-top:10px;"></div><div class="inline-config" id="mailConfigPanel"><div class="config-code"><code>AUTHOR_EMAIL=你的邮箱</code><code>SMTP_SERVICE=QQ</code><code>SMTP_USER=你的 QQ 邮箱</code><code>SMTP_PASS=QQ 邮箱授权码</code><code>SMTP_SECURE=true</code></div><div class="field-hint" style="margin-top:8px;">写入 Waline 环境变量后重启服务。密码使用邮箱授权码，不是登录密码。 <a class="article-link" href="https://waline.js.org/reference/server/env.html" target="_blank" rel="noopener">查看 Waline 文档</a></div></div></div><div class="card"><div class="card-title"><h3>最新评论</h3><small>最多 5 条</small></div><div class="list" id="recentComments"></div></div></div>
+        <div class="grid two"><div class="card"><div class="card-title"><h3>Waline 状态</h3><button class="btn link" id="toggleMailConfigBtn">邮件配置</button></div><div id="walineSummary" class="kv"></div><div id="mailNotificationStatus" class="kv" style="margin-top:10px;"></div><div class="inline-config" id="mailConfigPanel"><div class="field-hint" style="margin-bottom:8px;">使用 Waline 原生邮件能力：评论者填写邮箱后，收到回复时会收到通知；你配置作者邮箱后，新评论会提醒到你。</div><div class="config-code"><code>AUTHOR_EMAIL=你的邮箱</code><code>SMTP_SERVICE=QQ</code><code>SMTP_USER=你的 QQ 邮箱</code><code>SMTP_PASS=QQ 邮箱授权码</code><code>SMTP_SECURE=true</code><code>SENDER_NAME=LycanClaw</code><code>SENDER_EMAIL=你的邮箱</code><code>MAIL_SUBJECT=你在 LycanClaw 的评论有了新回复</code><code>MAIL_TEMPLATE=</code><code>MAIL_SUBJECT_ADMIN=LycanClaw 有新评论</code><code>MAIL_TEMPLATE_ADMIN=</code></div><div class="field-hint" style="margin-top:8px;">模板留空时使用 Waline 默认模板。密码使用邮箱授权码，不是登录密码。 <a class="article-link" href="https://waline.js.org/reference/server/env.html" target="_blank" rel="noopener">查看 Waline 文档</a></div></div></div><div class="card"><div class="card-title"><h3>最新评论</h3><small>最多 5 条</small></div><div class="list" id="recentComments"></div></div></div>
         <div class="card" style="margin-top:12px;">
           <div class="card-title"><h3>评论管理</h3><small id="commentCountSummary">-</small></div>
           <div class="filter-row">
@@ -315,6 +324,10 @@
     if (value < 60) return `${Math.round(value)} 秒`;
     if (value < 3600) return `${Math.floor(value / 60)} 分 ${Math.round(value % 60)} 秒`;
     return `${Math.floor(value / 3600)} 小时 ${Math.round((value % 3600) / 60)} 分`;
+  }
+  function percentText(value) {
+    const number = Math.max(0, Math.min(100, Number(value || 0)));
+    return `${number.toFixed(1).replace(/\.0$/, '')}%`;
   }
   function decodePath(value) {
     const raw = String(value || '');
@@ -480,6 +493,10 @@
     if (!state.charts[id]) state.charts[id] = echarts.init(el);
     return state.charts[id];
   }
+  function disposeChart(id) {
+    state.charts[id]?.dispose();
+    delete state.charts[id];
+  }
   function renderWritingInsightCharts(insights) {
     const colors = chartColors();
     const trend = asArray(insights.trend);
@@ -531,7 +548,7 @@
       $('#topArticleList').innerHTML = '<div class="empty">暂无访问数据。</div>';
       return;
     }
-    $('#topArticleList').innerHTML = articles.slice(0, 6).map((item) => `<div class="list-item"><div><a class="list-title article-link" href="${escapeHtml(articleHref(item.path))}" target="_blank" rel="noopener">${escapeHtml(item.title || pathTitle(item.path))}</a><div class="list-meta">访问 ${item.visits ?? 0} · 平均停留 ${item.averageDurationSeconds ?? 0}s · 阅读 ${item.averageScrollPercent ?? 0}% · 评论 ${item.commentCount ?? 0}</div></div><button class="btn link" data-article-detail="${escapeHtml(item.path)}">详情</button></div>`).join('');
+    $('#topArticleList').innerHTML = articles.slice(0, 6).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.title || pathTitle(item.path))}</div><div class="list-meta">访问 ${item.visits ?? 0} · 平均停留 ${durationSecondsText(item.averageDurationSeconds)} · 阅读 ${percentText(item.averageScrollPercent)} · 评论 ${item.commentCount ?? 0}</div></div><button class="btn link" data-article-detail="${escapeHtml(item.path)}">详情</button></div>`).join('');
   }
   function renderEncouragementRanking(items) {
     if (!items.length) {
@@ -543,7 +560,36 @@
   function renderArticleTable() {
     const result = state.articles || {};
     const items = asArray(result.items);
-    $('#articleRecentVisits').innerHTML = asArray(result.recentVisits).map((item) => `<div class="list-item"><div><a class="list-title article-link" href="${escapeHtml(articleHref(item.path))}" target="_blank" rel="noopener">${escapeHtml(item.title || pathTitle(item.path))}</a><div class="list-meta"><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button> · ${escapeHtml(item.region || '未知地区')} · 停留 ${durationSecondsText(item.durationSeconds || 0)} · 阅读 ${item.maxScrollPercent || 0}% · ${relativeTime(item.visitedAt)}</div></div></div>`).join('') || '<div class="empty">暂无最近访问。</div>';
+    disposeChart('articleDetailTrendChart');
+    disposeChart('articleDetailReferrerChart');
+    const recentVisitors = new Map();
+    asArray(result.recentVisits).forEach((item) => {
+      const key = item.visitorId || `anonymous:${item.nickname || item.region || 'unknown'}`;
+      const group = recentVisitors.get(key) || {
+        visitorId: item.visitorId || '',
+        nickname: item.nickname || '匿名访客',
+        region: item.region || '未知地区',
+        totalDurationSeconds: 0,
+        latestAt: item.visitedAt,
+        visits: []
+      };
+      group.totalDurationSeconds += Number(item.durationSeconds || 0);
+      if (new Date(item.visitedAt || 0) > new Date(group.latestAt || 0)) group.latestAt = item.visitedAt;
+      group.visits.push(item);
+      recentVisitors.set(key, group);
+    });
+    $('#articleRecentVisits').innerHTML = [...recentVisitors.values()].map((visitor, index) => `
+      <div class="recent-visitor" data-recent-visitor="${index}">
+        <button class="recent-visitor-toggle" type="button" data-recent-visitor-toggle="${index}">
+          <span><strong>${escapeHtml(visitor.nickname)}</strong><span class="list-meta"> · ${escapeHtml(visitor.region)}</span><span class="list-meta"><br/>访问 ${visitor.visits.length} 篇 · 累计 ${durationSecondsText(visitor.totalDurationSeconds)}</span></span>
+          <span class="list-meta">${relativeTime(visitor.latestAt)}</span>
+        </button>
+        <div class="recent-visitor-details">
+          ${visitor.visits.map((visit) => `<div class="recent-visit-entry"><div class="list-title">${escapeHtml(visit.title || pathTitle(visit.path))}</div><div class="list-meta">停留 ${durationSecondsText(visit.durationSeconds)} · 阅读 ${percentText(visit.maxScrollPercent)} · ${relativeTime(visit.visitedAt)}</div></div>`).join('')}
+          ${visitor.visitorId ? `<button class="btn link" type="button" data-visitor-id="${escapeHtml(visitor.visitorId)}">查看完整访客画像</button>` : ''}
+        </div>
+      </div>
+    `).join('') || '<div class="empty">暂无最近访客。</div>';
     $('#articlePageInfo').textContent = `第 ${result.page || 1} / ${result.totalPages || 1} 页`;
     $('#articlePrevBtn').disabled = Number(result.page || 1) <= 1;
     $('#articleNextBtn').disabled = Number(result.page || 1) >= Number(result.totalPages || 1);
@@ -552,7 +598,7 @@
       renderArticleCharts([]);
       return;
     }
-    $('#articleTable').innerHTML = `<table class="data-table"><thead><tr><th>文章</th><th>站内访问</th><th>Waline 阅读</th><th>访客</th><th>平均停留</th><th>阅读进度</th><th>读完率</th><th>评论</th><th>点赞</th></tr></thead><tbody>${items.map((item) => `<tr><td><a href="${escapeHtml(articleHref(item.path))}" target="_blank" rel="noopener">${escapeHtml(item.title || pathTitle(item.path))}</a><br/><button class="btn link" data-article-detail="${escapeHtml(item.path)}">查看详情</button></td><td>${item.visits || 0}</td><td>${item.pageviewCount || 0}</td><td>${item.uniqueVisitors || 0}<br/><span class="list-meta">复访 ${item.revisitRate || 0}%</span></td><td>${durationSecondsText(item.averageDurationSeconds || 0)}</td><td>${item.averageScrollPercent || 0}%</td><td>${item.completionRate || 0}%</td><td>${item.commentCount || 0}</td><td>${item.likeCount || 0}<br/><span class="list-meta">${item.likeRate || 0}%</span></td></tr>`).join('')}</tbody></table>`;
+    $('#articleTable').innerHTML = `<table class="data-table"><thead><tr><th>文章</th><th>站内访问</th><th>访客</th><th>平均停留</th><th>阅读进度</th><th>读完率</th><th>评论</th></tr></thead><tbody>${items.map((item) => `<tr><td><div class="article-title">${escapeHtml(item.title || pathTitle(item.path))}</div><button class="btn link" data-article-detail="${escapeHtml(item.path)}">查看详情</button></td><td>${item.visits || 0}</td><td>${item.uniqueVisitors || 0}<br/><span class="list-meta">复访 ${percentText(item.revisitRate)}</span></td><td>${durationSecondsText(item.averageDurationSeconds || 0)}</td><td>${percentText(item.averageScrollPercent)}</td><td>${percentText(item.completionRate)}</td><td>${item.commentCount || 0}</td></tr>`).join('')}</tbody></table>`;
     renderArticleCharts(items);
   }
   function renderArticleCharts(items) {
@@ -575,25 +621,58 @@
       series: [{ type: 'scatter', data: items.map((item) => [item.averageDurationSeconds || 0, item.completionRate || 0, item.visits || 0, item.title || pathTitle(item.path)]), symbolSize: (data) => Math.max(8, Math.min(24, 8 + Math.sqrt(data[2] || 0) * 3)), itemStyle: { color: colors.green, opacity: .78 } }]
     }, true);
   }
-  async function openArticleDetail(path) {
+  function closeArticleDetail() {
+    disposeChart('articleDetailTrendChart');
+    disposeChart('articleDetailReferrerChart');
+    document.getElementById('articleInlineDetailRow')?.remove();
+  }
+  async function openArticleDetail(path, allowRefresh = true) {
+    const existing = document.getElementById('articleInlineDetailRow');
+    if (existing?.dataset.path === path) {
+      closeArticleDetail();
+      return;
+    }
+    closeArticleDetail();
+    const detailButtons = [...document.querySelectorAll('#articleTable [data-article-detail]')];
+    const sourceButton = detailButtons.find((button) => button.dataset.articleDetail === path);
+    const sourceRow = sourceButton?.closest('tr');
+    if (!sourceRow) {
+      if (allowRefresh) {
+        setSection('articles');
+        $('#articleKeywordInput').value = '';
+        $('#articleDaysFilter').value = '30';
+        $('#articleSortFilter').value = 'visits';
+        await refreshArticles(1);
+        await openArticleDetail(path, false);
+        return;
+      }
+      showMessage('该文章不在当前统计窗口中。');
+      return;
+    }
+    sourceRow.insertAdjacentHTML('afterend', `<tr class="article-detail-row" id="articleInlineDetailRow" data-path="${escapeHtml(path)}"><td colspan="7"><div class="article-inline-detail"><div class="empty">正在加载文章详情...</div></div></td></tr>`);
     const days = $('#articleDaysFilter').value || '30';
     const data = await api(`/api/admin/analytics/article?days=${encodeURIComponent(days)}&path=${encodeURIComponent(path)}`);
     const metric = data.metric || {};
-    $('#articleDetailTitle').textContent = metric.title || '文章详情';
-    $('#articleDetailMetrics').innerHTML = [
-      metricCard(metric.visits || 0, '站内访问', `访客 ${metric.uniqueVisitors || 0}`),
-      metricCard(`${metric.averageDurationSeconds || 0}s`, '平均停留', `累计 ${metric.totalDurationSeconds || 0}s`),
-      metricCard(`${metric.averageScrollPercent || 0}%`, '平均进度', `读完率 ${metric.completionRate || 0}%`),
-      metricCard(metric.pageviewCount || 0, 'Waline 阅读', `复访率 ${metric.revisitRate || 0}%`),
-      metricCard(metric.commentCount || 0, '评论', 'Waline 评论统计'),
-      metricCard(metric.likeCount || 0, '点赞', `点赞率 ${metric.likeRate || 0}%`)
-    ].join('');
-    $('#articleVisitorList').innerHTML = asArray(data.visitors).slice(0, 12).map((item) => `<div class="list-item"><div><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button><div class="list-meta">${escapeHtml(item.region || item.ip || '未知地区')} · ${item.visits || 0} 次 · ${item.totalDurationSeconds || 0}s · 最深 ${item.maxScrollPercent || 0}%</div></div></div>`).join('') || '<div class="empty">暂无访客数据。</div>';
-    $('#articleReferrerList').innerHTML = asArray(data.referrers).map((item) => `<div class="list-item"><span>${escapeHtml(item.name || '直接访问')}</span><strong>${item.value || 0}</strong></div>`).join('') || '<div class="empty">暂无来源数据。</div>';
-    const chart = getChart('articleTrendChart');
+    const detail = document.querySelector('#articleInlineDetailRow .article-inline-detail');
+    if (!detail) return;
+    detail.innerHTML = `
+      <div class="card-title"><h3>${escapeHtml(metric.title || '文章详情')}</h3><button class="btn link" type="button" data-close-article-detail>收起</button></div>
+      <div class="article-detail-grid">
+        <div><div class="card-title"><h3>访问趋势</h3><small>${escapeHtml(days)} 天</small></div><div class="chart small" id="articleDetailTrendChart"></div></div>
+        <div><div class="card-title"><h3>访客来源</h3><small>按访问次数</small></div><div class="chart small" id="articleDetailReferrerChart"></div></div>
+      </div>
+      <div class="article-detail-visitors"><div class="card-title"><h3>阅读访客</h3><small>累计停留与最深阅读位置</small></div><div class="list">${asArray(data.visitors).slice(0, 12).map((item) => `<div class="list-item"><div><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button><div class="list-meta">${escapeHtml(item.region || item.ip || '未知地区')} · ${item.visits || 0} 次 · 累计 ${durationSecondsText(item.totalDurationSeconds)} · 最深 ${percentText(item.maxScrollPercent)} · ${relativeTime(item.lastVisitedAt)}</div></div></div>`).join('') || '<div class="empty">暂无访客数据。</div>'}</div></div>
+    `;
+    const chart = getChart('articleDetailTrendChart');
     const trend = asArray(data.trend);
     if (chart) chart.setOption({ tooltip: { trigger: 'axis' }, grid: { left: 36, right: 16, top: 20, bottom: 28 }, xAxis: { type: 'category', data: trend.map((item) => item.date) }, yAxis: { type: 'value' }, series: [{ type: 'line', smooth: true, data: trend.map((item) => item.visits || 0), lineStyle: { color: '#19c56f' }, areaStyle: { color: 'rgba(25,197,111,.12)' } }] });
-    $('#articleDetailCard').classList.add('active');
+    const referrerChart = getChart('articleDetailReferrerChart');
+    const referrers = asArray(data.referrers);
+    if (referrerChart) referrerChart.setOption({
+      tooltip: { trigger: 'item', formatter: '{b}<br/>{c} 次 · {d}%' },
+      legend: { bottom: 0, textStyle: { color: chartColors().text } },
+      series: [{ type: 'pie', radius: ['42%', '68%'], center: ['50%', '43%'], label: { color: chartColors().text }, data: referrers.map((item) => ({ name: item.name || '直接访问', value: item.value || 0 })) }]
+    }, true);
   }
   async function openVisitorProfile(visitorId) {
     if (!visitorId) return;
@@ -606,7 +685,7 @@
       metricCard(data.encouragements || 0, '催更点击', data.provider ? `已关联 ${data.provider}` : '匿名身份'),
       metricCard(durationSecondsText(data.listenedSeconds), '累计收听', data.visitorId || '')
     ].join('');
-    $('#visitorTopArticles').innerHTML = asArray(data.topArticles).map((item) => `<div class="list-item"><div><a class="article-link" href="${escapeHtml(articleHref(item.path))}" target="_blank" rel="noopener">${escapeHtml(item.title || pathTitle(item.path))}</a><div class="list-meta">${item.visits || 0} 次 · ${durationSecondsText(item.totalDurationSeconds)}</div></div></div>`).join('') || '<div class="empty">暂无文章访问。</div>';
+    $('#visitorTopArticles').innerHTML = asArray(data.topArticles).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.title || pathTitle(item.path))}</div><div class="list-meta">${item.visits || 0} 次 · ${durationSecondsText(item.totalDurationSeconds)} · 平均阅读 ${percentText(item.averageScrollPercent)}</div></div></div>`).join('') || '<div class="empty">暂无文章访问。</div>';
     $('#visitorReferrers').innerHTML = asArray(data.referrers).map((item) => `<div class="list-item"><span>${escapeHtml(item.name || '直接访问')}</span><strong>${item.value || 0}</strong></div>`).join('') || '<div class="empty">暂无来源数据。</div>';
     $('#visitorTopSongs').innerHTML = asArray(data.topSongs).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.name || '未知歌曲')}</div><div class="list-meta">播放 ${item.value || 0} 次 · ${durationSecondsText(item.secondaryValue || 0)}</div></div></div>`).join('') || '<div class="empty">暂无收听记录。</div>';
     $('#visitorProfileCard').classList.add('active');
@@ -614,31 +693,13 @@
   }
   function renderMusicAnalytics() {
     const data = state.musicAnalytics || {};
-    const sourceLabel = (value) => ({
-      'home-random': '首页随机',
-      'about-ranking': '关于页排行',
-      'article-embed': '文中播放器',
-      'interrupt-single': '插入单曲',
-      'global-player': '悬浮播放器',
-      public: '公开地址',
-      login: '会员回退'
-    })[value] || value || '未知来源';
     $('#musicAnalyticsMetrics').innerHTML = [
       metricCard(data.plays || 0, '播放次数', `听众 ${data.uniqueListeners || 0}`),
-      metricCard(`${data.averageProgressPercent || 0}%`, '平均播放进度', '按歌曲完成度统计'),
-      metricCard(`${data.completionRate || 0}%`, '播完率', '播放达到 90% 视为完成'),
-      metricCard(sourceLabel(asArray(data.sources)[0]?.name || '-'), '主要来源', `${asArray(data.sources)[0]?.value || 0} 次`)
+      metricCard(percentText(data.averageProgressPercent), '平均播放进度', '按歌曲完成度统计'),
+      metricCard(percentText(data.completionRate), '播完率', '播放达到 90% 视为完成')
     ].join('');
-    $('#musicTopSongs').innerHTML = asArray(data.topSongs).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.songName || '未知歌曲')} · ${escapeHtml(item.artist || '')}</div><div class="list-meta">播放 ${item.plays || 0} 次 · 听众 ${item.uniqueListeners || 0} · 平均 ${item.averageProgressPercent || 0}% · 播完 ${item.completionRate || 0}%</div></div></div>`).join('') || '<div class="empty">暂无收听数据。</div>';
-    const playbackSources = asArray(data.sources);
-    const urlSources = asArray(data.urlSources);
-    $('#musicSourceList').innerHTML = [
-      playbackSources.length ? '<div class="list-meta">播放入口</div>' : '',
-      ...playbackSources.map((item) => `<div class="list-item"><span>${escapeHtml(sourceLabel(item.name))}</span><strong>${item.value || 0}</strong></div>`),
-      urlSources.length ? '<div class="list-meta" style="margin-top:8px;">地址来源</div>' : '',
-      ...urlSources.map((item) => `<div class="list-item"><span>${escapeHtml(sourceLabel(item.name))}</span><strong>${item.value || 0}</strong></div>`)
-    ].join('') || '<div class="empty">暂无来源数据。</div>';
-    $('#musicRecentList').innerHTML = asArray(data.recent).slice(0, 12).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.songName)} · ${escapeHtml(item.artist)}</div><div class="list-meta"><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button> · ${escapeHtml(sourceLabel(item.source))} · ${escapeHtml(sourceLabel(item.urlSource))} · 播放 ${item.progressPercent || 0}% · ${relativeTime(item.updatedAt)}</div></div></div>`).join('') || '<div class="empty">暂无收听数据。</div>';
+    $('#musicTopSongs').innerHTML = asArray(data.topSongs).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.songName || '未知歌曲')} · ${escapeHtml(item.artist || '')}</div><div class="list-meta">播放 ${item.plays || 0} 次 · 听众 ${item.uniqueListeners || 0} · 平均 ${percentText(item.averageProgressPercent)} · 播完 ${percentText(item.completionRate)}</div></div></div>`).join('') || '<div class="empty">暂无收听数据。</div>';
+    $('#musicRecentList').innerHTML = asArray(data.recent).slice(0, 12).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.songName)} · ${escapeHtml(item.artist)}</div><div class="list-meta"><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button> · 播放 ${percentText(item.progressPercent)} · ${relativeTime(item.updatedAt)}</div></div></div>`).join('') || '<div class="empty">暂无收听数据。</div>';
   }
   function renderMusicStatus(status) {
     const loggedIn = Boolean(status.loggedIn);
@@ -825,6 +886,7 @@
     $('#mailNotificationStatus').innerHTML = kvRows([
       ['SMTP', data.smtpConfigured ? '已配置' : '未配置'],
       ['作者邮箱', data.authorEmailConfigured ? '已配置' : '未配置'],
+      ['邮件模板', data.templateConfigured ? '自定义' : '默认'],
       ['评论审核', data.commentAuditEnabled ? '已开启' : '未开启'],
       ['作者通知', data.authorNotificationEnabled ? '已开启' : '未开启']
     ]);
@@ -981,7 +1043,6 @@
     $('#articleSortFilter').addEventListener('change', () => refreshArticles(1).catch((e) => showMessage(e.message, true)));
     $('#articlePrevBtn').addEventListener('click', () => refreshArticles(state.articlePage - 1).catch((e) => showMessage(e.message, true)));
     $('#articleNextBtn').addEventListener('click', () => refreshArticles(state.articlePage + 1).catch((e) => showMessage(e.message, true)));
-    $('#closeArticleDetailBtn').addEventListener('click', () => $('#articleDetailCard').classList.remove('active'));
     $('#closeVisitorProfileBtn').addEventListener('click', () => $('#visitorProfileCard').classList.remove('active'));
     $('#reloadCommentsBtn').addEventListener('click', () => Promise.all([refreshOps(), refreshComments(), refreshManagedComments(), refreshCommentNotification()]).catch((e) => showMessage(e.message, true)));
     $('#toggleMailConfigBtn').addEventListener('click', () => $('#mailConfigPanel').classList.toggle('active'));
@@ -1002,6 +1063,17 @@
       button.addEventListener('click', () => batchManagedComments(button.dataset.commentBatch).catch((error) => showMessage(error.message || String(error), true)));
     });
     $('.content').addEventListener('click', (event) => {
+      const closeArticleDetailButton = event.target.closest('[data-close-article-detail]');
+      if (closeArticleDetailButton) {
+        closeArticleDetail();
+        return;
+      }
+      const recentVisitorButton = event.target.closest('[data-recent-visitor-toggle]');
+      if (recentVisitorButton) {
+        const card = document.querySelector(`[data-recent-visitor="${recentVisitorButton.dataset.recentVisitorToggle}"]`);
+        card?.classList.toggle('open');
+        return;
+      }
       const sectionButton = event.target.closest('[data-open-section]');
       if (sectionButton) {
         setSection(sectionButton.dataset.openSection);

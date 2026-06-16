@@ -14,7 +14,7 @@ public class TagProperties {
     /**
      * 前端构建输出的文章索引路径（posts.json）。
      */
-    private String postsJsonPath = "D:/Portfolio/Website/LycanClaw/docs/public/posts.json";
+    private String postsJsonPath = "D:/Portfolio/Website/LycanClaw/frontend/docs/public/posts.json";
 
     /**
      * 文章数据缓存秒数。

@@ -22,7 +22,7 @@ cp .env.example .env
 - `WALINE_DB_PASSWORD`
 - `WALINE_JWT_TOKEN`
 - `WALINE_OWNER_EMAIL`
-- SMTP 配置
+- SMTP 配置（含 `WALINE_SMTP_*`、`WALINE_AUTHOR_EMAIL`、可选 `WALINE_MAIL_*` 模板）
 - 前端产物、博客仓库和 `posts.json` 的宿主机路径
 
 `BACKEND_ADMIN_TOKEN` 是可选应急凭证。日常管理建议使用 Waline QQ/GitHub 登录。

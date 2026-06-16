@@ -32,13 +32,7 @@ public record AnalyticsArticleMetricDto(
         double completionRate,
         @Schema(description = "催更次数")
         long encouragements,
-        @Schema(description = "Waline 阅读量")
-        int pageviewCount,
         @Schema(description = "Waline 评论数")
-        int commentCount,
-        @Schema(description = "文章点赞数")
-        int likeCount,
-        @Schema(description = "点赞占 Waline 阅读量百分比")
-        double likeRate
+        int commentCount
 ) {
 }

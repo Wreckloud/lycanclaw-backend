@@ -86,9 +86,9 @@ lycan:
     trust-forwarded-headers: false
   analytics:
     # 前端生成的知识笔记统计索引，用于后台文章与主题关注分析
-    knowledge-stats-json-path: ${LYCAN_ANALYTICS_KNOWLEDGE_STATS_JSON_PATH:D:/Portfolio/Website/LycanClaw/docs/public/knowledge-stats.json}
+    knowledge-stats-json-path: ${LYCAN_ANALYTICS_KNOWLEDGE_STATS_JSON_PATH:D:/Portfolio/Website/LycanClaw/frontend/docs/public/knowledge-stats.json}
     # 博客仓库绝对路径（用于读取 git log）
-    repo-path: D:/Portfolio/Website/LycanClaw
+    repo-path: ${LYCAN_ANALYTICS_REPO_PATH:D:/Portfolio/Website/LycanClaw/frontend}
     # 统计时区
     zone-id: Asia/Shanghai
     # 默认统计天数
@@ -110,7 +110,7 @@ lycan:
       base-url: http://127.0.0.1:3000
   recommendation:
     # 前端 posts.json 路径（用于读取文章元信息）
-    posts-json-path: D:/Portfolio/Website/LycanClaw/docs/public/posts.json
+    posts-json-path: ${LYCAN_RECOMMENDATION_POSTS_JSON_PATH:D:/Portfolio/Website/LycanClaw/frontend/docs/public/posts.json}
     # 手动推荐配置文件（管理员接口写入）
     manual-config-path: data/recommendation-manual.json
     # 推荐聚合调度周期（毫秒，默认 5 分钟）
@@ -140,10 +140,14 @@ lycan:
       smtp-user: ${WALINE_SMTP_USER:}
       smtp-pass: ${WALINE_SMTP_PASS:}
       author-email: ${WALINE_AUTHOR_EMAIL:}
+      mail-subject: ${WALINE_MAIL_SUBJECT:}
+      mail-template: ${WALINE_MAIL_TEMPLATE:}
+      mail-subject-admin: ${WALINE_MAIL_SUBJECT_ADMIN:}
+      mail-template-admin: ${WALINE_MAIL_TEMPLATE_ADMIN:}
       comment-audit: ${WALINE_COMMENT_AUDIT:false}
       disable-author-notify: ${WALINE_DISABLE_AUTHOR_NOTIFY:false}
   tag:
     # 标签聚合读取的文章索引路径
-    posts-json-path: D:/Portfolio/Website/LycanClaw/docs/public/posts.json
+    posts-json-path: ${LYCAN_TAG_POSTS_JSON_PATH:D:/Portfolio/Website/LycanClaw/frontend/docs/public/posts.json}
     # 标签数据缓存秒数
     cache-seconds: 300

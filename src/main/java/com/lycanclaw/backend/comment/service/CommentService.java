@@ -77,12 +77,15 @@ public class CommentService {
     private RecentCommentDto parseRecentComment(JsonNode item) {
         String url = firstText(item, "url", "path");
         String path = firstText(item, "path", "url");
+        String rawComment = firstText(item, "orig", "comment", "content");
         String normalizedPath = pathPolicy.normalizePath(path.isBlank() ? url : path);
         AnalyticsContentIndexService.PostInfo post = contentIndexService.loadPostMap().get(normalizedPath);
         return new RecentCommentDto(
                 firstText(item, "objectId", "id"),
                 firstText(item, "nick", "name"),
-                commentTextNormalizer.toPlainText(firstText(item, "orig", "comment", "content")),
+                commentTextNormalizer.toPlainText(rawComment),
+                rawComment,
+                firstText(item, "link", "website", "site"),
                 url,
                 normalizedPath,
                 post == null ? fallbackTitle(normalizedPath) : post.title(),

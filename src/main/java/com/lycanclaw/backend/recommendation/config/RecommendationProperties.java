@@ -14,7 +14,7 @@ public class RecommendationProperties {
     /**
      * 前端构建输出的文章索引路径（posts.json）。
      */
-    private String postsJsonPath = "D:/Portfolio/Website/LycanClaw/docs/public/posts.json";
+    private String postsJsonPath = "D:/Portfolio/Website/LycanClaw/frontend/docs/public/posts.json";
 
     /**
      * 手动推荐配置持久化路径（相对后端启动目录）。

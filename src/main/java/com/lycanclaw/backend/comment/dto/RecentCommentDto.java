@@ -16,6 +16,10 @@ public record RecentCommentDto(
         String nick,
         @Schema(description = "评论内容")
         String comment,
+        @Schema(description = "Waline 原始评论标记，仅供前端提取文本与表情图片")
+        String commentHtml,
+        @Schema(description = "评论者填写的网站地址")
+        String website,
         @Schema(description = "文章链接")
         String url,
         @Schema(description = "文章路径")

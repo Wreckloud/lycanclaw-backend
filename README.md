@@ -77,7 +77,7 @@ MySQL 当前保存：
 1. 创建数据库：
 
 ```sql
-SOURCE D:/Portfolio/Website/LycanClawBackend/deploy/sql/local-test-init.sql;
+SOURCE D:/Portfolio/Website/LycanClaw/backend/deploy/sql/local-test-init.sql;
 ```
 
 2. 复制并填写环境变量：
@@ -115,3 +115,5 @@ mvn test
 ```
 
 Docker Compose、Nginx、备份和恢复说明见 `deploy/README.md` 与 `deploy.md`。
+
+完整工作区位于 `D:\Portfolio\Website\LycanClaw`，本仓库是其中的 `backend` 子目录。

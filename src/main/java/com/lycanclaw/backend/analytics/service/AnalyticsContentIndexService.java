@@ -41,7 +41,7 @@ public class AnalyticsContentIndexService {
             RecommendationProperties recommendationProperties,
             AnalyticsPathPolicy pathPolicy,
             @Value("${lycan.analytics.knowledge-stats-json-path:"
-                    + "D:/Portfolio/Website/LycanClaw/docs/public/knowledge-stats.json}")
+                    + "D:/Portfolio/Website/LycanClaw/frontend/docs/public/knowledge-stats.json}")
             String knowledgeStatsJsonPath
     ) {
         this.objectMapper = objectMapper;

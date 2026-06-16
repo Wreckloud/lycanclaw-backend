@@ -290,7 +290,7 @@ public class AdminAnalyticsService {
                 safeDays,
                 sessions.size(),
                 sessions.stream().map(MusicListenSessionEntity::getVisitorId).filter(value -> !value.isBlank()).distinct().count(),
-                sessions.stream().mapToDouble(this::musicProgressPercent).average().orElse(0),
+                roundPercent(sessions.stream().mapToDouble(this::musicProgressPercent).average().orElse(0)),
                 percentage(completed, sessions.size()),
                 buildMusicSongMetrics(sessions),
                 namedDistribution(sessions, MusicListenSessionEntity::getPlaybackSource, false),
@@ -480,7 +480,10 @@ public class AdminAnalyticsService {
             );
             item.visits++;
             item.totalDurationMs += Math.max(0, visit.getDurationMs());
-            item.maxScrollPercent = Math.max(item.maxScrollPercent, visit.getMaxScrollPercent());
+            item.maxScrollPercent = Math.max(
+                    item.maxScrollPercent,
+                    Math.max(0, Math.min(visit.getMaxScrollPercent(), 100))
+            );
             if (item.lastAt == null || visit.getStartedAt().isAfter(item.lastAt)) {
                 item.lastAt = visit.getStartedAt();
             }
@@ -565,9 +568,7 @@ public class AdminAnalyticsService {
             RecommendationMetricEntity metric
     ) {
         long repeatVisitors = item.visitorVisits.values().stream().filter(count -> count > 1).count();
-        int pageviews = metric == null ? 0 : Math.max(0, metric.getPageviewCount());
         int comments = metric == null ? 0 : Math.max(0, metric.getCommentCount());
-        int likes = metric == null ? 0 : Math.max(0, metric.getReactionCount());
         return new AnalyticsArticleMetricDto(
                 item.path,
                 item.title,
@@ -577,13 +578,10 @@ public class AdminAnalyticsService {
                 item.totalDurationMs / 1000L,
                 percentage(item.visits, totalArticleVisits),
                 percentage(repeatVisitors, item.visitorVisits.size()),
-                percentage(item.totalScrollPercent, item.visits),
+                averagePercent(item.totalScrollPercent, item.visits),
                 percentage(item.completedVisits, item.visits),
                 item.encouragements,
-                pageviews,
-                comments,
-                likes,
-                percentage(likes, pageviews)
+                comments
         );
     }
 
@@ -592,9 +590,6 @@ public class AdminAnalyticsService {
         return new AnalyticsArticleMetricDto(
                 path,
                 title,
-                0,
-                0,
-                0,
                 0,
                 0,
                 0,
@@ -748,6 +743,15 @@ public class AdminAnalyticsService {
         return Math.round(numerator * 1000.0 / denominator) / 10.0;
     }
 
+    private double averagePercent(long totalPercent, long count) {
+        if (count <= 0) return 0;
+        return roundPercent((double) totalPercent / count);
+    }
+
+    private double roundPercent(double value) {
+        return Math.round(Math.max(0, Math.min(value, 100)) * 10.0) / 10.0;
+    }
+
     private int normalizeDays(int days) {
         return days <= 0 ? DEFAULT_DAYS : Math.min(days, MAX_DAYS);
     }
@@ -788,8 +792,9 @@ public class AdminAnalyticsService {
         private void addVisit(AnalyticsVisitEntity visit, String visitorKey) {
             visits++;
             totalDurationMs += Math.max(0, visit.getDurationMs());
-            totalScrollPercent += Math.max(0, visit.getMaxScrollPercent());
-            if (visit.getMaxScrollPercent() >= COMPLETION_PERCENT) {
+            int scrollPercent = Math.max(0, Math.min(visit.getMaxScrollPercent(), 100));
+            totalScrollPercent += scrollPercent;
+            if (scrollPercent >= COMPLETION_PERCENT) {
                 completedVisits++;
             }
             visitorVisits.merge(visitorKey, 1L, Long::sum);

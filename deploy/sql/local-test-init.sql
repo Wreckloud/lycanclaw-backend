@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS `recommendation_metrics` (
   `url` VARCHAR(255) NOT NULL,
   `pageview_count` INT NOT NULL DEFAULT 0,
   `comment_count` INT NOT NULL DEFAULT 0,
-  `reaction_count` INT NOT NULL DEFAULT 0,
   `hot_score` DOUBLE NOT NULL DEFAULT 0,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `source_status` VARCHAR(32) NOT NULL DEFAULT 'ok',

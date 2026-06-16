@@ -28,6 +28,18 @@ public class WalineNotificationStatusService {
     @Value("${lycan.waline.notification.author-email:}")
     private String authorEmail;
 
+    @Value("${lycan.waline.notification.mail-subject:}")
+    private String mailSubject;
+
+    @Value("${lycan.waline.notification.mail-template:}")
+    private String mailTemplate;
+
+    @Value("${lycan.waline.notification.mail-subject-admin:}")
+    private String mailSubjectAdmin;
+
+    @Value("${lycan.waline.notification.mail-template-admin:}")
+    private String mailTemplateAdmin;
+
     @Value("${lycan.waline.notification.comment-audit:false}")
     private boolean commentAudit;
 
@@ -43,9 +55,17 @@ public class WalineNotificationStatusService {
                         && configured(smtpUser)
                         && configured(smtpPass),
                 configured(authorEmail),
+                templatesConfigured(),
                 commentAudit,
                 !disableAuthorNotify
         );
+    }
+
+    private boolean templatesConfigured() {
+        return configured(mailSubject)
+                || configured(mailTemplate)
+                || configured(mailSubjectAdmin)
+                || configured(mailTemplateAdmin);
     }
 
     private boolean configured(String value) {

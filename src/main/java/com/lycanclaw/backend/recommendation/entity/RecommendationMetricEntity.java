@@ -34,9 +34,6 @@ public class RecommendationMetricEntity {
     @Column(name = "comment_count", nullable = false)
     private int commentCount;
 
-    @Column(name = "reaction_count", nullable = false)
-    private int reactionCount;
-
     @Column(name = "hot_score", nullable = false)
     private double hotScore;
 
@@ -71,14 +68,6 @@ public class RecommendationMetricEntity {
 
     public void setCommentCount(int commentCount) {
         this.commentCount = commentCount;
-    }
-
-    public int getReactionCount() {
-        return reactionCount;
-    }
-
-    public void setReactionCount(int reactionCount) {
-        this.reactionCount = reactionCount;
     }
 
     public double getHotScore() {
