@@ -269,13 +269,158 @@ public class WalineProxyController {
             """;
     private static final String OAUTH_FILTER_STYLE = """
             <style id="lycan-waline-oauth-filter-style">
+              a[href*="type=google"],
               a[href*="type=weibo"],
               a[href*="type=twitter"],
               a[href*="type=facebook"],
+              a[href*="type%3Dgoogle"],
               a[href*="type%3Dweibo"],
               a[href*="type%3Dtwitter"],
               a[href*="type%3Dfacebook"] {
                 display: none !important;
+              }
+            </style>
+            """;
+    private static final String PROFILE_PAGE_STYLE = """
+            <style id="lycan-waline-profile-theme">
+              body .typecho-page-main,
+              body .typecho-page-container,
+              body .typecho-profile,
+              body .typecho-option,
+              body .typecho-table-wrap {
+                width: min(860px, calc(100% - 32px)) !important;
+              }
+
+              body .typecho-profile,
+              body .typecho-option {
+                display: grid !important;
+                gap: 14px !important;
+                padding: 18px !important;
+                background: #151a24 !important;
+              }
+
+              body .typecho-profile h1,
+              body .typecho-profile h2,
+              body .typecho-profile h3,
+              body .typecho-option h1,
+              body .typecho-option h2,
+              body .typecho-option h3,
+              body .typecho-page-main h1,
+              body .typecho-page-main h2,
+              body .typecho-page-main h3 {
+                margin: 0 0 10px !important;
+                color: #eef3ff !important;
+                font-size: 18px !important;
+                line-height: 1.35 !important;
+                font-weight: 800 !important;
+              }
+
+              body .typecho-option-title,
+              body .typecho-label,
+              body label {
+                color: #d7dfeb !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
+              }
+
+              body .typecho-option,
+              body .typecho-page-main form,
+              body .typecho-profile form {
+                border-top: 1px solid #202838 !important;
+                padding-top: 14px !important;
+              }
+
+              body .typecho-option:first-child,
+              body .typecho-page-main form:first-child,
+              body .typecho-profile form:first-child {
+                border-top: 0 !important;
+                padding-top: 0 !important;
+              }
+
+              body .typecho-option input,
+              body .typecho-option select,
+              body .typecho-option textarea,
+              body .typecho-profile input,
+              body .typecho-profile select,
+              body .typecho-profile textarea {
+                min-height: 38px !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+                padding: 8px 10px !important;
+                color: #eef3ff !important;
+                background: #10151e !important;
+                border: 1px solid #202838 !important;
+              }
+
+              body .typecho-option input:focus,
+              body .typecho-option select:focus,
+              body .typecho-option textarea:focus,
+              body .typecho-profile input:focus,
+              body .typecho-profile select:focus,
+              body .typecho-profile textarea:focus {
+                border-color: rgba(25, 197, 111, .55) !important;
+                background: #111925 !important;
+              }
+
+              body .typecho-option p,
+              body .typecho-profile p,
+              body .typecho-page-main p,
+              body .typecho-description,
+              body .description {
+                color: #9ca8bb !important;
+                font-size: 12px !important;
+                line-height: 1.7 !important;
+              }
+
+              body .typecho-option-submit,
+              body .submit,
+              body .actions {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 10px !important;
+                align-items: center !important;
+              }
+
+              body input[type="submit"],
+              body button[type="submit"],
+              body .primary,
+              body .btn-primary {
+                color: #06100b !important;
+                background: #19c56f !important;
+                font-weight: 800 !important;
+              }
+
+              body input[type="submit"]:hover,
+              body button[type="submit"]:hover,
+              body .primary:hover,
+              body .btn-primary:hover {
+                color: #06100b !important;
+                background: #29d77f !important;
+              }
+
+              body .typecho-list-table,
+              body .typecho-list-table th,
+              body .typecho-list-table td {
+                border-color: #202838 !important;
+              }
+
+              body .typecho-list-table th {
+                color: #9ca8bb !important;
+                font-size: 12px !important;
+                font-weight: 700 !important;
+              }
+
+              body .typecho-list-table td {
+                padding: 10px 8px !important;
+              }
+
+              body .typecho-profile img,
+              body .typecho-option img,
+              body .avatar {
+                background: #10151e !important;
+                border: 1px solid #202838 !important;
+                border-radius: 0 !important;
+                object-fit: cover !important;
               }
             </style>
             """;
@@ -314,6 +459,72 @@ public class WalineProxyController {
                 const install = () => {
                   prune();
                   new MutationObserver(prune).observe(document.documentElement, {
+                    childList: true,
+                    subtree: true
+                  });
+                };
+                if (document.readyState === 'loading') {
+                  document.addEventListener('DOMContentLoaded', install, { once: true });
+                } else {
+                  install();
+                }
+              })();
+            </script>
+            """;
+    private static final String UI_CLEANUP_SCRIPT = """
+            <script id="lycan-waline-ui-cleanup">
+              (() => {
+                const unwantedText = [
+                  /新版本\\s*@waline\\/vercel/i,
+                  /Leancloud\\s*即将停止对外服务/i,
+                  /LeanCloud\\s*即将停止对外服务/i,
+                  /两步验证/i,
+                  /双重验证/i,
+                  /2FA/i,
+                  /two\\s*factor/i
+                ];
+                const isLargeContainer = (el) => {
+                  const tag = el.tagName ? el.tagName.toLowerCase() : '';
+                  return ['body', 'html', 'main'].includes(tag) || el.children.length > 12;
+                };
+                const removeNoise = () => {
+                  document.querySelectorAll('p, li, tr, section, article, .message, .notice, .typecho-option, .typecho-table-wrap, .typecho-page-main > div').forEach(el => {
+                    if (isLargeContainer(el)) return;
+                    const text = (el.textContent || '').trim();
+                    if (text && unwantedText.some(pattern => pattern.test(text))) {
+                      el.remove();
+                    }
+                  });
+                  document.querySelectorAll('a[href*="oauth"], a[href*="OAuth"]').forEach(link => {
+                    const href = link.getAttribute('href') || '';
+                    let type = '';
+                    try {
+                      type = (new URL(href, location.origin).searchParams.get('type') || '').toLowerCase();
+                    } catch {
+                      try {
+                        const decoded = decodeURIComponent(href);
+                        const match = decoded.match(/[?&]type=([^&#]+)/);
+                        type = match ? match[1].toLowerCase() : '';
+                      } catch {
+                        type = '';
+                      }
+                    }
+                    if (type && !['github', 'qq'].includes(type)) {
+                      link.remove();
+                    }
+                  });
+                  document.querySelectorAll('img').forEach(img => {
+                    if (!img.getAttribute('src')) {
+                      img.src = '/admin/default.png';
+                    }
+                    img.addEventListener('error', () => {
+                      img.src = '/admin/default.png';
+                    }, { once: true });
+                  });
+                };
+                const install = () => {
+                  removeNoise();
+                  new MutationObserver(removeNoise).observe(document.documentElement, {
                     childList: true,
                     subtree: true
                   });
@@ -417,7 +628,7 @@ public class WalineProxyController {
             rewritten = injectBeforeClosingTag(
                     rewritten,
                     "</head>",
-                    AUTH_PAGE_STYLE + OAUTH_FILTER_STYLE + OAUTH_FILTER_SCRIPT
+                    AUTH_PAGE_STYLE + PROFILE_PAGE_STYLE + OAUTH_FILTER_STYLE + OAUTH_FILTER_SCRIPT + UI_CLEANUP_SCRIPT
             );
         }
         return rewritten.getBytes(StandardCharsets.UTF_8);
