@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lycanclaw.backend.admin.auth.service.AdminSessionService;
+import com.lycanclaw.backend.common.security.AdminAuthPrincipal;
 import com.lycanclaw.backend.waline.dto.AdminWalineUserDto;
 import com.lycanclaw.backend.waline.dto.AdminWalineUserListDto;
 import com.lycanclaw.backend.waline.dto.AdminWalineUserUpdateRequest;
@@ -87,6 +88,8 @@ public class AdminWalineService {
         if (request == null) {
             throw new IllegalArgumentException("更新内容不能为空");
         }
+        String normalizedUserId = normalizeUserId(userId);
+        AdminAuthPrincipal principal = requireSessionPrincipal(adminToken);
         ObjectNode body = objectMapper.createObjectNode();
         putIfPresent(body, "display_name", request.displayName());
         putIfPresent(body, "email", request.email());
@@ -98,13 +101,16 @@ public class AdminWalineService {
             if (!USER_TYPES.contains(type)) {
                 throw new IllegalArgumentException("用户类型仅支持 administrator、guest 或 banned");
             }
+            if (normalizedUserId.equals(principal.userId()) && !"administrator".equals(type)) {
+                throw new IllegalArgumentException("不能降级或禁用当前登录管理员");
+            }
             body.put("type", type);
         }
         if (body.isEmpty()) {
             throw new IllegalArgumentException("请提供需要修改的用户字段");
         }
 
-        JsonNode updated = walineGatewayClient.updateAdminUser(requireWalineToken(adminToken), userId, body);
+        JsonNode updated = walineGatewayClient.updateAdminUser(requireWalineToken(adminToken), normalizedUserId, body);
         return parseUser(updated);
     }
 
@@ -112,7 +118,12 @@ public class AdminWalineService {
      * 禁用指定 Waline 用户。
      */
     public void deleteUser(String adminToken, String userId) {
-        walineGatewayClient.deleteAdminUser(requireWalineToken(adminToken), userId);
+        String normalizedUserId = normalizeUserId(userId);
+        AdminAuthPrincipal principal = requireSessionPrincipal(adminToken);
+        if (normalizedUserId.equals(principal.userId())) {
+            throw new IllegalArgumentException("不能禁用当前登录管理员");
+        }
+        walineGatewayClient.deleteAdminUser(requireWalineToken(adminToken), normalizedUserId);
     }
 
     /**
@@ -162,9 +173,14 @@ public class AdminWalineService {
                 ));
     }
 
+    private AdminAuthPrincipal requireSessionPrincipal(String adminToken) {
+        return adminSessionService.verify(adminToken)
+                .orElseThrow(() -> new IllegalArgumentException("当前管理员会话无效"));
+    }
+
     private AdminWalineUserDto parseUser(JsonNode node) {
         return new AdminWalineUserDto(
-                text(node, "objectId", "id"),
+                text(node, "objectId", "id", "_id"),
                 text(node, "display_name", "displayName", "nick", "name"),
                 text(node, "email", "mail"),
                 text(node, "url", "link"),
@@ -193,6 +209,13 @@ public class AdminWalineService {
 
     private boolean looksLikeEmail(String keyword) {
         return keyword != null && keyword.contains("@") && keyword.contains(".");
+    }
+
+    private String normalizeUserId(String userId) {
+        if (userId == null || userId.isBlank()) {
+            throw new IllegalArgumentException("用户 ID 不能为空");
+        }
+        return userId.trim();
     }
 
     private int totalCount(JsonNode payload, int fallback) {

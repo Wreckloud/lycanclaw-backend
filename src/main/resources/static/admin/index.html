@@ -1049,24 +1049,28 @@
     $('#userList').innerHTML = users.map((user) => {
       const type = user.type || 'guest';
       const typeClass = type === 'administrator' ? 'green' : type === 'banned' ? 'red' : 'yellow';
+      const isSelf = user.id && user.id === state.me?.userId;
+      const actions = !user.id
+        ? '<span class="field-hint">缺少用户 ID，不能修改权限</span>'
+        : `<button class="btn link" data-user-action="edit">编辑</button>${isSelf ? '<span class="tag green">当前账号</span>' : `${type !== 'administrator' ? '<button class="btn link" data-user-action="administrator">设为管理员</button>' : '<button class="btn link" data-user-action="guest">降为访客</button>'}${type !== 'banned' ? '<button class="btn link danger" data-user-action="banned">禁用</button>' : '<button class="btn link" data-user-action="guest">恢复</button>'}`}`;
       return `<article class="user-item" data-user-id="${escapeHtml(user.id)}">
         <img class="user-avatar" src="${escapeHtml(user.avatar || '/admin/default.png')}" alt="" onerror="this.onerror=null;this.src='/admin/default.png'" />
         <div>
-          <div class="comment-head"><strong>${escapeHtml(user.displayName || user.email || '未命名用户')}</strong><span class="tag ${typeClass}">${escapeHtml(type)}</span>${user.label ? `<span class="tag green">${escapeHtml(user.label)}</span>` : ''}</div>
+          <div class="comment-head"><strong>${escapeHtml(user.displayName || user.email || '未命名用户')}</strong><span class="tag ${typeClass}">${escapeHtml(type)}</span>${user.label ? `<span class="tag green">${escapeHtml(user.label)}</span>` : ''}${isSelf ? '<span class="tag green">当前账号</span>' : ''}</div>
           <div class="list-meta">${escapeHtml([user.email, user.qq ? `QQ ${user.qq}` : '', user.github ? `GitHub ${user.github}` : '', user.url].filter(Boolean).join(' · '))}</div>
           <div class="list-meta">创建 ${escapeHtml(relativeTime(user.createdAt))} · 更新 ${escapeHtml(relativeTime(user.updatedAt))}</div>
         </div>
-        <div class="actions">
-          <button class="btn link" data-user-action="edit">编辑</button>
-          ${type !== 'administrator' ? '<button class="btn link" data-user-action="administrator">设为管理员</button>' : '<button class="btn link" data-user-action="guest">降为访客</button>'}
-          ${type !== 'banned' ? '<button class="btn link danger" data-user-action="banned">禁用</button>' : '<button class="btn link" data-user-action="guest">恢复</button>'}
-        </div>
+        <div class="actions">${actions}</div>
       </article>`;
     }).join('');
   }
   async function updateWalineUser(id, action) {
+    if (!id) throw new Error('该用户缺少 Waline ID，不能修改权限');
     const user = asArray(state.walineUsers?.data).find((item) => item.id === id);
     if (!user) return;
+    if (user.id === state.me?.userId && ['guest', 'banned'].includes(action)) {
+      throw new Error('不能降级或禁用当前登录管理员');
+    }
     let body = {};
     if (action === 'edit') {
       const displayName = window.prompt('修改用户昵称', user.displayName || '');

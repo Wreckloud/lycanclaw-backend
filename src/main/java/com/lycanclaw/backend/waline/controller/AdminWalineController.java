@@ -61,6 +61,12 @@ public class AdminWalineController {
         return ApiResponse.ok(adminWalineService.updateUser(adminToken, id, request));
     }
 
+    @Operation(summary = "更新 Waline 用户时缺少 ID")
+    @PutMapping({"/users", "/users/"})
+    public ApiResponse<Void> updateUserMissingId() {
+        throw new IllegalArgumentException("用户 ID 不能为空");
+    }
+
     @Operation(summary = "禁用 Waline 用户")
     @DeleteMapping("/users/{id}")
     public ApiResponse<Map<String, Object>> deleteUser(
@@ -69,6 +75,12 @@ public class AdminWalineController {
     ) {
         adminWalineService.deleteUser(adminToken, id);
         return ApiResponse.ok(Map.of("deleted", true));
+    }
+
+    @Operation(summary = "禁用 Waline 用户时缺少 ID")
+    @DeleteMapping({"/users", "/users/"})
+    public ApiResponse<Void> deleteUserMissingId() {
+        throw new IllegalArgumentException("用户 ID 不能为空");
     }
 
     @Operation(summary = "导出 Waline 数据")
