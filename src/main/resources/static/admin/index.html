@@ -43,12 +43,12 @@
     .main { min-width: 0; }
     .topbar { position: sticky; top: 0; z-index: 4; min-height: 64px; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #0d1119; }
     .page-title { margin: 0; font-size: 22px; }
-    .topbar-meta { color: var(--muted); font-size: 13px; }
+    .topbar-meta { display: none; }
     .topbar-actions, .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .content { padding: 22px 24px 34px; }
     .section { display: none; }
     .section.active { display: block; }
-    .section-head { margin-bottom: 16px; display: flex; justify-content: space-between; gap: 14px; align-items: flex-end; }
+    .section-head { display: none; }
     .section-head h2 { display: none; }
     .section-head p { margin: 0; color: var(--muted); font-size: 14px; }
     .grid { display: grid; gap: 12px; }
@@ -63,6 +63,10 @@
     .music-grid { align-items: stretch; }
     .music-grid > .card { height: 100%; }
     .card { background: var(--surface); padding: 16px; overflow: hidden; }
+    .card:has(> .pager) { display: flex; flex-direction: column; min-height: 100%; }
+    .card:has(> .pager) > .list,
+    .card:has(> .pager) > .comment-list { flex: 1; }
+    .card:has(> .pager) > .pager { margin-top: auto; padding-top: 12px; justify-content: flex-end; }
     .metric { min-height: 104px; display: flex; flex-direction: column; justify-content: space-between; }
     .metric-value { font-size: 29px; font-weight: 900; line-height: 1; color: var(--accent); }
     .metric-label { color: var(--muted); font-size: 13px; }
@@ -381,7 +385,6 @@
       document.querySelector(`[data-section="${key}"]`)?.classList.toggle('active', key === section);
     });
     $('#pageTitle').textContent = sections[section][0];
-    $('#pageSubtitle').textContent = sections[section][1];
     if (location.hash !== `#${section}`) history.replaceState(null, '', `#${section}`);
     window.setTimeout(() => Object.values(state.charts).forEach((chart) => chart.resize()), 50);
   }
@@ -750,8 +753,10 @@
     ].join('');
 
     const topSongs = asArray(data.topSongs).slice().sort((left, right) => {
+      const completion = Number(right.completionRate || 0) - Number(left.completionRate || 0);
       const progress = Number(right.averageProgressPercent || 0) - Number(left.averageProgressPercent || 0);
-      return progress || Number(right.completionRate || 0) - Number(left.completionRate || 0) || Number(right.plays || 0) - Number(left.plays || 0);
+      const listeners = Number(right.uniqueListeners || 0) - Number(left.uniqueListeners || 0);
+      return completion || progress || listeners || Number(right.plays || 0) - Number(left.plays || 0);
     });
     const topTotalPages = Math.max(1, Math.ceil(topSongs.length / pageSize));
     state.musicTopPage = Math.min(Math.max(1, state.musicTopPage), topTotalPages);
@@ -1090,7 +1095,7 @@
       const isSelf = user.id && user.id === state.me?.userId;
       const actions = !user.id
         ? '<span class="field-hint">缺少用户 ID，不能修改权限</span>'
-        : `<button class="btn link" data-user-action="edit">编辑</button>${isSelf ? '<span class="tag green">当前账号</span>' : `${type !== 'administrator' ? '<button class="btn link" data-user-action="administrator">设为管理员</button>' : '<button class="btn link" data-user-action="guest">降为访客</button>'}${type !== 'banned' ? '<button class="btn link danger" data-user-action="banned">禁用</button>' : '<button class="btn link" data-user-action="guest">恢复</button>'}`}`;
+        : `<button class="btn link" data-user-action="edit-name">昵称</button><button class="btn link" data-user-action="edit-label">标签</button>${user.label ? '<button class="btn link" data-user-action="clear-label">移除标签</button>' : ''}${isSelf ? '<span class="tag green">当前账号</span>' : `${type !== 'administrator' ? '<button class="btn link" data-user-action="administrator">设为管理员</button>' : '<button class="btn link" data-user-action="guest">降为访客</button>'}${type !== 'banned' ? '<button class="btn link danger" data-user-action="banned">禁用</button>' : '<button class="btn link" data-user-action="guest">恢复</button>'}`}`;
       return `<article class="user-item" data-user-id="${escapeHtml(user.id)}">
         <img class="user-avatar" src="${escapeHtml(user.avatar || '/admin/default.png')}" alt="" onerror="this.onerror=null;this.src='/admin/default.png'" />
         <div>
@@ -1110,12 +1115,17 @@
       throw new Error('不能降级或禁用当前登录管理员');
     }
     let body = {};
-    if (action === 'edit') {
+    if (action === 'edit-name') {
       const displayName = window.prompt('修改用户昵称', user.displayName || '');
       if (displayName === null) return;
+      body = { displayName: displayName.trim() };
+    } else if (action === 'edit-label') {
       const label = window.prompt('修改用户标签', user.label || '');
       if (label === null) return;
-      body = { displayName: displayName.trim(), label: label.trim() };
+      body = { label: label.trim() };
+    } else if (action === 'clear-label') {
+      if (!window.confirm(`确认移除 ${user.displayName || user.email || '该用户'} 的标签？`)) return;
+      body = { label: '' };
     } else if (['administrator', 'guest', 'banned'].includes(action)) {
       if (action === 'banned' && !window.confirm(`确认禁用 ${user.displayName || user.email || '该用户'}？`)) return;
       body = { type: action };

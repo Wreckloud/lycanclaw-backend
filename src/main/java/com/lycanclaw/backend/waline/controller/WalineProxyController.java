@@ -704,7 +704,12 @@ public class WalineProxyController {
     private static final List<String> SKIPPED_RESPONSE_HEADERS = List.of(
             "connection",
             "transfer-encoding",
-            "content-length"
+            "content-length",
+            "access-control-allow-origin",
+            "access-control-allow-methods",
+            "access-control-allow-headers",
+            "access-control-allow-credentials",
+            "access-control-max-age"
     );
     private final WalineProperties properties;
     private final HttpClient httpClient;
