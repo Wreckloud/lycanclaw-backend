@@ -283,20 +283,115 @@ public class WalineProxyController {
             """;
     private static final String PROFILE_PAGE_STYLE = """
             <style id="lycan-waline-profile-theme">
+              body * {
+                box-shadow: none !important;
+                border-radius: 0 !important;
+              }
+
+              body .el-alert,
+              body .typecho-alert,
+              body .notice,
+              body .update-message,
+              body [class*="version"],
+              body [class*="upgrade"] {
+                display: none !important;
+              }
+
+              body .typecho-head-nav {
+                width: min(960px, calc(100% - 48px)) !important;
+                margin: 28px auto 0 !important;
+              }
+
+              body:has(.typecho-login) .typecho-head-nav {
+                width: min(380px, calc(100% - 32px)) !important;
+                margin-top: min(14vh, 96px) !important;
+              }
+
+              body .waline-header {
+                min-height: 64px !important;
+                padding: 0 18px !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 18px !important;
+                background: #151a24 !important;
+              }
+
+              body .waline-header a,
+              body .waline-header button,
+              body .waline-header .btn {
+                height: 38px !important;
+                padding: 0 14px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                color: #eef3ff !important;
+                background: #10151e !important;
+                border: 1px solid #202838 !important;
+                text-decoration: none !important;
+                font-weight: 700 !important;
+              }
+
+              body .waline-header a:hover,
+              body .waline-header button:hover,
+              body .waline-header .btn:hover {
+                color: #19c56f !important;
+                background: #121b28 !important;
+              }
+
+              body .waline-brand-link {
+                margin-right: 10px !important;
+                background: transparent !important;
+                border: 0 !important;
+                padding: 0 !important;
+              }
+
               body .typecho-page-main,
-              body .typecho-page-container,
-              body .typecho-profile,
-              body .typecho-option,
-              body .typecho-table-wrap {
-                width: min(860px, calc(100% - 32px)) !important;
+              body .typecho-page-container {
+                width: min(960px, calc(100% - 48px)) !important;
+                margin: 28px auto 48px !important;
+                padding: 0 !important;
+                color: #eef3ff !important;
+                background: transparent !important;
+                border: 0 !important;
               }
 
               body .typecho-profile,
-              body .typecho-option {
-                display: grid !important;
-                gap: 14px !important;
-                padding: 18px !important;
+              body .typecho-option,
+              body .typecho-table-wrap,
+              body .typecho-list-table {
+                width: 100% !important;
+                box-sizing: border-box !important;
+                margin: 0 0 14px !important;
+                color: #eef3ff !important;
                 background: #151a24 !important;
+                border: 1px solid #202838 !important;
+              }
+
+              body .typecho-profile {
+                min-height: 0 !important;
+                display: grid !important;
+                grid-template-columns: 180px minmax(0, 1fr) !important;
+                gap: 22px !important;
+                align-items: start !important;
+                padding: 22px !important;
+              }
+
+              body .typecho-profile > :first-child {
+                align-self: stretch !important;
+                display: grid !important;
+                place-items: center !important;
+                padding: 18px !important;
+                background: #10151e !important;
+                border: 1px solid #202838 !important;
+              }
+
+              body .typecho-profile > :not(:first-child) {
+                min-width: 0 !important;
+              }
+
+              body .typecho-option,
+              body .typecho-table-wrap {
+                padding: 18px !important;
               }
 
               body .typecho-profile h1,
@@ -308,41 +403,43 @@ public class WalineProxyController {
               body .typecho-page-main h1,
               body .typecho-page-main h2,
               body .typecho-page-main h3 {
-                margin: 0 0 10px !important;
+                margin: 0 0 12px !important;
                 color: #eef3ff !important;
-                font-size: 18px !important;
+                font-size: 20px !important;
                 line-height: 1.35 !important;
-                font-weight: 800 !important;
+                font-weight: 900 !important;
+              }
+
+              body .typecho-page-main h1::after,
+              body .typecho-page-main h2::after,
+              body .typecho-page-main h3::after {
+                content: "";
+                display: block;
+                width: 44px;
+                height: 3px;
+                margin-top: 10px;
+                background: #19c56f;
               }
 
               body .typecho-option-title,
               body .typecho-label,
               body label {
+                display: block !important;
+                margin: 0 0 7px !important;
                 color: #d7dfeb !important;
                 font-size: 13px !important;
-                font-weight: 700 !important;
+                font-weight: 800 !important;
               }
 
-              body .typecho-option,
-              body .typecho-page-main form,
-              body .typecho-profile form {
-                border-top: 1px solid #202838 !important;
-                padding-top: 14px !important;
+              body form,
+              body .typecho-option-content {
+                display: grid !important;
+                gap: 12px !important;
               }
 
-              body .typecho-option:first-child,
-              body .typecho-page-main form:first-child,
-              body .typecho-profile form:first-child {
-                border-top: 0 !important;
-                padding-top: 0 !important;
-              }
-
-              body .typecho-option input,
-              body .typecho-option select,
-              body .typecho-option textarea,
-              body .typecho-profile input,
-              body .typecho-profile select,
-              body .typecho-profile textarea {
+              body input,
+              body select,
+              body textarea {
                 min-height: 38px !important;
                 width: 100% !important;
                 box-sizing: border-box !important;
@@ -350,15 +447,13 @@ public class WalineProxyController {
                 color: #eef3ff !important;
                 background: #10151e !important;
                 border: 1px solid #202838 !important;
+                outline: 0 !important;
               }
 
-              body .typecho-option input:focus,
-              body .typecho-option select:focus,
-              body .typecho-option textarea:focus,
-              body .typecho-profile input:focus,
-              body .typecho-profile select:focus,
-              body .typecho-profile textarea:focus {
-                border-color: rgba(25, 197, 111, .55) !important;
+              body input:focus,
+              body select:focus,
+              body textarea:focus {
+                border-color: rgba(25, 197, 111, .58) !important;
                 background: #111925 !important;
               }
 
@@ -366,7 +461,8 @@ public class WalineProxyController {
               body .typecho-profile p,
               body .typecho-page-main p,
               body .typecho-description,
-              body .description {
+              body .description,
+              body small {
                 color: #9ca8bb !important;
                 font-size: 12px !important;
                 line-height: 1.7 !important;
@@ -385,9 +481,12 @@ public class WalineProxyController {
               body button[type="submit"],
               body .primary,
               body .btn-primary {
+                width: auto !important;
+                min-width: 96px !important;
                 color: #06100b !important;
                 background: #19c56f !important;
-                font-weight: 800 !important;
+                border-color: #19c56f !important;
+                font-weight: 900 !important;
               }
 
               body input[type="submit"]:hover,
@@ -398,29 +497,55 @@ public class WalineProxyController {
                 background: #29d77f !important;
               }
 
-              body .typecho-list-table,
-              body .typecho-list-table th,
-              body .typecho-list-table td {
+              body table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+              }
+
+              body table,
+              body th,
+              body td {
+                color: #eef3ff !important;
+                background: transparent !important;
                 border-color: #202838 !important;
               }
 
-              body .typecho-list-table th {
+              body th {
                 color: #9ca8bb !important;
                 font-size: 12px !important;
-                font-weight: 700 !important;
+                font-weight: 800 !important;
               }
 
-              body .typecho-list-table td {
+              body td,
+              body th {
                 padding: 10px 8px !important;
               }
 
-              body .typecho-profile img,
-              body .typecho-option img,
+              body img,
               body .avatar {
+                object-fit: cover !important;
                 background: #10151e !important;
                 border: 1px solid #202838 !important;
-                border-radius: 0 !important;
-                object-fit: cover !important;
+              }
+
+              body .typecho-profile img,
+              body .avatar {
+                width: 84px !important;
+                height: 84px !important;
+              }
+
+              @media (max-width: 720px) {
+                body .typecho-head-nav,
+                body .typecho-page-main,
+                body .typecho-page-container {
+                  width: min(100% - 28px, 960px) !important;
+                }
+
+                body .typecho-profile {
+                  grid-template-columns: 1fr !important;
+                  gap: 14px !important;
+                  padding: 16px !important;
+                }
               }
             </style>
             """;
@@ -476,47 +601,78 @@ public class WalineProxyController {
               (() => {
                 const unwantedText = [
                   /新版本\\s*@waline\\/vercel/i,
+                  /请尽快升级/i,
+                  /了解如何升级/i,
                   /Leancloud\\s*即将停止对外服务/i,
                   /LeanCloud\\s*即将停止对外服务/i,
+                  /迁移你的评论数据/i,
                   /两步验证/i,
                   /双重验证/i,
                   /2FA/i,
                   /two\\s*factor/i
                 ];
-                const isLargeContainer = (el) => {
-                  const tag = el.tagName ? el.tagName.toLowerCase() : '';
-                  return ['body', 'html', 'main'].includes(tag) || el.children.length > 12;
+                const allowedOauth = new Set(['github', 'qq']);
+                const candidateContainer = (node) => {
+                  if (!node || node.nodeType !== Node.TEXT_NODE) return null;
+                  let el = node.parentElement;
+                  while (el && el !== document.body) {
+                    const tag = el.tagName ? el.tagName.toLowerCase() : '';
+                    const text = (el.textContent || '').trim();
+                    if (['p', 'li', 'tr', 'section', 'article'].includes(tag)) return el;
+                    if (el.classList && (
+                      el.classList.contains('el-alert') ||
+                      el.classList.contains('typecho-alert') ||
+                      el.classList.contains('notice') ||
+                      el.classList.contains('message') ||
+                      el.className.toString().includes('alert') ||
+                      el.className.toString().includes('notice')
+                    )) return el;
+                    if (text.length > 20 && text.length < 500 && el.children.length <= 8) return el;
+                    el = el.parentElement;
+                  }
+                  return null;
+                };
+                const getOauthType = (href) => {
+                  if (!href) return '';
+                  try {
+                    return (new URL(href, location.origin).searchParams.get('type') || '').toLowerCase();
+                  } catch {
+                    try {
+                      const decoded = decodeURIComponent(href);
+                      const match = decoded.match(/[?&]type=([^&#]+)/);
+                      return match ? match[1].toLowerCase() : '';
+                    } catch {
+                      return '';
+                    }
+                  }
                 };
                 const removeNoise = () => {
-                  document.querySelectorAll('p, li, tr, section, article, .message, .notice, .typecho-option, .typecho-table-wrap, .typecho-page-main > div').forEach(el => {
-                    if (isLargeContainer(el)) return;
-                    const text = (el.textContent || '').trim();
+                  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+                  const removals = [];
+                  while (walker.nextNode()) {
+                    const text = (walker.currentNode.nodeValue || '').trim();
                     if (text && unwantedText.some(pattern => pattern.test(text))) {
-                      el.remove();
+                      const target = candidateContainer(walker.currentNode);
+                      if (target) removals.push(target);
                     }
-                  });
+                  }
+                  removals.forEach(el => el.remove());
+
                   document.querySelectorAll('a[href*="oauth"], a[href*="OAuth"]').forEach(link => {
-                    const href = link.getAttribute('href') || '';
-                    let type = '';
-                    try {
-                      type = (new URL(href, location.origin).searchParams.get('type') || '').toLowerCase();
-                    } catch {
-                      try {
-                        const decoded = decodeURIComponent(href);
-                        const match = decoded.match(/[?&]type=([^&#]+)/);
-                        type = match ? match[1].toLowerCase() : '';
-                      } catch {
-                        type = '';
-                      }
-                    }
-                    if (type && !['github', 'qq'].includes(type)) {
-                      link.remove();
+                    const type = getOauthType(link.getAttribute('href') || '');
+                    if (type && !allowedOauth.has(type)) link.remove();
+                  });
+
+                  document.querySelectorAll('input, button, a, label, th, td, p, div').forEach(el => {
+                    const text = (el.textContent || el.value || '').trim();
+                    if (unwantedText.some(pattern => pattern.test(text))) {
+                      const target = el.closest('.typecho-option, tr, section, article, p, li, div') || el;
+                      if (target && target !== document.body) target.remove();
                     }
                   });
+
                   document.querySelectorAll('img').forEach(img => {
-                    if (!img.getAttribute('src')) {
-                      img.src = '/admin/default.png';
-                    }
+                    if (!img.getAttribute('src')) img.src = '/admin/default.png';
                     img.addEventListener('error', () => {
                       img.src = '/admin/default.png';
                     }, { once: true });
@@ -526,7 +682,8 @@ public class WalineProxyController {
                   removeNoise();
                   new MutationObserver(removeNoise).observe(document.documentElement, {
                     childList: true,
-                    subtree: true
+                    subtree: true,
+                    characterData: true
                   });
                 };
                 if (document.readyState === 'loading') {
@@ -768,3 +925,4 @@ public class WalineProxyController {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }
+
