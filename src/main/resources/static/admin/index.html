@@ -49,8 +49,8 @@
     .section { display: none; }
     .section.active { display: block; }
     .section-head { margin-bottom: 16px; display: flex; justify-content: space-between; gap: 14px; align-items: flex-end; }
-    .section-head h2 { margin: 0; font-size: 23px; }
-    .section-head p { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
+    .section-head h2 { display: none; }
+    .section-head p { margin: 0; color: var(--muted); font-size: 14px; }
     .grid { display: grid; gap: 12px; }
     .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -183,7 +183,6 @@
       <button class="nav-link" data-section="music">音乐</button>
       <button class="nav-link" data-section="recommendation">推荐</button>
       <button class="nav-link" data-section="comments">评论</button>
-      <button class="nav-link" data-section="users">用户</button>
     </nav>
   </aside>
   <main class="main">
@@ -219,13 +218,13 @@
         <div class="card drawer" id="visitorProfileCard"><div class="card-title"><h3 id="visitorProfileTitle">访客画像</h3><button class="btn link" id="closeVisitorProfileBtn">关闭</button></div><div id="visitorProfileMetrics" class="grid four"></div><div class="grid three" style="margin-top:12px;"><div><div class="card-title"><h3>常看文章</h3></div><div class="list" id="visitorTopArticles"></div></div><div><div class="card-title"><h3>访问来源</h3></div><div class="list" id="visitorReferrers"></div></div><div><div class="card-title"><h3>常听歌曲</h3></div><div class="list" id="visitorTopSongs"></div></div></div></div>
       </section>
       <section class="section" id="section-music">
-        <div class="section-head"><div><h2>音乐</h2><p>网易云扫码登录、账号状态与播放流配置。</p></div><div class="actions"><button class="btn" id="checkMusicBtn">检查状态</button><button class="btn danger" id="logoutMusicBtn">退出网易云</button></div></div>
-        <div class="grid aside music-grid"><div class="card"><div class="card-title"><h3>网易云扫码登录</h3><small id="musicStatusBadge">未检查</small></div><div class="qr-card" id="qrCard"><div class="qr-box"><img id="qrImg" alt="网易云登录二维码" /><div class="qr-placeholder" id="qrPlaceholder">点击生成二维码</div></div><div><div class="list-title">点击卡片开始扫码登录</div><div class="list-meta" id="qrStatus">登录只用于公开播放失败后的会员回退。</div><a class="list-meta" id="qrLink" href="#" target="_blank" rel="noopener"></a></div></div></div><div class="grid"><div class="card"><div class="card-title"><h3>账号状态</h3><small>网易云</small></div><div id="musicStatusDetail" class="kv"></div></div><form class="card" id="musicConfigForm"><div class="card-title"><h3>音乐配置</h3><small>保存后立即生效</small></div><div class="field-grid"><div class="field"><label>歌单来源 UID</label><input name="playlistOwnerUid" inputmode="numeric" placeholder="629126546" /></div><div class="field"><label>默认音质</label><select name="preferredLevel"><option value="exhigh">exhigh</option><option value="higher">higher</option><option value="standard">standard</option><option value="lossless">lossless</option><option value="hires">hires</option><option value="jymaster">jymaster</option></select></div></div><div class="actions" style="margin-top:12px;"><button class="btn primary" type="button" id="saveMusicConfigBtn">保存音乐配置</button></div></form></div></div>
+        <div class="section-head"><div><h2>音乐</h2><p>网易云扫码登录、账号状态与播放流配置。</p></div></div>
+        <div class="grid aside music-grid"><div class="card"><div class="card-title"><h3>网易云扫码登录</h3><small id="musicStatusBadge">未检查</small></div><div class="qr-card" id="qrCard"><div class="qr-box"><img id="qrImg" alt="网易云登录二维码" /><div class="qr-placeholder" id="qrPlaceholder">点击生成二维码</div></div><div><div class="list-title">点击卡片开始扫码登录</div><div class="list-meta" id="qrStatus">登录只用于公开播放失败后的会员回退。</div><a class="list-meta" id="qrLink" href="#" target="_blank" rel="noopener"></a><div class="actions" style="margin-top:12px;"><button class="btn" id="checkMusicBtn">检查状态</button><button class="btn danger" id="logoutMusicBtn">退出网易云</button></div></div></div></div><div class="grid"><div class="card"><div class="card-title"><h3>账号状态</h3><small>网易云</small></div><div id="musicStatusDetail" class="kv"></div></div><form class="card" id="musicConfigForm"><div class="card-title"><h3>音乐配置</h3><small>保存后立即生效</small></div><div class="field-grid"><div class="field"><label>歌单来源 UID</label><input name="playlistOwnerUid" inputmode="numeric" placeholder="629126546" /></div><div class="field"><label>默认音质</label><select name="preferredLevel"><option value="exhigh">exhigh</option><option value="higher">higher</option><option value="standard">standard</option><option value="lossless">lossless</option><option value="hires">hires</option><option value="jymaster">jymaster</option></select></div></div><div class="actions" style="margin-top:12px;"><button class="btn primary" type="button" id="saveMusicConfigBtn">保存音乐配置</button></div></form></div></div>
         <div class="grid three" id="musicAnalyticsMetrics" style="margin-top:14px;"></div>
-        <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>热门歌曲</h3><small>近 30 天</small></div><div class="list" id="musicTopSongs"></div></div><div class="card"><div class="card-title"><h3>最近收听</h3><small>访客与完成度</small></div><div class="list" id="musicRecentList"></div></div></div>
+        <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>热门歌曲</h3><small>按完成度</small></div><div class="list" id="musicTopSongs"></div><div class="pager"><button class="btn link" id="musicTopPrevBtn">上一页</button><span id="musicTopPageInfo">第 1 页</span><button class="btn link" id="musicTopNextBtn">下一页</button></div></div><div class="card"><div class="card-title"><h3>最近收听</h3><small>访客与完成度</small></div><div class="list" id="musicRecentList"></div><div class="pager"><button class="btn link" id="musicRecentPrevBtn">上一页</button><span id="musicRecentPageInfo">第 1 页</span><button class="btn link" id="musicRecentNextBtn">下一页</button></div></div></div>
       </section>
       <section class="section" id="section-recommendation">
-        <div class="section-head"><div><h2>推荐</h2><p>指定文章优先展示，其余位置由文章热度自动补齐。</p></div><button class="btn" id="rebuildRecommendationBtn">更新推荐热度</button></div>
+        <div class="section-head"><div><h2>推荐</h2><p>指定文章优先展示，其余位置由文章热度自动补齐。</p></div></div>
         <div class="grid recommendation-grid">
           <div class="card recommendation-primary"><div class="card-title"><h3>当前首页推荐</h3><small id="manualUpdatedAt">-</small></div><div class="field-hint" style="margin-bottom:12px;">指定项可调整顺序；自动项可排除，后续文章会立即补位。</div><div class="list" id="manualList"></div></div>
           <div class="recommendation-side">
@@ -235,7 +234,7 @@
         </div>
       </section>
       <section class="section" id="section-comments">
-        <div class="section-head"><div><h2>评论</h2><p>在当前后台完成审核、置顶与删除，不再依赖 Waline 官方管理界面。</p></div><button class="btn" id="reloadCommentsBtn">刷新评论</button></div>
+        <div class="section-head"><div><h2>评论</h2><p>评论审核、数据导入导出与 Waline 用户管理。</p></div></div>
         <div class="grid two"><div class="card"><div class="card-title"><h3>Waline 状态</h3><button class="btn link" id="toggleMailConfigBtn">邮件配置</button></div><div id="walineSummary" class="kv"></div><div id="mailNotificationStatus" class="kv" style="margin-top:10px;"></div><div class="inline-config" id="mailConfigPanel"><div class="field-hint" style="margin-bottom:8px;">使用 Waline 原生邮件能力：评论者填写邮箱后，收到回复时会收到通知；你配置作者邮箱后，新评论会提醒到你。</div><div class="config-code"><code>AUTHOR_EMAIL=你的邮箱</code><code>SMTP_SERVICE=QQ</code><code>SMTP_USER=你的 QQ 邮箱</code><code>SMTP_PASS=QQ 邮箱授权码</code><code>SMTP_SECURE=true</code><code>SENDER_NAME=LycanClaw</code><code>SENDER_EMAIL=你的邮箱</code><code>MAIL_SUBJECT=你在 LycanClaw 的评论有了新回复</code><code>MAIL_TEMPLATE=</code><code>MAIL_SUBJECT_ADMIN=LycanClaw 有新评论</code><code>MAIL_TEMPLATE_ADMIN=</code></div><div class="field-hint" style="margin-top:8px;">模板留空时使用 Waline 默认模板。密码使用邮箱授权码，不是登录密码。 <a class="article-link" href="https://waline.js.org/reference/server/env.html" target="_blank" rel="noopener">查看 Waline 文档</a></div></div></div><div class="card"><div class="card-title"><h3>最新评论</h3><small>最多 5 条</small></div><div class="list" id="recentComments"></div></div></div>
         <div class="card" style="margin-top:12px;"><div class="card-title"><h3>Waline 数据</h3><small>评论导入导出</small></div><div class="import-box"><div class="actions"><button class="btn" id="exportWalineBtn">导出 Waline 数据</button><label class="btn" for="importWalineInput">导入 JSON</label><input id="importWalineInput" type="file" accept="application/json,.json" hidden /></div><div class="field-hint" id="walineImportNotice">导入使用 Waline 官方备份格式，适合迁移评论、计数和用户数据。</div></div></div>
         <div class="card" style="margin-top:12px;">
@@ -250,10 +249,8 @@
           <div id="managedCommentList" class="comment-list"></div>
           <div class="pager"><button class="btn link" id="commentPrevBtn">上一页</button><span id="commentPageInfo">第 1 页</span><button class="btn link" id="commentNextBtn">下一页</button></div>
         </div>
-      </section>
-      <section class="section" id="section-users">
-        <div class="section-head"><div><h2>用户</h2><p>管理 Waline 登录用户、头像、标签和用户状态。</p></div><button class="btn" id="reloadUsersBtn">刷新用户</button></div>
-        <div class="card">
+        <div class="card" style="margin-top:12px;">
+          <div class="card-title"><h3>用户管理</h3><small>Waline 登录用户</small></div>
           <div class="filter-row compact">
             <div class="field"><label>用户搜索</label><input id="userKeywordInput" placeholder="昵称、邮箱、QQ 或 GitHub" /></div>
             <button class="btn primary" id="searchUsersBtn">查询</button>
@@ -275,10 +272,9 @@
     articles: ['文章', '文章访问、停留、阅读进度和访客构成。'],
     music: ['音乐', '网易云扫码登录、账号状态与播放流配置。'],
     recommendation: ['推荐', '手动推荐优先，文章热度补齐。'],
-    comments: ['评论', 'Waline 评论和阅读统计状态。'],
-    users: ['用户', 'Waline 登录用户和账号状态。']
+    comments: ['评论', 'Waline 评论、用户和阅读统计状态。']
   };
-  const state = { me: null, console: null, ops: null, runtime: null, musicStatus: null, musicAnalytics: null, articles: null, articlePage: 1, manualUrls: [], excludedUrls: [], effectiveRecommendations: [], candidates: [], candidatePage: 1, candidateTotalPages: 1, recentComments: [], managedComments: null, commentNotification: null, commentPage: 1, commentManageError: '', walineUsers: null, userPage: 1, userManageError: '', qrKey: '', qrTimer: null, charts: {} };
+  const state = { me: null, console: null, ops: null, runtime: null, musicStatus: null, musicAnalytics: null, musicTopPage: 1, musicRecentPage: 1, articles: null, articlePage: 1, manualUrls: [], excludedUrls: [], effectiveRecommendations: [], candidates: [], candidatePage: 1, candidateTotalPages: 1, recentComments: [], managedComments: null, commentNotification: null, commentPage: 1, commentManageError: '', walineUsers: null, userPage: 1, userManageError: '', qrKey: '', qrTimer: null, charts: {} };
   const $ = (selector) => document.querySelector(selector);
   const asArray = (value) => Array.isArray(value) ? value : [];
 
@@ -649,9 +645,28 @@
     const engagementChart = getChart('articleEngagementChart');
     if (engagementChart) engagementChart.setOption({
       tooltip: { formatter: ({ data }) => `${escapeHtml(data[3])}<br/>平均停留 ${data[0]}s<br/>读完率 ${data[1]}%<br/>访问 ${data[2]}` },
-      grid: { left: 46, right: 18, top: 18, bottom: 36 },
-      xAxis: { name: '平均停留/秒', type: 'value', splitLine: { lineStyle: { color: colors.grid } }, axisLabel: { color: colors.text } },
-      yAxis: { name: '读完率/%', type: 'value', min: 0, max: 100, splitLine: { lineStyle: { color: colors.grid } }, axisLabel: { color: colors.text } },
+      grid: { left: 58, right: 24, top: 30, bottom: 48 },
+      xAxis: {
+        name: '平均停留/秒',
+        nameLocation: 'middle',
+        nameGap: 30,
+        nameTextStyle: { color: colors.text },
+        type: 'value',
+        axisLine: { lineStyle: { color: colors.grid } },
+        splitLine: { lineStyle: { color: colors.grid } },
+        axisLabel: { color: colors.text }
+      },
+      yAxis: {
+        name: '读完率/%',
+        nameGap: 34,
+        nameTextStyle: { color: colors.text },
+        type: 'value',
+        min: 0,
+        max: 100,
+        axisLine: { lineStyle: { color: colors.grid } },
+        splitLine: { lineStyle: { color: colors.grid } },
+        axisLabel: { color: colors.text }
+      },
       series: [{ type: 'scatter', data: items.map((item) => [item.averageDurationSeconds || 0, item.completionRate || 0, item.visits || 0, item.title || pathTitle(item.path)]), symbolSize: (data) => Math.max(8, Math.min(24, 8 + Math.sqrt(data[2] || 0) * 3)), itemStyle: { color: colors.green, opacity: .78 } }]
     }, true);
   }
@@ -727,13 +742,33 @@
   }
   function renderMusicAnalytics() {
     const data = state.musicAnalytics || {};
+    const pageSize = 6;
     $('#musicAnalyticsMetrics').innerHTML = [
       metricCard(data.plays || 0, '播放次数', `听众 ${data.uniqueListeners || 0}`),
       metricCard(percentText(data.averageProgressPercent), '平均播放进度', '按歌曲完成度统计'),
       metricCard(percentText(data.completionRate), '播完率', '播放达到 90% 视为完成')
     ].join('');
-    $('#musicTopSongs').innerHTML = asArray(data.topSongs).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.songName || '未知歌曲')} · ${escapeHtml(item.artist || '')}</div><div class="list-meta">播放 ${item.plays || 0} 次 · 听众 ${item.uniqueListeners || 0} · 平均 ${percentText(item.averageProgressPercent)} · 播完 ${percentText(item.completionRate)}</div></div></div>`).join('') || '<div class="empty">暂无收听数据。</div>';
-    $('#musicRecentList').innerHTML = asArray(data.recent).slice(0, 12).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.songName)} · ${escapeHtml(item.artist)}</div><div class="list-meta"><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button> · 播放 ${percentText(item.progressPercent)} · ${relativeTime(item.updatedAt)}</div></div></div>`).join('') || '<div class="empty">暂无收听数据。</div>';
+
+    const topSongs = asArray(data.topSongs).slice().sort((left, right) => {
+      const progress = Number(right.averageProgressPercent || 0) - Number(left.averageProgressPercent || 0);
+      return progress || Number(right.completionRate || 0) - Number(left.completionRate || 0) || Number(right.plays || 0) - Number(left.plays || 0);
+    });
+    const topTotalPages = Math.max(1, Math.ceil(topSongs.length / pageSize));
+    state.musicTopPage = Math.min(Math.max(1, state.musicTopPage), topTotalPages);
+    const topPageItems = topSongs.slice((state.musicTopPage - 1) * pageSize, state.musicTopPage * pageSize);
+    $('#musicTopSongs').innerHTML = topPageItems.map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.songName || '未知歌曲')} · ${escapeHtml(item.artist || '')}</div><div class="list-meta">播放 ${item.plays || 0} 次 · 听众 ${item.uniqueListeners || 0} · 平均 ${percentText(item.averageProgressPercent)} · 播完 ${percentText(item.completionRate)}</div></div></div>`).join('') || '<div class="empty">暂无收听数据。</div>';
+    $('#musicTopPageInfo').textContent = `第 ${state.musicTopPage} / ${topTotalPages} 页`;
+    $('#musicTopPrevBtn').disabled = state.musicTopPage <= 1;
+    $('#musicTopNextBtn').disabled = state.musicTopPage >= topTotalPages;
+
+    const recent = asArray(data.recent);
+    const recentTotalPages = Math.max(1, Math.ceil(recent.length / pageSize));
+    state.musicRecentPage = Math.min(Math.max(1, state.musicRecentPage), recentTotalPages);
+    const recentPageItems = recent.slice((state.musicRecentPage - 1) * pageSize, state.musicRecentPage * pageSize);
+    $('#musicRecentList').innerHTML = recentPageItems.map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.songName)} · ${escapeHtml(item.artist)}</div><div class="list-meta"><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button> · 播放 ${percentText(item.progressPercent)} · ${relativeTime(item.updatedAt)}</div></div></div>`).join('') || '<div class="empty">暂无收听数据。</div>';
+    $('#musicRecentPageInfo').textContent = `第 ${state.musicRecentPage} / ${recentTotalPages} 页`;
+    $('#musicRecentPrevBtn').disabled = state.musicRecentPage <= 1;
+    $('#musicRecentNextBtn').disabled = state.musicRecentPage >= recentTotalPages;
   }
   function renderMusicStatus(status) {
     const loggedIn = Boolean(status.loggedIn);
@@ -788,7 +823,8 @@
     next.recommendation.commentWeight = Number(form.elements.commentWeight.value);
     state.runtime = await api('/api/admin/config/runtime', { method: 'PUT', body: JSON.stringify(next) });
     renderRecommendationConfig();
-    showMessage('推荐配置已保存，权重变更后建议更新一次推荐热度');
+    await rebuildRecommendation(false);
+    showMessage('推荐配置已保存，推荐热度已开始更新');
   }
   async function createQr() {
     if (state.musicStatus?.loggedIn) {
@@ -893,12 +929,14 @@
     state.manualUrls = asArray(saved.manualUrls);
     state.excludedUrls = asArray(saved.excludedUrls);
     $('#manualUpdatedAt').textContent = saved.updatedAt ? `更新于 ${relativeTime(saved.updatedAt)}` : '刚刚更新';
-    await refreshRecommendation();
+    await Promise.all([refreshRecommendation(), refreshConsole(), refreshOps()]);
     showMessage(message || '推荐配置已保存');
   }
-  async function rebuildRecommendation() {
+  async function rebuildRecommendation(showAcceptedMessage = true) {
     const result = await api('/api/admin/governance/recommendations/rebuild', { method: 'POST' });
-    showMessage(result?.result?.accepted === false ? '推荐热度正在更新中' : '推荐热度更新任务已受理');
+    if (showAcceptedMessage) {
+      showMessage(result?.result?.accepted === false ? '推荐热度正在更新中' : '推荐热度更新任务已受理');
+    }
     await Promise.all([refreshConsole(), refreshOps(), refreshRecommendation()]);
   }
   function renderWalineSummary() {
@@ -1126,9 +1164,15 @@
     $('#logoutBtn').addEventListener('click', async () => { try { await adminCommon.logout(); } finally { location.href = '/admin/auth.html'; } });
     $('#checkMusicBtn').addEventListener('click', () => refreshMusicStatus().catch((e) => showMessage(e.message, true)));
     $('#logoutMusicBtn').addEventListener('click', async () => { await api('/api/music/auth/logout', { method: 'POST' }); await refreshMusicStatus(); showMessage('网易云登录态已清理'); });
-    $('#qrCard').addEventListener('click', () => createQr().catch((e) => showMessage(e.message, true)));
+    $('#qrCard').addEventListener('click', (event) => {
+      if (event.target.closest('button, a')) return;
+      createQr().catch((e) => showMessage(e.message, true));
+    });
     $('#saveMusicConfigBtn').addEventListener('click', () => saveMusicConfig().catch((e) => showMessage(e.message, true)));
-    $('#rebuildRecommendationBtn').addEventListener('click', () => rebuildRecommendation().catch((e) => showMessage(e.message, true)));
+    $('#musicTopPrevBtn').addEventListener('click', () => { state.musicTopPage -= 1; renderMusicAnalytics(); });
+    $('#musicTopNextBtn').addEventListener('click', () => { state.musicTopPage += 1; renderMusicAnalytics(); });
+    $('#musicRecentPrevBtn').addEventListener('click', () => { state.musicRecentPage -= 1; renderMusicAnalytics(); });
+    $('#musicRecentNextBtn').addEventListener('click', () => { state.musicRecentPage += 1; renderMusicAnalytics(); });
     $('#manualList').addEventListener('click', (event) => {
       const item = event.target.closest('.list-item');
       const action = event.target.closest('[data-action]')?.dataset.action;
@@ -1168,7 +1212,6 @@
     $('#articlePrevBtn').addEventListener('click', () => refreshArticles(state.articlePage - 1).catch((e) => showMessage(e.message, true)));
     $('#articleNextBtn').addEventListener('click', () => refreshArticles(state.articlePage + 1).catch((e) => showMessage(e.message, true)));
     $('#closeVisitorProfileBtn').addEventListener('click', () => $('#visitorProfileCard').classList.remove('active'));
-    $('#reloadCommentsBtn').addEventListener('click', () => Promise.all([refreshOps(), refreshComments(), refreshManagedComments(), refreshCommentNotification()]).catch((e) => showMessage(e.message, true)));
     $('#toggleMailConfigBtn').addEventListener('click', () => $('#mailConfigPanel').classList.toggle('active'));
     $('#searchCommentsBtn').addEventListener('click', () => refreshManagedComments(1));
     $('#commentStatusFilter').addEventListener('change', () => refreshManagedComments(1));
@@ -1191,7 +1234,6 @@
       importWalineData(event.target.files?.[0]).catch((error) => showMessage(error.message || String(error), true));
       event.target.value = '';
     });
-    $('#reloadUsersBtn').addEventListener('click', () => refreshUsers().catch((error) => showMessage(error.message || String(error), true)));
     $('#searchUsersBtn').addEventListener('click', () => refreshUsers(1).catch((error) => showMessage(error.message || String(error), true)));
     $('#userKeywordInput').addEventListener('keydown', (event) => {
       if (event.key === 'Enter') refreshUsers(1).catch((error) => showMessage(error.message || String(error), true));
