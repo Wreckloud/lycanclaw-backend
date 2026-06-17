@@ -111,6 +111,9 @@
     .comment-content { color: var(--text); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
     .comment-actions { display: flex; gap: 4px; align-items: flex-start; flex-wrap: wrap; justify-content: flex-end; }
     .comment-actions .btn { min-height: 30px; padding: 5px 8px; font-size: 12px; }
+    .user-item { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; padding: 12px; background: var(--surface-soft); align-items: center; }
+    .user-avatar { width: 44px; height: 44px; object-fit: cover; background: var(--surface-muted); }
+    .import-box { display: grid; gap: 10px; padding: 12px; background: var(--surface-soft); }
     .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .data-table th, .data-table td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--surface-muted); vertical-align: top; }
     .data-table th { color: var(--muted); font-weight: 500; }
@@ -161,6 +164,9 @@
       .comment-item { grid-template-columns: 36px minmax(0, 1fr); }
       .comment-avatar { width: 36px; height: 36px; }
       .comment-actions { grid-column: 2; justify-content: flex-start; }
+      .user-item { grid-template-columns: 36px minmax(0, 1fr); }
+      .user-avatar { width: 36px; height: 36px; }
+      .user-item .actions { grid-column: 2; justify-content: flex-start; }
     }
   </style>
 </head>
@@ -177,6 +183,7 @@
       <button class="nav-link" data-section="music">音乐</button>
       <button class="nav-link" data-section="recommendation">推荐</button>
       <button class="nav-link" data-section="comments">评论</button>
+      <button class="nav-link" data-section="users">用户</button>
     </nav>
   </aside>
   <main class="main">
@@ -230,6 +237,7 @@
       <section class="section" id="section-comments">
         <div class="section-head"><div><h2>评论</h2><p>在当前后台完成审核、置顶与删除，不再依赖 Waline 官方管理界面。</p></div><button class="btn" id="reloadCommentsBtn">刷新评论</button></div>
         <div class="grid two"><div class="card"><div class="card-title"><h3>Waline 状态</h3><button class="btn link" id="toggleMailConfigBtn">邮件配置</button></div><div id="walineSummary" class="kv"></div><div id="mailNotificationStatus" class="kv" style="margin-top:10px;"></div><div class="inline-config" id="mailConfigPanel"><div class="field-hint" style="margin-bottom:8px;">使用 Waline 原生邮件能力：评论者填写邮箱后，收到回复时会收到通知；你配置作者邮箱后，新评论会提醒到你。</div><div class="config-code"><code>AUTHOR_EMAIL=你的邮箱</code><code>SMTP_SERVICE=QQ</code><code>SMTP_USER=你的 QQ 邮箱</code><code>SMTP_PASS=QQ 邮箱授权码</code><code>SMTP_SECURE=true</code><code>SENDER_NAME=LycanClaw</code><code>SENDER_EMAIL=你的邮箱</code><code>MAIL_SUBJECT=你在 LycanClaw 的评论有了新回复</code><code>MAIL_TEMPLATE=</code><code>MAIL_SUBJECT_ADMIN=LycanClaw 有新评论</code><code>MAIL_TEMPLATE_ADMIN=</code></div><div class="field-hint" style="margin-top:8px;">模板留空时使用 Waline 默认模板。密码使用邮箱授权码，不是登录密码。 <a class="article-link" href="https://waline.js.org/reference/server/env.html" target="_blank" rel="noopener">查看 Waline 文档</a></div></div></div><div class="card"><div class="card-title"><h3>最新评论</h3><small>最多 5 条</small></div><div class="list" id="recentComments"></div></div></div>
+        <div class="card" style="margin-top:12px;"><div class="card-title"><h3>Waline 数据</h3><small>评论导入导出</small></div><div class="import-box"><div class="actions"><button class="btn" id="exportWalineBtn">导出 Waline 数据</button><label class="btn" for="importWalineInput">导入 JSON</label><input id="importWalineInput" type="file" accept="application/json,.json" hidden /></div><div class="field-hint" id="walineImportNotice">导入使用 Waline 官方备份格式，适合迁移评论、计数和用户数据。</div></div></div>
         <div class="card" style="margin-top:12px;">
           <div class="card-title"><h3>评论管理</h3><small id="commentCountSummary">-</small></div>
           <div class="filter-row">
@@ -241,6 +249,18 @@
           <div class="actions" style="margin:10px 0;"><button class="btn link" data-comment-batch="approved">批量通过</button><button class="btn link" data-comment-batch="waiting">批量待审核</button><button class="btn link" data-comment-batch="spam">批量垃圾</button><button class="btn link danger" data-comment-batch="delete">批量删除</button></div>
           <div id="managedCommentList" class="comment-list"></div>
           <div class="pager"><button class="btn link" id="commentPrevBtn">上一页</button><span id="commentPageInfo">第 1 页</span><button class="btn link" id="commentNextBtn">下一页</button></div>
+        </div>
+      </section>
+      <section class="section" id="section-users">
+        <div class="section-head"><div><h2>用户</h2><p>管理 Waline 登录用户、头像、标签和用户状态。</p></div><button class="btn" id="reloadUsersBtn">刷新用户</button></div>
+        <div class="card">
+          <div class="filter-row compact">
+            <div class="field"><label>用户搜索</label><input id="userKeywordInput" placeholder="昵称、邮箱、QQ 或 GitHub" /></div>
+            <button class="btn primary" id="searchUsersBtn">查询</button>
+          </div>
+          <div id="userManageNotice" class="field-hint" style="margin-top:10px;"></div>
+          <div class="comment-list" id="userList"></div>
+          <div class="pager"><button class="btn link" id="userPrevBtn">上一页</button><span id="userPageInfo">第 1 页</span><button class="btn link" id="userNextBtn">下一页</button></div>
         </div>
       </section>
     </div>
@@ -255,9 +275,10 @@
     articles: ['文章', '文章访问、停留、阅读进度和访客构成。'],
     music: ['音乐', '网易云扫码登录、账号状态与播放流配置。'],
     recommendation: ['推荐', '手动推荐优先，文章热度补齐。'],
-    comments: ['评论', 'Waline 评论和阅读统计状态。']
+    comments: ['评论', 'Waline 评论和阅读统计状态。'],
+    users: ['用户', 'Waline 登录用户和账号状态。']
   };
-  const state = { me: null, console: null, ops: null, runtime: null, musicStatus: null, musicAnalytics: null, articles: null, articlePage: 1, manualUrls: [], excludedUrls: [], effectiveRecommendations: [], candidates: [], candidatePage: 1, candidateTotalPages: 1, recentComments: [], managedComments: null, commentNotification: null, commentPage: 1, commentManageError: '', qrKey: '', qrTimer: null, charts: {} };
+  const state = { me: null, console: null, ops: null, runtime: null, musicStatus: null, musicAnalytics: null, articles: null, articlePage: 1, manualUrls: [], excludedUrls: [], effectiveRecommendations: [], candidates: [], candidatePage: 1, candidateTotalPages: 1, recentComments: [], managedComments: null, commentNotification: null, commentPage: 1, commentManageError: '', walineUsers: null, userPage: 1, userManageError: '', qrKey: '', qrTimer: null, charts: {} };
   const $ = (selector) => document.querySelector(selector);
   const asArray = (value) => Array.isArray(value) ? value : [];
 
@@ -426,6 +447,19 @@
     }
     renderManagedComments();
   }
+  async function refreshUsers(page = state.userPage) {
+    state.userPage = Math.max(1, page);
+    const keyword = $('#userKeywordInput')?.value.trim() || '';
+    const query = new URLSearchParams({ page: String(state.userPage), pageSize: '10', keyword });
+    try {
+      state.walineUsers = await api(`/api/admin/waline/users?${query}`);
+      state.userManageError = '';
+    } catch (error) {
+      state.walineUsers = null;
+      state.userManageError = error.message || String(error);
+    }
+    renderUsers();
+  }
   async function refreshCommentNotification() {
     state.commentNotification = await api('/api/admin/comments/notification');
     renderCommentNotification();
@@ -454,7 +488,7 @@
   async function refreshAll() {
     try {
       $('#refreshAllBtn').disabled = true;
-      await Promise.all([refreshConsole(), refreshOps(), refreshRecommendation(), refreshComments(), refreshManagedComments(), refreshCommentNotification(), refreshMusicStatus(), refreshMusicAnalytics(), refreshArticles()]);
+      await Promise.all([refreshConsole(), refreshOps(), refreshRecommendation(), refreshComments(), refreshManagedComments(), refreshCommentNotification(), refreshMusicStatus(), refreshMusicAnalytics(), refreshArticles(), refreshUsers()]);
       renderOverview();
       showMessage('控制台已刷新');
     } catch (error) {
@@ -987,6 +1021,92 @@
     await Promise.all([refreshManagedComments(), refreshComments(), refreshOps()]);
     showMessage(`已处理 ${ids.length} 条评论`);
   }
+  function renderUsers() {
+    const notice = $('#userManageNotice');
+    if (state.userManageError) {
+      notice.textContent = state.userManageError.includes('Waline QQ 或 GitHub')
+        ? '用户管理需要退出后使用 Waline QQ 或 GitHub 登录。'
+        : state.userManageError;
+      $('#userList').innerHTML = '<div class="empty">用户管理暂不可用。</div>';
+      $('#userPageInfo').textContent = `第 ${state.userPage} 页`;
+      $('#userPrevBtn').disabled = true;
+      $('#userNextBtn').disabled = true;
+      return;
+    }
+    notice.textContent = '用户操作通过后端代理执行，Waline token 不会暴露给浏览器。';
+    const result = state.walineUsers || {};
+    const users = asArray(result.data);
+    const totalPages = Math.max(0, Number(result.totalPages || 0));
+    const currentPage = Math.max(1, Number(result.page || state.userPage));
+    state.userPage = currentPage;
+    $('#userPageInfo').textContent = totalPages > 0 ? `第 ${currentPage} / ${totalPages} 页` : `第 ${currentPage} 页`;
+    $('#userPrevBtn').disabled = currentPage <= 1;
+    $('#userNextBtn').disabled = totalPages <= 0 || currentPage >= totalPages;
+    if (!users.length) {
+      $('#userList').innerHTML = '<div class="empty">当前筛选下暂无用户。</div>';
+      return;
+    }
+    $('#userList').innerHTML = users.map((user) => {
+      const type = user.type || 'guest';
+      const typeClass = type === 'administrator' ? 'green' : type === 'banned' ? 'red' : 'yellow';
+      return `<article class="user-item" data-user-id="${escapeHtml(user.id)}">
+        <img class="user-avatar" src="${escapeHtml(user.avatar || '/admin/default.png')}" alt="" onerror="this.onerror=null;this.src='/admin/default.png'" />
+        <div>
+          <div class="comment-head"><strong>${escapeHtml(user.displayName || user.email || '未命名用户')}</strong><span class="tag ${typeClass}">${escapeHtml(type)}</span>${user.label ? `<span class="tag green">${escapeHtml(user.label)}</span>` : ''}</div>
+          <div class="list-meta">${escapeHtml([user.email, user.qq ? `QQ ${user.qq}` : '', user.github ? `GitHub ${user.github}` : '', user.url].filter(Boolean).join(' · '))}</div>
+          <div class="list-meta">创建 ${escapeHtml(relativeTime(user.createdAt))} · 更新 ${escapeHtml(relativeTime(user.updatedAt))}</div>
+        </div>
+        <div class="actions">
+          <button class="btn link" data-user-action="edit">编辑</button>
+          ${type !== 'administrator' ? '<button class="btn link" data-user-action="administrator">设为管理员</button>' : '<button class="btn link" data-user-action="guest">降为访客</button>'}
+          ${type !== 'banned' ? '<button class="btn link danger" data-user-action="banned">禁用</button>' : '<button class="btn link" data-user-action="guest">恢复</button>'}
+        </div>
+      </article>`;
+    }).join('');
+  }
+  async function updateWalineUser(id, action) {
+    const user = asArray(state.walineUsers?.data).find((item) => item.id === id);
+    if (!user) return;
+    let body = {};
+    if (action === 'edit') {
+      const displayName = window.prompt('修改用户昵称', user.displayName || '');
+      if (displayName === null) return;
+      const label = window.prompt('修改用户标签', user.label || '');
+      if (label === null) return;
+      body = { displayName: displayName.trim(), label: label.trim() };
+    } else if (['administrator', 'guest', 'banned'].includes(action)) {
+      if (action === 'banned' && !window.confirm(`确认禁用 ${user.displayName || user.email || '该用户'}？`)) return;
+      body = { type: action };
+    } else {
+      return;
+    }
+    await api(`/api/admin/waline/users/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(body) });
+    await refreshUsers();
+    showMessage('用户信息已更新');
+  }
+  async function exportWalineData() {
+    const data = await api('/api/admin/waline/export');
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `waline-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showMessage('Waline 数据已导出');
+  }
+  async function importWalineData(file) {
+    if (!file) return;
+    if (!window.confirm('导入会追加 Waline 备份数据，请确认文件来自可信来源。继续？')) return;
+    const text = await file.text();
+    const payload = JSON.parse(text);
+    const result = await api('/api/admin/waline/import', { method: 'POST', body: JSON.stringify(payload) });
+    $('#walineImportNotice').textContent = `导入完成：${result.importedTables || 0} 张表，${result.importedRows || 0} 条记录。`;
+    await Promise.all([refreshComments(), refreshManagedComments(), refreshUsers(), refreshOps()]);
+    showMessage('Waline 数据导入完成');
+  }
   function renderComments() {
     renderWalineSummary();
     renderRecentComments();
@@ -1061,6 +1181,24 @@
     });
     document.querySelectorAll('[data-comment-batch]').forEach((button) => {
       button.addEventListener('click', () => batchManagedComments(button.dataset.commentBatch).catch((error) => showMessage(error.message || String(error), true)));
+    });
+    $('#exportWalineBtn').addEventListener('click', () => exportWalineData().catch((error) => showMessage(error.message || String(error), true)));
+    $('#importWalineInput').addEventListener('change', (event) => {
+      importWalineData(event.target.files?.[0]).catch((error) => showMessage(error.message || String(error), true));
+      event.target.value = '';
+    });
+    $('#reloadUsersBtn').addEventListener('click', () => refreshUsers().catch((error) => showMessage(error.message || String(error), true)));
+    $('#searchUsersBtn').addEventListener('click', () => refreshUsers(1).catch((error) => showMessage(error.message || String(error), true)));
+    $('#userKeywordInput').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') refreshUsers(1).catch((error) => showMessage(error.message || String(error), true));
+    });
+    $('#userPrevBtn').addEventListener('click', () => refreshUsers(state.userPage - 1).catch((error) => showMessage(error.message || String(error), true)));
+    $('#userNextBtn').addEventListener('click', () => refreshUsers(state.userPage + 1).catch((error) => showMessage(error.message || String(error), true)));
+    $('#userList').addEventListener('click', (event) => {
+      const action = event.target.closest('[data-user-action]')?.dataset.userAction;
+      const item = event.target.closest('[data-user-id]');
+      if (!action || !item) return;
+      updateWalineUser(item.dataset.userId, action).catch((error) => showMessage(error.message || String(error), true));
     });
     $('.content').addEventListener('click', (event) => {
       const closeArticleDetailButton = event.target.closest('[data-close-article-detail]');

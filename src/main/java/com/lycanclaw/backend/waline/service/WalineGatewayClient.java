@@ -168,6 +168,60 @@ public class WalineGatewayClient {
         return authenticatedRequest("POST", "/api/comment", new LinkedMultiValueMap<>(), body, walineToken);
     }
 
+    /**
+     * 使用管理员 Waline token 查询用户分页原始数据。
+     */
+    public JsonNode fetchAdminUsers(String walineToken, int page, int pageSize, String email) {
+        MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
+        query.add("page", Integer.toString(Math.max(1, page)));
+        query.add("pageSize", Integer.toString(Math.max(1, Math.min(pageSize, 50))));
+        query.add("lang", "zh-CN");
+        if (email != null && !email.isBlank()) {
+            query.add("email", email.trim());
+        }
+        return authenticatedRequest("GET", "/api/user", query, null, walineToken);
+    }
+
+    /**
+     * 使用管理员 Waline token 更新用户资料或用户类型。
+     */
+    public JsonNode updateAdminUser(String walineToken, String userId, JsonNode body) {
+        String path = "/api/user/" + encodeWalineId(userId, "用户 ID 不能为空");
+        return authenticatedRequest("PUT", path, new LinkedMultiValueMap<>(), body, walineToken);
+    }
+
+    /**
+     * 使用管理员 Waline token 禁用指定用户。
+     */
+    public void deleteAdminUser(String walineToken, String userId) {
+        String path = "/api/user/" + encodeWalineId(userId, "用户 ID 不能为空");
+        MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
+        query.add("lang", "zh-CN");
+        authenticatedRequest("DELETE", path, query, null, walineToken);
+    }
+
+    /**
+     * 导出 Waline 数据库快照。
+     */
+    public JsonNode exportDatabase(String walineToken) {
+        MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
+        query.add("lang", "zh-CN");
+        return authenticatedRawRequest("GET", "/api/db", query, null, walineToken);
+    }
+
+    /**
+     * 向指定 Waline 数据表导入一条记录。
+     */
+    public JsonNode importDatabaseRow(String walineToken, String table, JsonNode row) {
+        if (table == null || table.isBlank()) {
+            throw new IllegalArgumentException("导入表名不能为空");
+        }
+        MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
+        query.add("table", table.trim());
+        query.add("lang", "zh-CN");
+        return authenticatedRequest("POST", "/api/db", query, row, walineToken);
+    }
+
     private JsonNode get(String path, MultiValueMap<String, String> query) {
         URI uri = buildUri(path, query);
         HttpRequest request = buildGetRequest(uri).build();
@@ -209,6 +263,31 @@ public class WalineGatewayClient {
             requestBuilder.header("Content-Type", "application/json");
         }
         return unwrapSuccessfulData(send(requestBuilder.method(method, publisher).build()));
+    }
+
+    private JsonNode authenticatedRawRequest(
+            String method,
+            String path,
+            MultiValueMap<String, String> query,
+            JsonNode body,
+            String walineToken
+    ) {
+        if (walineToken == null || walineToken.isBlank()) {
+            throw new IllegalArgumentException("Waline token 不能为空");
+        }
+
+        HttpRequest.BodyPublisher publisher = body == null
+                ? HttpRequest.BodyPublishers.noBody()
+                : HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8);
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(buildUri(path, query))
+                .timeout(Duration.ofSeconds(12))
+                .header("Accept", "application/json")
+                .header("Authorization", "Bearer " + walineToken.trim())
+                .header("User-Agent", "LycanClawBackend/1.0");
+        if (body != null) {
+            requestBuilder.header("Content-Type", "application/json");
+        }
+        return send(requestBuilder.method(method, publisher).build());
     }
 
     private JsonNode send(HttpRequest request) {
@@ -269,6 +348,13 @@ public class WalineGatewayClient {
     private String encodePathSegment(String value) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("评论 ID 不能为空");
+        }
+        return UriUtils.encodePathSegment(value.trim(), StandardCharsets.UTF_8);
+    }
+
+    private String encodeWalineId(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
         }
         return UriUtils.encodePathSegment(value.trim(), StandardCharsets.UTF_8);
     }

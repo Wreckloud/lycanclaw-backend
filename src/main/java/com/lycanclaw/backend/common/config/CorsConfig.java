@@ -20,11 +20,19 @@ public class CorsConfig implements WebMvcConfigurer {
     private String allowedOriginsRaw;
 
     /**
-     * 仅开放 /api/** 的跨域能力，减少非 API 资源暴露面。
+     * 开放前端会直接请求的接口路径。
+     * /waline/** 是评论区的同源代理入口，本地前端与后端端口不同时也需要跨域。
      */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
+                .allowedOrigins(parseAllowedOrigins())
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(false)
+                .maxAge(3600);
+
+        registry.addMapping("/waline/**")
                 .allowedOrigins(parseAllowedOrigins())
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")

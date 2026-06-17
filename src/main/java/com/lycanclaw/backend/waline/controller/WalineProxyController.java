@@ -70,11 +70,15 @@ public class WalineProxyController {
 
               body .typecho-head-nav {
                 position: static !important;
-                width: min(380px, calc(100% - 32px)) !important;
+                width: min(760px, calc(100% - 32px)) !important;
                 margin: min(18vh, 110px) auto 0 !important;
                 padding: 0 !important;
                 background: transparent !important;
                 box-shadow: none !important;
+              }
+
+              body:has(.typecho-login) .typecho-head-nav {
+                width: min(380px, calc(100% - 32px)) !important;
               }
 
               body .waline-header {
@@ -175,6 +179,80 @@ public class WalineProxyController {
                 border: 0 !important;
                 border-radius: 0 !important;
                 box-shadow: none !important;
+              }
+
+              body .typecho-page-main,
+              body .typecho-page-container,
+              body .typecho-profile,
+              body .typecho-option,
+              body .typecho-list-table,
+              body .typecho-table-wrap {
+                width: min(760px, calc(100% - 32px)) !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+                color: var(--lycan-text) !important;
+                background: var(--lycan-surface) !important;
+                border: 0 !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+              }
+
+              body .typecho-page-main,
+              body .typecho-page-container,
+              body .typecho-profile {
+                margin-top: 12px !important;
+                padding: 18px !important;
+              }
+
+              body input,
+              body select,
+              body textarea {
+                color: var(--lycan-text) !important;
+                background: var(--lycan-surface-soft) !important;
+                border: 0 !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                outline: 0 !important;
+              }
+
+              body input:focus,
+              body select:focus,
+              body textarea:focus {
+                background: #202837 !important;
+              }
+
+              body button,
+              body .btn,
+              body input[type="submit"] {
+                color: var(--lycan-text) !important;
+                background: #1b222f !important;
+                border: 0 !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+              }
+
+              body button:hover,
+              body .btn:hover,
+              body input[type="submit"]:hover {
+                color: #d9ffe8 !important;
+                background: rgba(25, 197, 111, .18) !important;
+                transform: none !important;
+              }
+
+              body table,
+              body th,
+              body td {
+                color: var(--lycan-text) !important;
+                background: transparent !important;
+                border-color: #1b222f !important;
+              }
+
+              body a {
+                color: var(--lycan-text) !important;
+              }
+
+              body a:hover {
+                color: var(--lycan-accent) !important;
               }
 
               @media (max-width: 520px) {
@@ -336,10 +414,11 @@ public class WalineProxyController {
                 .replace(baseUrl + "/ui", proxyBase + "/ui");
         rewritten = filterOauthServices(rewritten);
         if (isWalineUiPage(request)) {
-            rewritten = injectBeforeClosingTag(rewritten, "</head>", OAUTH_FILTER_STYLE + OAUTH_FILTER_SCRIPT);
-        }
-        if (isWalineAuthPage(request)) {
-            rewritten = injectBeforeClosingTag(rewritten, "</head>", AUTH_PAGE_STYLE);
+            rewritten = injectBeforeClosingTag(
+                    rewritten,
+                    "</head>",
+                    AUTH_PAGE_STYLE + OAUTH_FILTER_STYLE + OAUTH_FILTER_SCRIPT
+            );
         }
         return rewritten.getBytes(StandardCharsets.UTF_8);
     }
