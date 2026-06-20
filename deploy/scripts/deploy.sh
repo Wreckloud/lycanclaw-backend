@@ -13,6 +13,17 @@ if [[ ! -f "${ENV_FILE}" ]]; then
   exit 1
 fi
 
+CONTENT_DATA_HOST_PATH="$(grep -E '^CONTENT_DATA_HOST_PATH=' "${ENV_FILE}" | tail -n 1 | cut -d= -f2-)"
+if [[ -z "${CONTENT_DATA_HOST_PATH}" ]]; then
+  echo "请在 ${ENV_FILE} 设置 CONTENT_DATA_HOST_PATH。"
+  exit 1
+fi
+for filename in posts.json knowledge-stats.json; do
+  if [[ ! -f "${CONTENT_DATA_HOST_PATH}/${filename}" ]]; then
+    echo "警告：前端尚未发布，共享数据暂缺: ${CONTENT_DATA_HOST_PATH}/${filename}"
+  fi
+done
+
 COMPOSE_ARGS=(-f "${COMPOSE_FILE}" --env-file "${ENV_FILE}")
 
 if [[ "${1:-}" == "--build" ]]; then
@@ -22,3 +33,14 @@ else
 fi
 
 docker compose "${COMPOSE_ARGS[@]}" ps
+
+for _ in {1..30}; do
+  if curl --fail --silent http://127.0.0.1:8080/actuator/health >/dev/null; then
+    echo "后端健康检查通过。"
+    exit 0
+  fi
+  sleep 2
+done
+
+echo "后端健康检查失败，请查看 docker compose logs backend。"
+exit 1

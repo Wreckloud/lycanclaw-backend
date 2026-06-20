@@ -1,0 +1,23 @@
+{
+  "name": "waline-local",
+  "version": "1.0.0",
+  "description": "LycanClaw 本地 Waline 服务",
+  "main": "node_modules/@waline/vercel/index.js",
+  "scripts": {
+    "start": "set DOTENV_CONFIG_PATH=.env.local&& node -r dotenv/config node_modules/@waline/vercel/vanilla.js",
+    "start:dev": "set DOTENV_CONFIG_PATH=.env.local&& node -r dotenv/config node_modules/@waline/vercel/development.js"
+  },
+  "keywords": [
+    "waline",
+    "comment",
+    "lycanclaw"
+  ],
+  "author": "Wreckloud",
+  "license": "MIT",
+  "packageManager": "pnpm@10.11.0",
+  "dependencies": {
+    "@waline/vercel": "1.41.1",
+    "dotenv": "^17.4.2",
+    "mysql2": "^3.22.3"
+  }
+}

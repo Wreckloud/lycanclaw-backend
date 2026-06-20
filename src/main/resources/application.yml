@@ -17,13 +17,17 @@ spring:
     password: ${LYCAN_DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
-    # 本地默认自动更新表结构；生产建议改为 validate 并用 SQL 迁移
+    # 表结构由 Flyway 管理，JPA 只校验实体映射
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: false
     open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
 
 management:
   endpoints:
@@ -43,13 +47,6 @@ springdoc:
     path: /swagger-ui.html
   # 文档默认返回类型
   default-produces-media-type: application/json
-
-knife4j:
-  # Knife4j 文档页开关（访问 /doc.html）
-  enable: true
-  setting:
-    # 文档界面语言
-    language: zh_cn
 
 lycan:
   admin:
@@ -76,6 +73,8 @@ lycan:
     auth-rate-limit-per-minute: 30
     # 公开音乐接口限流（每分钟）
     music-rate-limit-per-minute: 30
+    # 匿名写接口限流（每分钟）
+    public-write-rate-limit-per-minute: 60
     # 会员登录 cookie 请求上游播放 URL 的全局限流（每分钟）
     music-login-url-global-limit-per-minute: 60
     # 管理接口访问日志开关（记录 IP / URI / method / 放行或拒绝）
@@ -87,14 +86,6 @@ lycan:
   analytics:
     # 前端生成的知识笔记统计索引，用于后台文章与主题关注分析
     knowledge-stats-json-path: ${LYCAN_ANALYTICS_KNOWLEDGE_STATS_JSON_PATH:D:/Portfolio/Website/LycanClaw/frontend/docs/public/knowledge-stats.json}
-    # 博客仓库绝对路径（用于读取 git log）
-    repo-path: ${LYCAN_ANALYTICS_REPO_PATH:D:/Portfolio/Website/LycanClaw/frontend}
-    # 统计时区
-    zone-id: Asia/Shanghai
-    # 默认统计天数
-    days: 365
-    # 统计目录，多个目录用英文逗号分隔
-    scope: docs/thoughts,docs/knowledge
     ip-region:
       # ip2region IPv4 XDB 文件路径；留空时仅展示原始 IP
       v4-xdb-path: ${LYCAN_IP2REGION_V4_XDB_PATH:}

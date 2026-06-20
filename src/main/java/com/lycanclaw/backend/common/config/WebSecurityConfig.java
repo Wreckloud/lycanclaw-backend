@@ -3,6 +3,7 @@ package com.lycanclaw.backend.common.config;
 import com.lycanclaw.backend.common.security.AdminAuthInterceptor;
 import com.lycanclaw.backend.common.security.PublicAccessLogInterceptor;
 import com.lycanclaw.backend.common.security.PublicMusicRateLimitInterceptor;
+import com.lycanclaw.backend.common.security.PublicWriteRateLimitInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -18,15 +19,18 @@ public class WebSecurityConfig implements WebMvcConfigurer {
 
     private final AdminAuthInterceptor adminAuthInterceptor;
     private final PublicMusicRateLimitInterceptor publicMusicRateLimitInterceptor;
+    private final PublicWriteRateLimitInterceptor publicWriteRateLimitInterceptor;
     private final PublicAccessLogInterceptor publicAccessLogInterceptor;
 
     public WebSecurityConfig(
             AdminAuthInterceptor adminAuthInterceptor,
             PublicMusicRateLimitInterceptor publicMusicRateLimitInterceptor,
+            PublicWriteRateLimitInterceptor publicWriteRateLimitInterceptor,
             PublicAccessLogInterceptor publicAccessLogInterceptor
     ) {
         this.adminAuthInterceptor = adminAuthInterceptor;
         this.publicMusicRateLimitInterceptor = publicMusicRateLimitInterceptor;
+        this.publicWriteRateLimitInterceptor = publicWriteRateLimitInterceptor;
         this.publicAccessLogInterceptor = publicAccessLogInterceptor;
     }
 
@@ -53,12 +57,20 @@ public class WebSecurityConfig implements WebMvcConfigurer {
                         "/api/music/flow/**"      // 播放流接口
                 );
 
+        registry.addInterceptor(publicWriteRateLimitInterceptor)
+                .addPathPatterns(
+                        "/api/stats/pageview",
+                        "/api/analytics/visit/**",
+                        "/api/analytics/identity/**",
+                        "/api/encouragement/**",
+                        "/api/music/analytics/**"
+                );
+
         registry.addInterceptor(publicAccessLogInterceptor)
                 .addPathPatterns(
                         "/api/comments/**",
                         "/api/stats/**",
                         "/api/recommendations/**",
-                        "/api/contributions/**",
                         "/api/analytics/**",
                         "/api/encouragement/**",
                         "/api/music/**"

@@ -1,0 +1,8 @@
+[Unit]
+Description=LycanClaw database and backend data backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/lycanclaw/backend/deploy/scripts/backup.sh

@@ -15,7 +15,8 @@ public enum ErrorCode {
     ADMIN_RATE_LIMITED("ADMIN_RATE_LIMITED", "请求频率过高，请稍后再试"),
     ADMIN_TOKEN_INVALID("ADMIN_TOKEN_INVALID", "管理员凭证无效或已过期"),
 
-    MUSIC_RATE_LIMITED("MUSIC_RATE_LIMITED", "音乐接口请求过于频繁，请稍后再试");
+    MUSIC_RATE_LIMITED("MUSIC_RATE_LIMITED", "音乐接口请求过于频繁，请稍后再试"),
+    PUBLIC_WRITE_RATE_LIMITED("PUBLIC_WRITE_RATE_LIMITED", "提交过于频繁，请稍后再试");
 
     private final String code;
     private final String defaultMessage;

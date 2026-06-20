@@ -89,7 +89,7 @@ public class OpsCheckService {
                 Map.of(
                         "title", "推荐列表为空",
                         "cause", "posts.json 路径异常，或推荐聚合任务尚未成功生成快照",
-                        "suggestion", "确认 POSTS_JSON_HOST_PATH 后手动触发一次推荐聚合"
+                        "suggestion", "确认共享目录中的 posts.json 已由前端发布，然后手动触发一次推荐聚合"
                 ),
                 Map.of(
                         "title", "音乐接口失败",

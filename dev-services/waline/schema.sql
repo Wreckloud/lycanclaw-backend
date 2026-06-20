@@ -1,0 +1,59 @@
+CREATE TABLE IF NOT EXISTS `wl_Users` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `email` VARCHAR(255) NULL,
+  `password` VARCHAR(255) NULL,
+  `display_name` VARCHAR(255) NULL,
+  `type` VARCHAR(64) NULL,
+  `url` VARCHAR(512) NULL,
+  `avatar` VARCHAR(1024) NULL,
+  `label` VARCHAR(255) NULL,
+  `github` VARCHAR(255) NULL,
+  `twitter` VARCHAR(255) NULL,
+  `facebook` VARCHAR(255) NULL,
+  `google` VARCHAR(255) NULL,
+  `weibo` VARCHAR(255) NULL,
+  `qq` VARCHAR(255) NULL,
+  `2fa` VARCHAR(255) NULL,
+  `createdAt` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_users_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `wl_Comment` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `user_id` VARCHAR(64) NULL,
+  `nick` VARCHAR(255) NULL,
+  `mail` VARCHAR(255) NULL,
+  `link` VARCHAR(512) NULL,
+  `comment` LONGTEXT NULL,
+  `url` VARCHAR(1024) NULL,
+  `pid` VARCHAR(64) NULL,
+  `rid` VARCHAR(64) NULL,
+  `ua` VARCHAR(512) NULL,
+  `ip` VARCHAR(128) NULL,
+  `addr` VARCHAR(255) NULL,
+  `browser` VARCHAR(128) NULL,
+  `os` VARCHAR(128) NULL,
+  `avatar` VARCHAR(1024) NULL,
+  `status` VARCHAR(32) NULL,
+  `sticky` TINYINT(1) NULL DEFAULT 0,
+  `like` INT NULL DEFAULT 0,
+  `insertedAt` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  `createdAt` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_comment_url` (`url`(255)),
+  KEY `idx_comment_status` (`status`),
+  KEY `idx_comment_inserted` (`insertedAt`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `wl_Counter` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `url` VARCHAR(1024) NOT NULL,
+  `time` INT NULL DEFAULT 0,
+  `createdAt` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_counter_url` (`url`(255))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

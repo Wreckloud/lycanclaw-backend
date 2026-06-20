@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || ! "$1" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "用法: activate-frontend <40位提交哈希>"
+  exit 1
+fi
+
+RELEASE_ID="$1"
+FRONTEND_ROOT="/srv/lycanclaw/frontend"
+RELEASE_DIR="${FRONTEND_ROOT}/releases/${RELEASE_ID}"
+SHARED_DIR="/srv/lycanclaw/shared"
+
+for filename in index.html posts.json knowledge-stats.json contribution-stats.json; do
+  if [[ ! -f "${RELEASE_DIR}/${filename}" ]]; then
+    echo "发布文件缺失: ${RELEASE_DIR}/${filename}"
+    exit 1
+  fi
+done
+
+mkdir -p "${SHARED_DIR}"
+for filename in posts.json knowledge-stats.json; do
+  install -m 0644 "${RELEASE_DIR}/${filename}" "${SHARED_DIR}/.${filename}.${RELEASE_ID}"
+  mv -f "${SHARED_DIR}/.${filename}.${RELEASE_ID}" "${SHARED_DIR}/${filename}"
+done
+
+ln -sfn "releases/${RELEASE_ID}" "${FRONTEND_ROOT}/.current-${RELEASE_ID}"
+mv -Tf "${FRONTEND_ROOT}/.current-${RELEASE_ID}" "${FRONTEND_ROOT}/current"
+
+cd "${FRONTEND_ROOT}/releases"
+mapfile -t old_releases < <(ls -1dt -- */ 2>/dev/null | tail -n +4 || true)
+if (( ${#old_releases[@]} > 0 )); then
+  rm -rf -- "${old_releases[@]}"
+fi
+
+echo "前端版本已启用: ${RELEASE_ID}"

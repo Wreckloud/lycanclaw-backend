@@ -1,0 +1,17 @@
+{
+  "name": "music-upstream",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node node_modules/NeteaseCloudMusicApi/app.js",
+    "dev": "node node_modules/NeteaseCloudMusicApi/app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.11.0",
+  "dependencies": {
+    "NeteaseCloudMusicApi": "4.32.0"
+  }
+}
