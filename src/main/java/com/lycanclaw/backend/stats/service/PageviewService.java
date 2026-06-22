@@ -13,22 +13,22 @@ import org.springframework.stereotype.Service;
 public class PageviewService {
 
     private final WalineGatewayClient walineGatewayClient;
+    private final ArticleMetricService articleMetricService;
 
-    public PageviewService(WalineGatewayClient walineGatewayClient) {
+    public PageviewService(
+            WalineGatewayClient walineGatewayClient,
+            ArticleMetricService articleMetricService
+    ) {
         this.walineGatewayClient = walineGatewayClient;
-    }
-
-    /**
-     * 查询指定文章路径的阅读量。
-     */
-    public int getPageview(String path) {
-        return walineGatewayClient.fetchPageview(path);
+        this.articleMetricService = articleMetricService;
     }
 
     /**
      * 增加指定文章路径的阅读量。
      */
     public int updatePageview(String path) {
-        return walineGatewayClient.increasePageview(path);
+        int pageviewCount = walineGatewayClient.increasePageview(path);
+        articleMetricService.updatePageview(path, pageviewCount);
+        return pageviewCount;
     }
 }

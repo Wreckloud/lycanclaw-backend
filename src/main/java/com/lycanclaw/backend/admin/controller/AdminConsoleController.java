@@ -1,9 +1,9 @@
 package com.lycanclaw.backend.admin.controller;
 
 import com.lycanclaw.backend.admin.service.AdminDashboardService;
+import com.lycanclaw.backend.admin.service.AdminOperationalConfigService;
 import com.lycanclaw.backend.common.api.ApiResponse;
 import com.lycanclaw.backend.common.time.AppTimeProvider;
-import com.lycanclaw.backend.runtimeconfig.service.RuntimeConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,16 +24,16 @@ import java.util.Map;
 public class AdminConsoleController {
 
     private final AdminDashboardService adminDashboardService;
-    private final RuntimeConfigService runtimeConfigService;
+    private final AdminOperationalConfigService operationalConfigService;
     private final AppTimeProvider appTimeProvider;
 
     public AdminConsoleController(
             AdminDashboardService adminDashboardService,
-            RuntimeConfigService runtimeConfigService,
+            AdminOperationalConfigService operationalConfigService,
             AppTimeProvider appTimeProvider
     ) {
         this.adminDashboardService = adminDashboardService;
-        this.runtimeConfigService = runtimeConfigService;
+        this.operationalConfigService = operationalConfigService;
         this.appTimeProvider = appTimeProvider;
     }
 
@@ -43,7 +43,7 @@ public class AdminConsoleController {
         return ApiResponse.ok(Map.of(
                 "checkedAt", appTimeProvider.nowOffsetString(),
                 "dashboard", adminDashboardService.buildSummary(),
-                "runtimeConfig", runtimeConfigService.view()
+                "operationalConfig", operationalConfigService.view()
         ));
     }
 }

@@ -16,7 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
         "spring.datasource.password=",
         "spring.flyway.enabled=false",
         "spring.jpa.hibernate.ddl-auto=create-drop",
-        "lycan.recommendation.startup-warmup-enabled=false"
+        "lycan.article-metrics.startup-sync-enabled=false"
 })
 class LycanClawBackendApplicationTests {
 

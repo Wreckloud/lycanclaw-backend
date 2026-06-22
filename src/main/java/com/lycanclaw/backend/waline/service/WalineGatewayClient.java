@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lycanclaw.backend.common.exception.UpstreamServiceException;
+import com.lycanclaw.backend.common.path.WebPathNormalizer;
 import com.lycanclaw.backend.waline.config.WalineProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
@@ -341,8 +342,7 @@ public class WalineGatewayClient {
         if (path == null || path.isBlank()) {
             throw new IllegalArgumentException("path 参数不能为空");
         }
-        String trimmed = path.trim();
-        return trimmed.startsWith("/") ? trimmed : "/" + trimmed;
+        return WebPathNormalizer.normalize(path);
     }
 
     private String encodePathSegment(String value) {

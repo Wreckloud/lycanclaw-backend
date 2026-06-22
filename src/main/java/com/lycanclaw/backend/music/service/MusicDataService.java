@@ -7,7 +7,7 @@ import com.lycanclaw.backend.music.dto.MusicLyricLineDto;
 import com.lycanclaw.backend.music.dto.MusicTrackDto;
 import com.lycanclaw.backend.music.dto.MusicTrackLyricDto;
 import com.lycanclaw.backend.music.model.MusicQualityLevel;
-import com.lycanclaw.backend.runtimeconfig.service.RuntimeConfigService;
+import com.lycanclaw.backend.music.config.MusicProperties;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -44,7 +44,7 @@ public class MusicDataService {
     private final MusicAuthSessionService sessionService;
     private final JsonNodeExtractors jsonNodeExtractors;
     private final InMemorySlidingWindowRateLimiter rateLimiter;
-    private final RuntimeConfigService runtimeConfigService;
+    private final MusicProperties musicProperties;
     private final Map<String, CacheEntry<SongDetail>> songDetailCache = new ConcurrentHashMap<>();
     private final Map<String, CacheEntry<TrackUrlResolveResult>> resolvedTrackUrlCache = new ConcurrentHashMap<>();
     private final Map<String, CacheEntry<MusicTrackLyricDto>> lyricCache = new ConcurrentHashMap<>();
@@ -54,13 +54,13 @@ public class MusicDataService {
             MusicAuthSessionService sessionService,
             JsonNodeExtractors jsonNodeExtractors,
             InMemorySlidingWindowRateLimiter rateLimiter,
-            RuntimeConfigService runtimeConfigService
+            MusicProperties musicProperties
     ) {
         this.upstreamClient = upstreamClient;
         this.sessionService = sessionService;
         this.jsonNodeExtractors = jsonNodeExtractors;
         this.rateLimiter = rateLimiter;
-        this.runtimeConfigService = runtimeConfigService;
+        this.musicProperties = musicProperties;
     }
 
     /**
@@ -273,7 +273,7 @@ public class MusicDataService {
     }
 
     private String resolvePlaylistOwnerUid() {
-        String playlistOwnerUid = runtimeConfigService.playlistOwnerUid();
+        String playlistOwnerUid = musicProperties.getPlaylistOwnerUid();
         if (playlistOwnerUid != null && !playlistOwnerUid.isBlank()) {
             return playlistOwnerUid;
         }
@@ -488,7 +488,7 @@ public class MusicDataService {
     }
 
     private String normalizeLevel(String level) {
-        MusicQualityLevel configuredDefault = MusicQualityLevel.parseOrDefault(runtimeConfigService.preferredLevel(), MusicQualityLevel.EXHIGH);
+        MusicQualityLevel configuredDefault = MusicQualityLevel.parseOrDefault(musicProperties.getPreferredLevel(), MusicQualityLevel.EXHIGH);
         if (level == null || level.isBlank()) {
             return configuredDefault.value();
         }

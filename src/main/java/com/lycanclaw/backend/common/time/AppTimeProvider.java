@@ -23,10 +23,18 @@ public class AppTimeProvider {
     }
 
     public String nowOffsetString() {
-        return OffsetDateTime.now(zoneId).toString();
+        return nowOffsetDateTime().toString();
+    }
+
+    public OffsetDateTime nowOffsetDateTime() {
+        return OffsetDateTime.now(zoneId);
     }
 
     public String toOffsetString(Instant instant) {
         return instant == null ? "" : instant.atZone(zoneId).toOffsetDateTime().toString();
+    }
+
+    public String toOffsetString(OffsetDateTime dateTime) {
+        return dateTime == null ? "" : dateTime.toString();
     }
 }

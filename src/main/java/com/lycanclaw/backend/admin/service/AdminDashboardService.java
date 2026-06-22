@@ -13,7 +13,7 @@ import com.lycanclaw.backend.common.time.AppTimeProvider;
 import com.lycanclaw.backend.music.dto.MusicLoginStatusDto;
 import com.lycanclaw.backend.music.service.MusicAuthService;
 import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
-import com.lycanclaw.backend.recommendation.service.RecommendationManualConfigService;
+import com.lycanclaw.backend.recommendation.service.RecommendationService;
 import com.lycanclaw.backend.tag.service.TagService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +35,7 @@ public class AdminDashboardService {
     private static final Logger log = LoggerFactory.getLogger(AdminDashboardService.class);
 
     private final MusicAuthService musicAuthService;
-    private final RecommendationManualConfigService recommendationManualConfigService;
+    private final RecommendationService recommendationService;
     private final TagService tagService;
     private final CommentService commentService;
     private final OpsCheckService opsCheckService;
@@ -51,7 +51,7 @@ public class AdminDashboardService {
 
     public AdminDashboardService(
             MusicAuthService musicAuthService,
-            RecommendationManualConfigService recommendationManualConfigService,
+            RecommendationService recommendationService,
             TagService tagService,
             CommentService commentService,
             OpsCheckService opsCheckService,
@@ -60,7 +60,7 @@ public class AdminDashboardService {
             AppTimeProvider appTimeProvider
     ) {
         this.musicAuthService = musicAuthService;
-        this.recommendationManualConfigService = recommendationManualConfigService;
+        this.recommendationService = recommendationService;
         this.tagService = tagService;
         this.commentService = commentService;
         this.opsCheckService = opsCheckService;
@@ -115,7 +115,7 @@ public class AdminDashboardService {
      */
     private AdminGovernanceSummaryDto governanceSection(Map<String, Object> syncStatus) {
         try {
-            RecommendationManualConfigDto config = recommendationManualConfigService.read();
+            RecommendationManualConfigDto config = recommendationService.getManualConfig();
             Map<String, Object> tagSummary = tagService.summary();
             int tagCount = toInt(tagSummary.get("tagCount"));
             int thoughtPostCount = toInt(tagSummary.get("thoughtPostCount"));

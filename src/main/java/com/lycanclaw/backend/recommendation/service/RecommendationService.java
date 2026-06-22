@@ -1,11 +1,14 @@
 package com.lycanclaw.backend.recommendation.service;
 
+import com.lycanclaw.backend.content.service.ArticleCatalogService;
+import com.lycanclaw.backend.common.path.WebPathNormalizer;
 import com.lycanclaw.backend.recommendation.config.RecommendationProperties;
-import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
 import com.lycanclaw.backend.recommendation.dto.RecommendationCandidatePageDto;
+import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
 import com.lycanclaw.backend.recommendation.dto.RecommendationPostDto;
-import com.lycanclaw.backend.recommendation.entity.RecommendationMetricEntity;
-import com.lycanclaw.backend.runtimeconfig.service.RuntimeConfigService;
+import com.lycanclaw.backend.stats.entity.ArticleMetricEntity;
+import com.lycanclaw.backend.stats.service.ArticleMetricService;
+import com.lycanclaw.backend.stats.service.ArticleMetricSyncService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -24,144 +27,109 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * 推荐计算服务。
- * 组合手动推荐与聚合热度快照，向前台输出推荐阅读列表。
- * @author Wreckloud
- * @since 2026-05-15
- */
 @Service
 public class RecommendationService {
 
-    private final RecommendationSourceService sourceService;
-    private final RecommendationManualConfigService manualConfigService;
-    private final RecommendationAggregationService aggregationService;
+    private final ArticleCatalogService articleCatalogService;
+    private final ArticleMetricService articleMetricService;
+    private final ArticleMetricSyncService articleMetricSyncService;
+    private final RecommendationRuleService recommendationRuleService;
     private final RecommendationProperties properties;
-    private final RuntimeConfigService runtimeConfigService;
 
     public RecommendationService(
-            RecommendationSourceService sourceService,
-            RecommendationManualConfigService manualConfigService,
-            RecommendationAggregationService aggregationService,
-            RecommendationProperties properties,
-            RuntimeConfigService runtimeConfigService
+            ArticleCatalogService articleCatalogService,
+            ArticleMetricService articleMetricService,
+            ArticleMetricSyncService articleMetricSyncService,
+            RecommendationRuleService recommendationRuleService,
+            RecommendationProperties properties
     ) {
-        this.sourceService = sourceService;
-        this.manualConfigService = manualConfigService;
-        this.aggregationService = aggregationService;
+        this.articleCatalogService = articleCatalogService;
+        this.articleMetricService = articleMetricService;
+        this.articleMetricSyncService = articleMetricSyncService;
+        this.recommendationRuleService = recommendationRuleService;
         this.properties = properties;
-        this.runtimeConfigService = runtimeConfigService;
     }
 
-    /**
-     * 获取推荐结果：手动置顶优先，剩余位置按热门分补齐。
-     */
     public List<RecommendationPostDto> listRecommendations(String excludePath, int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 20));
-        String normalizedExcludePath = normalizeUrl(excludePath);
-
-        RecommendationManualConfigDto manualConfig = manualConfigService.read();
-        Set<String> excludedUrls = new HashSet<>(manualConfig.excludedUrls());
-        List<RecommendationPostDto> hotPosts = buildHotPostsFromMetrics();
-        Map<String, RecommendationSourceService.RecommendationCandidate> candidateByUrl = sourceService.loadAllCandidates().stream()
+        String normalizedExcludePath = normalizePath(excludePath);
+        List<ArticleCatalogService.ArticleCatalogItem> allArticles = articleCatalogService.loadPublishedThoughts();
+        List<ArticleCatalogService.ArticleCatalogItem> automaticCandidates = allArticles.stream()
+                .limit(Math.max(1, properties.getMaxCandidatePosts()))
+                .toList();
+        Map<String, ArticleCatalogService.ArticleCatalogItem> catalogByPath = allArticles.stream()
                 .collect(Collectors.toMap(
-                        RecommendationSourceService.RecommendationCandidate::url,
-                        candidate -> candidate,
-                        (left, right) -> left
+                        ArticleCatalogService.ArticleCatalogItem::path,
+                        item -> item,
+                        (left, right) -> left,
+                        LinkedHashMap::new
                 ));
-
-        Map<String, RecommendationPostDto> byUrl = hotPosts.stream()
-                .collect(Collectors.toMap(RecommendationPostDto::url, post -> post, (left, right) -> left));
-
+        Map<String, ArticleMetricEntity> metrics = articleMetricService.loadEntities(
+                allArticles.stream().map(ArticleCatalogService.ArticleCatalogItem::path).toList()
+        );
+        RecommendationManualConfigDto rules = recommendationRuleService.read();
+        Set<String> excluded = new HashSet<>(rules.excludedUrls());
         List<RecommendationPostDto> result = new ArrayList<>();
         Set<String> seen = new HashSet<>();
 
-        for (String manualUrl : manualConfig.manualUrls()) {
-            if (manualUrl.equals(normalizedExcludePath)) {
+        for (String path : rules.manualUrls()) {
+            ArticleCatalogService.ArticleCatalogItem item = catalogByPath.get(path);
+            if (item == null || path.equals(normalizedExcludePath) || !seen.add(path)) {
                 continue;
             }
-            RecommendationPostDto post = byUrl.get(manualUrl);
-            if (post == null) {
-                RecommendationSourceService.RecommendationCandidate candidate = candidateByUrl.get(manualUrl);
-                if (candidate != null) {
-                    post = buildRecommendation(candidate, null);
-                } else {
-                    post = buildManualFallback(manualUrl);
-                }
-            }
-            if (seen.contains(post.url())) {
-                continue;
-            }
-            result.add(toManualPinned(post));
-            seen.add(post.url());
+            result.add(toRecommendation(item, metrics.get(path), true));
             if (result.size() >= safeLimit) {
                 return result;
             }
         }
 
-        for (RecommendationPostDto post : hotPosts) {
+        List<RecommendationPostDto> automatic = automaticCandidates.stream()
+                .map(item -> toRecommendation(item, metrics.get(item.path()), false))
+                .sorted(Comparator
+                        .comparingDouble(RecommendationPostDto::hotScore).reversed()
+                        .thenComparing(Comparator.comparingLong(
+                                (RecommendationPostDto post) -> parseDateEpoch(post.date())
+                        ).reversed()))
+                .toList();
+        for (RecommendationPostDto post : automatic) {
             if (post.url().equals(normalizedExcludePath)
-                    || seen.contains(post.url())
-                    || excludedUrls.contains(post.url())) {
+                    || excluded.contains(post.url())
+                    || !seen.add(post.url())) {
                 continue;
             }
             result.add(post);
-            seen.add(post.url());
             if (result.size() >= safeLimit) {
                 break;
             }
         }
-
         return result;
     }
 
-    /**
-     * 读取手动推荐配置。
-     */
     public RecommendationManualConfigDto getManualConfig() {
-        return manualConfigService.read();
+        return recommendationRuleService.read();
     }
 
-    /**
-     * 更新手动推荐配置。
-     */
     public RecommendationManualConfigDto updateManualConfig(List<String> manualUrls, List<String> excludedUrls) {
-        return manualConfigService.update(manualUrls, excludedUrls);
+        return recommendationRuleService.update(manualUrls, excludedUrls);
     }
 
-    /**
-     * 获取管理端候选文章列表（按发布时间倒序）。
-     */
-    public List<RecommendationPostDto> listCandidates(int limit) {
-        int safeLimit = Math.max(1, Math.min(limit, runtimeConfigService.maxCandidatePosts()));
-
-        List<RecommendationSourceService.RecommendationCandidate> candidates = sourceService.loadCandidates().stream()
-                .sorted(Comparator
-                        .comparingLong((RecommendationSourceService.RecommendationCandidate candidate) -> parseDateEpoch(candidate.date()))
-                        .reversed()
-                        .thenComparing(RecommendationSourceService.RecommendationCandidate::title, String.CASE_INSENSITIVE_ORDER))
-                .toList();
-
-        Map<String, RecommendationMetricEntity> metricsByUrl = aggregationService.loadMetricsByUrls(
-                candidates.stream().map(RecommendationSourceService.RecommendationCandidate::url).toList()
-        );
-
-        return candidates.stream()
-                .map(candidate -> buildRecommendation(candidate, metricsByUrl.get(candidate.url())))
-                .limit(safeLimit)
-                .toList();
-    }
-
-    /**
-     * 按标题关键词和分页条件返回管理端候选文章。
-     */
     public RecommendationCandidatePageDto listCandidates(String keyword, int page, int pageSize) {
         String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
         int safePageSize = Math.max(1, Math.min(pageSize, 50));
-        List<RecommendationPostDto> candidates = listCandidates(runtimeConfigService.maxCandidatePosts()).stream()
+        List<ArticleCatalogService.ArticleCatalogItem> articles = articleCatalogService.loadPublishedThoughts().stream()
+                .limit(Math.max(1, properties.getMaxCandidatePosts()))
+                .toList();
+        Map<String, ArticleMetricEntity> metrics = articleMetricService.loadEntities(
+                articles.stream().map(ArticleCatalogService.ArticleCatalogItem::path).toList()
+        );
+        List<RecommendationPostDto> candidates = articles.stream()
+                .map(item -> toRecommendation(item, metrics.get(item.path()), false))
                 .filter(item -> normalizedKeyword.isBlank()
                         || item.title().toLowerCase(Locale.ROOT).contains(normalizedKeyword)
                         || item.url().toLowerCase(Locale.ROOT).contains(normalizedKeyword))
+                .sorted(Comparator
+                        .comparingLong((RecommendationPostDto item) -> parseDateEpoch(item.date())).reversed()
+                        .thenComparing(RecommendationPostDto::title, String.CASE_INSENSITIVE_ORDER))
                 .toList();
         int totalPages = Math.max(1, (int) Math.ceil(candidates.size() / (double) safePageSize));
         int safePage = Math.max(1, Math.min(page, totalPages));
@@ -176,107 +144,45 @@ public class RecommendationService {
         );
     }
 
-    /**
-     * 手动触发推荐聚合任务，异步执行并立即返回受理状态。
-     */
     public Map<String, Object> forceRebuildCache() {
-        return aggregationService.triggerAsyncAggregation("manual");
+        return articleMetricSyncService.triggerAsyncSync("manual");
     }
 
-    /**
-     * 返回当前推荐聚合快照状态，供管理端展示。
-     */
     public Map<String, Object> cacheState() {
-        Map<String, Object> aggregation = aggregationService.snapshotState();
-
-        Map<String, Object> payload = new LinkedHashMap<>(aggregation);
-        payload.put("hasCache", asBoolean(aggregation.get("hasSnapshot")));
-        payload.put("size", asInt(aggregation.get("metricsCount")));
-        payload.put("ttlSeconds", runtimeConfigService.snapshotFreshSeconds());
+        Map<String, Object> payload = new LinkedHashMap<>(articleMetricSyncService.snapshotState());
+        payload.put("maxCandidatePosts", properties.getMaxCandidatePosts());
+        payload.put("pageviewWeight", properties.getScore().getPageviewWeight());
+        payload.put("commentWeight", properties.getScore().getCommentWeight());
         return payload;
     }
 
-    private List<RecommendationPostDto> buildHotPostsFromMetrics() {
-        List<RecommendationSourceService.RecommendationCandidate> candidates = sourceService.loadCandidates();
-        Map<String, RecommendationMetricEntity> metricsByUrl = aggregationService.loadMetricsByUrls(
-                candidates.stream().map(RecommendationSourceService.RecommendationCandidate::url).toList()
-        );
-
-        List<RecommendationPostDto> posts = new ArrayList<>(candidates.size());
-        for (RecommendationSourceService.RecommendationCandidate candidate : candidates) {
-            posts.add(buildRecommendation(candidate, metricsByUrl.get(candidate.url())));
-        }
-
-        posts.sort(
-                Comparator.comparingDouble(RecommendationPostDto::hotScore).reversed()
-                        .thenComparing(Comparator.comparingLong(
-                                (RecommendationPostDto post) -> parseDateEpoch(post.date())
-                        ).reversed())
-        );
-        return posts;
-    }
-
-    private RecommendationPostDto toManualPinned(RecommendationPostDto post) {
-        return new RecommendationPostDto(
-                post.url(),
-                post.title(),
-                post.description(),
-                post.date(),
-                post.tags(),
-                post.pageviewCount(),
-                post.commentCount(),
-                post.hotScore(),
-                true
-        );
-    }
-
-    private RecommendationPostDto buildRecommendation(
-            RecommendationSourceService.RecommendationCandidate candidate,
-            RecommendationMetricEntity metric
+    private RecommendationPostDto toRecommendation(
+            ArticleCatalogService.ArticleCatalogItem item,
+            ArticleMetricEntity metric,
+            boolean manualPinned
     ) {
         int pageviewCount = metric == null ? 0 : Math.max(0, metric.getPageviewCount());
         int commentCount = metric == null ? 0 : Math.max(0, metric.getCommentCount());
-        double hotScore = metric == null ? 0.0D : metric.getHotScore();
-
+        double hotScore = pageviewCount * properties.getScore().getPageviewWeight()
+                + commentCount * properties.getScore().getCommentWeight();
         return new RecommendationPostDto(
-                candidate.url(),
-                candidate.title(),
-                candidate.description(),
-                candidate.date(),
-                candidate.tags(),
+                item.path(),
+                item.title(),
+                item.description(),
+                item.date(),
+                item.tags(),
                 pageviewCount,
                 commentCount,
-                hotScore,
-                false
+                Math.round(hotScore * 100.0D) / 100.0D,
+                manualPinned
         );
     }
 
-    private RecommendationPostDto buildManualFallback(String url) {
-        String decoded = java.net.URLDecoder.decode(url, java.nio.charset.StandardCharsets.UTF_8);
-        int slash = decoded.lastIndexOf('/');
-        String filename = slash >= 0 ? decoded.substring(slash + 1) : decoded;
-        String title = filename.endsWith(".html")
-                ? filename.substring(0, filename.length() - ".html".length())
-                : filename;
-        return new RecommendationPostDto(
-                url,
-                title.isBlank() ? "未命名文章" : title,
-                "",
-                "",
-                List.of(),
-                0,
-                0,
-                0,
-                false
-        );
-    }
-
-    private String normalizeUrl(String value) {
+    private String normalizePath(String value) {
         if (value == null || value.isBlank()) {
             return "";
         }
-        String trimmed = value.trim();
-        return trimmed.startsWith("/") ? trimmed : "/" + trimmed;
+        return WebPathNormalizer.normalize(value);
     }
 
     private long parseDateEpoch(String value) {
@@ -287,31 +193,20 @@ public class RecommendationService {
         try {
             return OffsetDateTime.parse(trimmed).toInstant().toEpochMilli();
         } catch (DateTimeParseException ignored) {
-            // try next parser
         }
         try {
             return LocalDateTime.parse(trimmed).toInstant(ZoneOffset.ofHours(8)).toEpochMilli();
         } catch (DateTimeParseException ignored) {
-            // try next parser
         }
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
             return LocalDateTime.parse(trimmed, formatter).toInstant(ZoneOffset.ofHours(8)).toEpochMilli();
         } catch (DateTimeParseException ignored) {
-            // try next parser
         }
         try {
             return LocalDate.parse(trimmed).atStartOfDay().toInstant(ZoneOffset.ofHours(8)).toEpochMilli();
         } catch (DateTimeParseException ignored) {
             return 0L;
         }
-    }
-
-    private boolean asBoolean(Object value) {
-        return value instanceof Boolean b && b;
-    }
-
-    private int asInt(Object value) {
-        return value instanceof Number number ? number.intValue() : 0;
     }
 }

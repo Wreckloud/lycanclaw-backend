@@ -24,8 +24,8 @@ import com.lycanclaw.backend.analytics.repository.AnalyticsVisitRepository;
 import com.lycanclaw.backend.analytics.repository.AnalyticsVisitorIdentityRepository;
 import com.lycanclaw.backend.analytics.repository.EncouragementEventRepository;
 import com.lycanclaw.backend.analytics.repository.MusicListenSessionRepository;
-import com.lycanclaw.backend.recommendation.entity.RecommendationMetricEntity;
-import com.lycanclaw.backend.recommendation.service.RecommendationAggregationService;
+import com.lycanclaw.backend.stats.entity.ArticleMetricEntity;
+import com.lycanclaw.backend.stats.service.ArticleMetricService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -68,7 +68,7 @@ public class AdminAnalyticsService {
     private final AnalyticsPathPolicy pathPolicy;
     private final IpRegionService ipRegionService;
     private final VisitorIdentityService visitorIdentityService;
-    private final RecommendationAggregationService recommendationAggregationService;
+    private final ArticleMetricService articleMetricService;
     private final ZoneId zoneId;
 
     public AdminAnalyticsService(
@@ -80,7 +80,7 @@ public class AdminAnalyticsService {
             AnalyticsPathPolicy pathPolicy,
             IpRegionService ipRegionService,
             VisitorIdentityService visitorIdentityService,
-            RecommendationAggregationService recommendationAggregationService,
+            ArticleMetricService articleMetricService,
             @Value("${lycan.system.zone-id:Asia/Shanghai}") String zoneId
     ) {
         this.visitRepository = visitRepository;
@@ -91,7 +91,7 @@ public class AdminAnalyticsService {
         this.pathPolicy = pathPolicy;
         this.ipRegionService = ipRegionService;
         this.visitorIdentityService = visitorIdentityService;
-        this.recommendationAggregationService = recommendationAggregationService;
+        this.articleMetricService = articleMetricService;
         this.zoneId = ZoneId.of(zoneId);
     }
 
@@ -365,7 +365,7 @@ public class AdminAnalyticsService {
             }
         }
         long denominator = Math.max(1, articleVisitCount);
-        Map<String, RecommendationMetricEntity> metrics = recommendationAggregationService.loadMetricsByUrls(
+        Map<String, ArticleMetricEntity> metrics = articleMetricService.loadEntities(
                 new ArrayList<>(byPath.keySet())
         );
         return byPath.values().stream()
@@ -565,7 +565,7 @@ public class AdminAnalyticsService {
     private AnalyticsArticleMetricDto toArticleMetric(
             ArticleAccumulator item,
             long totalArticleVisits,
-            RecommendationMetricEntity metric
+            ArticleMetricEntity metric
     ) {
         long repeatVisitors = item.visitorVisits.values().stream().filter(count -> count > 1).count();
         int comments = metric == null ? 0 : Math.max(0, metric.getCommentCount());

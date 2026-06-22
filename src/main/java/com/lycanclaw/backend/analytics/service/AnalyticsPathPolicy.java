@@ -1,9 +1,7 @@
 package com.lycanclaw.backend.analytics.service;
 
+import com.lycanclaw.backend.common.path.WebPathNormalizer;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.UriUtils;
-
-import java.nio.charset.StandardCharsets;
 
 /**
  * 统计路径策略。
@@ -15,27 +13,7 @@ import java.nio.charset.StandardCharsets;
 public class AnalyticsPathPolicy {
 
     public String normalizePath(String value) {
-        if (value == null || value.isBlank()) {
-            return "/";
-        }
-        String normalized = value.trim();
-        int hashIndex = normalized.indexOf('#');
-        if (hashIndex >= 0) {
-            normalized = normalized.substring(0, hashIndex);
-        }
-        int queryIndex = normalized.indexOf('?');
-        if (queryIndex >= 0) {
-            normalized = normalized.substring(0, queryIndex);
-        }
-        if (!normalized.startsWith("/")) {
-            normalized = "/" + normalized;
-        }
-        try {
-            normalized = UriUtils.decode(normalized, StandardCharsets.UTF_8);
-        } catch (IllegalArgumentException ignored) {
-            // 非法转义路径保留原值，避免统计接口因单个坏 URL 中断。
-        }
-        return normalized.isBlank() ? "/" : normalized;
+        return WebPathNormalizer.normalize(value);
     }
 
     public boolean isTrackable(String path) {

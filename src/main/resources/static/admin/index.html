@@ -223,7 +223,7 @@
       </section>
       <section class="section" id="section-music">
         <div class="section-head"><div><h2>音乐</h2><p>网易云扫码登录、账号状态与播放流配置。</p></div></div>
-        <div class="grid aside music-grid"><div class="card"><div class="card-title"><h3>网易云扫码登录</h3><small id="musicStatusBadge">未检查</small></div><div class="qr-card" id="qrCard"><div class="qr-box"><img id="qrImg" alt="网易云登录二维码" /><div class="qr-placeholder" id="qrPlaceholder">点击生成二维码</div></div><div><div class="list-title">点击卡片开始扫码登录</div><div class="list-meta" id="qrStatus">登录只用于公开播放失败后的会员回退。</div><a class="list-meta" id="qrLink" href="#" target="_blank" rel="noopener"></a><div class="actions" style="margin-top:12px;"><button class="btn" id="checkMusicBtn">检查状态</button><button class="btn danger" id="logoutMusicBtn">退出网易云</button></div></div></div></div><div class="grid"><div class="card"><div class="card-title"><h3>账号状态</h3><small>网易云</small></div><div id="musicStatusDetail" class="kv"></div></div><form class="card" id="musicConfigForm"><div class="card-title"><h3>音乐配置</h3><small>保存后立即生效</small></div><div class="field-grid"><div class="field"><label>歌单来源 UID</label><input name="playlistOwnerUid" inputmode="numeric" placeholder="629126546" /></div><div class="field"><label>默认音质</label><select name="preferredLevel"><option value="exhigh">exhigh</option><option value="higher">higher</option><option value="standard">standard</option><option value="lossless">lossless</option><option value="hires">hires</option><option value="jymaster">jymaster</option></select></div></div><div class="actions" style="margin-top:12px;"><button class="btn primary" type="button" id="saveMusicConfigBtn">保存音乐配置</button></div></form></div></div>
+        <div class="grid aside music-grid"><div class="card"><div class="card-title"><h3>网易云扫码登录</h3><small id="musicStatusBadge">未检查</small></div><div class="qr-card" id="qrCard"><div class="qr-box"><img id="qrImg" alt="网易云登录二维码" /><div class="qr-placeholder" id="qrPlaceholder">点击生成二维码</div></div><div><div class="list-title">点击卡片开始扫码登录</div><div class="list-meta" id="qrStatus">登录只用于公开播放失败后的会员回退。</div><a class="list-meta" id="qrLink" href="#" target="_blank" rel="noopener"></a><div class="actions" style="margin-top:12px;"><button class="btn" id="checkMusicBtn">检查状态</button><button class="btn danger" id="logoutMusicBtn">退出网易云</button></div></div></div></div><div class="grid"><div class="card"><div class="card-title"><h3>账号状态</h3><small>网易云</small></div><div id="musicStatusDetail" class="kv"></div></div><form class="card" id="musicConfigForm"><div class="card-title"><h3>音乐配置</h3><small>服务器配置 · 只读</small></div><div class="field-grid"><div class="field"><label>歌单来源 UID</label><input name="playlistOwnerUid" disabled /></div><div class="field"><label>默认音质</label><input name="preferredLevel" disabled /></div></div><div class="field-hint" style="margin-top:12px;">通过 application.yml 或服务器环境变量修改，重启后端后生效。</div></form></div></div>
         <div class="grid three" id="musicAnalyticsMetrics" style="margin-top:14px;"></div>
         <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>热门歌曲</h3><small>按完成度</small></div><div class="list" id="musicTopSongs"></div><div class="pager"><button class="btn link" id="musicTopPrevBtn">上一页</button><span id="musicTopPageInfo">第 1 页</span><button class="btn link" id="musicTopNextBtn">下一页</button></div></div><div class="card"><div class="card-title"><h3>最近收听</h3><small>访客与完成度</small></div><div class="list" id="musicRecentList"></div><div class="pager"><button class="btn link" id="musicRecentPrevBtn">上一页</button><span id="musicRecentPageInfo">第 1 页</span><button class="btn link" id="musicRecentNextBtn">下一页</button></div></div></div>
       </section>
@@ -232,7 +232,7 @@
         <div class="grid recommendation-grid">
           <div class="card recommendation-primary"><div class="card-title"><h3>当前首页推荐</h3><small id="manualUpdatedAt">-</small></div><div class="field-hint" style="margin-bottom:12px;">指定项可调整顺序；自动项可排除，后续文章会立即补位。</div><div class="list" id="manualList"></div></div>
           <div class="recommendation-side">
-            <form class="card" id="recommendationConfigForm"><div class="card-title"><h3>推荐配置</h3><small>更新热度时生效</small></div><div class="field-grid"><div class="field"><label>最大候选文章数</label><input name="maxCandidatePosts" type="number" min="1" max="1000" /></div><div class="field"><label>浏览量权重</label><input name="pageviewWeight" type="number" min="0" max="1000" step="0.1" /></div><div class="field"><label>评论数权重</label><input name="commentWeight" type="number" min="0" max="1000" step="0.1" /></div></div><div class="actions" style="margin-top:12px;"><button class="btn primary" type="button" id="saveRecommendationConfigBtn">保存推荐配置</button></div></form>
+            <form class="card" id="recommendationConfigForm"><div class="card-title"><h3>推荐配置</h3><small>服务器配置 · 只读</small></div><div class="field-grid"><div class="field"><label>最大候选文章数</label><input name="maxCandidatePosts" disabled /></div><div class="field"><label>浏览量权重</label><input name="pageviewWeight" disabled /></div><div class="field"><label>评论数权重</label><input name="commentWeight" disabled /></div></div><div class="field-hint" style="margin-top:12px;">手动推荐与排除仍可在本页操作；权重由运维配置管理。</div></form>
             <div class="card"><div class="card-title"><h3>候选文章</h3><small>按发布时间倒序</small></div><div class="filter-row compact candidate-toolbar"><div class="field"><input id="candidateKeywordInput" placeholder="搜索文章标题" /></div><button class="btn" id="searchCandidatesBtn">搜索</button></div><div class="list" id="candidateList"></div><div class="pager"><button class="btn link" id="candidatePrevBtn">上一页</button><span id="candidatePageInfo">第 1 页</span><button class="btn link" id="candidateNextBtn">下一页</button></div></div>
           </div>
         </div>
@@ -278,7 +278,7 @@
     recommendation: ['推荐', '手动推荐优先，文章热度补齐。'],
     comments: ['评论', 'Waline 评论、用户和阅读统计状态。']
   };
-  const state = { me: null, console: null, ops: null, runtime: null, musicStatus: null, musicAnalytics: null, musicTopPage: 1, musicRecentPage: 1, articles: null, articlePage: 1, manualUrls: [], excludedUrls: [], effectiveRecommendations: [], candidates: [], candidatePage: 1, candidateTotalPages: 1, recentComments: [], managedComments: null, commentNotification: null, commentPage: 1, commentManageError: '', walineUsers: null, userPage: 1, userManageError: '', qrKey: '', qrTimer: null, charts: {} };
+  const state = { me: null, console: null, ops: null, operationalConfig: null, musicStatus: null, musicAnalytics: null, musicTopPage: 1, musicRecentPage: 1, articles: null, articlePage: 1, manualUrls: [], excludedUrls: [], effectiveRecommendations: [], candidates: [], candidatePage: 1, candidateTotalPages: 1, recentComments: [], managedComments: null, commentNotification: null, commentPage: 1, commentManageError: '', walineUsers: null, userPage: 1, userManageError: '', qrKey: '', qrTimer: null, charts: {} };
   const $ = (selector) => document.querySelector(selector);
   const asArray = (value) => Array.isArray(value) ? value : [];
 
@@ -394,7 +394,7 @@
   }
   async function refreshConsole() {
     state.console = await api('/api/admin/console/summary');
-    state.runtime = state.console.runtimeConfig || null;
+    state.operationalConfig = state.console.operationalConfig || null;
     renderOverview();
     renderMusicConfig();
     renderRecommendationConfig();
@@ -788,48 +788,18 @@
   }
   function renderMusicConfig() {
     const form = $('#musicConfigForm');
-    if (!form || !state.runtime) return;
-    const music = state.runtime.editable?.music || state.runtime.defaults?.music || {};
+    if (!form || !state.operationalConfig) return;
+    const music = state.operationalConfig.music || {};
     form.elements.playlistOwnerUid.value = music.playlistOwnerUid || '';
     form.elements.preferredLevel.value = music.preferredLevel || 'exhigh';
   }
   function renderRecommendationConfig() {
     const form = $('#recommendationConfigForm');
-    if (!form || !state.runtime) return;
-    const recommendation = state.runtime.editable?.recommendation || state.runtime.defaults?.recommendation || {};
+    if (!form || !state.operationalConfig) return;
+    const recommendation = state.operationalConfig.recommendation || {};
     form.elements.maxCandidatePosts.value = recommendation.maxCandidatePosts ?? '';
     form.elements.pageviewWeight.value = recommendation.pageviewWeight ?? '';
     form.elements.commentWeight.value = recommendation.commentWeight ?? '';
-  }
-  function mergedRuntimeConfig() {
-    const editable = state.runtime?.editable || {};
-    const defaults = state.runtime?.defaults || {};
-    return {
-      music: { ...(defaults.music || {}), ...(editable.music || {}) },
-      recommendation: { ...(defaults.recommendation || {}), ...(editable.recommendation || {}) },
-      tag: { ...(defaults.tag || {}), ...(editable.tag || {}) }
-    };
-  }
-  async function saveMusicConfig() {
-    const form = $('#musicConfigForm');
-    const next = mergedRuntimeConfig();
-    next.music.playlistOwnerUid = form.elements.playlistOwnerUid.value.trim();
-    next.music.preferredLevel = form.elements.preferredLevel.value;
-    state.runtime = await api('/api/admin/config/runtime', { method: 'PUT', body: JSON.stringify(next) });
-    renderMusicConfig();
-    await refreshConsole();
-    showMessage('音乐配置已保存');
-  }
-  async function saveRecommendationConfig() {
-    const form = $('#recommendationConfigForm');
-    const next = mergedRuntimeConfig();
-    next.recommendation.maxCandidatePosts = Number(form.elements.maxCandidatePosts.value);
-    next.recommendation.pageviewWeight = Number(form.elements.pageviewWeight.value);
-    next.recommendation.commentWeight = Number(form.elements.commentWeight.value);
-    state.runtime = await api('/api/admin/config/runtime', { method: 'PUT', body: JSON.stringify(next) });
-    renderRecommendationConfig();
-    await rebuildRecommendation(false);
-    showMessage('推荐配置已保存，推荐热度已开始更新');
   }
   async function createQr() {
     if (state.musicStatus?.loggedIn) {
@@ -1178,7 +1148,6 @@
       if (event.target.closest('button, a')) return;
       createQr().catch((e) => showMessage(e.message, true));
     });
-    $('#saveMusicConfigBtn').addEventListener('click', () => saveMusicConfig().catch((e) => showMessage(e.message, true)));
     $('#musicTopPrevBtn').addEventListener('click', () => { state.musicTopPage -= 1; renderMusicAnalytics(); });
     $('#musicTopNextBtn').addEventListener('click', () => { state.musicTopPage += 1; renderMusicAnalytics(); });
     $('#musicRecentPrevBtn').addEventListener('click', () => { state.musicRecentPage -= 1; renderMusicAnalytics(); });
@@ -1284,7 +1253,6 @@
         openVisitorProfile(visitorButton.dataset.visitorId).catch((error) => showMessage(error.message || String(error), true));
       }
     });
-    $('#saveRecommendationConfigBtn').addEventListener('click', () => saveRecommendationConfig().catch((e) => showMessage(e.message, true)));
     window.addEventListener('beforeunload', stopQrPoll);
     window.addEventListener('resize', () => Object.values(state.charts).forEach((chart) => chart.resize()));
   }

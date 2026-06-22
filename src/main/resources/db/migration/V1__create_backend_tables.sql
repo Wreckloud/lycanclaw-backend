@@ -1,14 +1,22 @@
-CREATE TABLE `recommendation_metrics` (
-  `url` VARCHAR(255) NOT NULL,
+CREATE TABLE `article_metrics` (
+  `path` VARCHAR(255) NOT NULL,
   `pageview_count` INT NOT NULL DEFAULT 0,
   `comment_count` INT NOT NULL DEFAULT 0,
-  `hot_score` DOUBLE NOT NULL DEFAULT 0,
-  `updated_at` DATETIME(6) NOT NULL,
+  `synced_at` DATETIME(6) NOT NULL,
   `source_status` VARCHAR(32) NOT NULL DEFAULT 'ok',
   `last_error` VARCHAR(1000) NULL,
-  PRIMARY KEY (`url`),
-  KEY `idx_recommendation_metrics_updated_at` (`updated_at`),
-  KEY `idx_recommendation_metrics_hot_score` (`hot_score`)
+  PRIMARY KEY (`path`),
+  KEY `idx_article_metrics_synced_at` (`synced_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `recommendation_rules` (
+  `path` VARCHAR(255) NOT NULL,
+  `manual_rank` INT NULL,
+  `excluded` BIT(1) NOT NULL DEFAULT b'0',
+  `updated_at` DATETIME(6) NOT NULL,
+  PRIMARY KEY (`path`),
+  KEY `idx_recommendation_rules_manual_rank` (`manual_rank`),
+  KEY `idx_recommendation_rules_excluded` (`excluded`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `analytics_visit` (

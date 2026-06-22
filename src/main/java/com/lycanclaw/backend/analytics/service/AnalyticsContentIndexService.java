@@ -2,7 +2,7 @@ package com.lycanclaw.backend.analytics.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lycanclaw.backend.recommendation.config.RecommendationProperties;
+import com.lycanclaw.backend.content.config.ContentProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,21 +31,21 @@ public class AnalyticsContentIndexService {
     private static final long CACHE_TTL_MILLIS = 5 * 60 * 1000L;
 
     private final ObjectMapper objectMapper;
-    private final RecommendationProperties recommendationProperties;
+    private final ContentProperties contentProperties;
     private final AnalyticsPathPolicy pathPolicy;
     private final String knowledgeStatsJsonPath;
     private volatile CachedIndex cachedIndex;
 
     public AnalyticsContentIndexService(
             ObjectMapper objectMapper,
-            RecommendationProperties recommendationProperties,
+            ContentProperties contentProperties,
             AnalyticsPathPolicy pathPolicy,
             @Value("${lycan.analytics.knowledge-stats-json-path:"
-                    + "D:/Portfolio/Website/LycanClaw/frontend/docs/public/knowledge-stats.json}")
+                    + "../frontend/docs/public/knowledge-stats.json}")
             String knowledgeStatsJsonPath
     ) {
         this.objectMapper = objectMapper;
-        this.recommendationProperties = recommendationProperties;
+        this.contentProperties = contentProperties;
         this.pathPolicy = pathPolicy;
         this.knowledgeStatsJsonPath = knowledgeStatsJsonPath;
     }
@@ -80,7 +80,7 @@ public class AnalyticsContentIndexService {
      * 读取随想文章索引并合并到统一内容索引。
      */
     private void readThoughtPosts(Map<String, PostInfo> result) {
-        Path path = Path.of(recommendationProperties.getPostsJsonPath());
+        Path path = Path.of(contentProperties.getPostsJsonPath());
         if (!Files.exists(path)) {
             log.warn("未找到随想文章索引: {}", path);
             return;

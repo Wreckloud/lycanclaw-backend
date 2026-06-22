@@ -116,9 +116,7 @@ $walineEnv = Read-DotEnv -Path (Join-Path $walineDirectory '.env.local')
 $previousEnvironment = @{}
 $backendEnvironment = @{
     LYCAN_ANALYTICS_KNOWLEDGE_STATS_JSON_PATH = (Join-Path $workspaceRoot 'frontend\docs\public\knowledge-stats.json').Replace('\', '/')
-    LYCAN_RECOMMENDATION_POSTS_JSON_PATH = (Join-Path $workspaceRoot 'frontend\docs\public\posts.json').Replace('\', '/')
-    LYCAN_TAG_POSTS_JSON_PATH = (Join-Path $workspaceRoot 'frontend\docs\public\posts.json').Replace('\', '/')
-    SPRING_FLYWAY_BASELINE_ON_MIGRATE = 'true'
+    LYCAN_CONTENT_POSTS_JSON_PATH = (Join-Path $workspaceRoot 'frontend\docs\public\posts.json').Replace('\', '/')
 }
 
 if (-not [string]::IsNullOrWhiteSpace($walineEnv['MYSQL_PASSWORD']) -and

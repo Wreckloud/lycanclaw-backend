@@ -27,7 +27,9 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    baseline-on-migrate: false
+    # Waline 会先在同一数据库创建 wl_ 表，因此从版本 0 建立基线后再执行 V1
+    baseline-on-migrate: true
+    baseline-version: 0
 
 management:
   endpoints:
@@ -49,15 +51,12 @@ springdoc:
   default-produces-media-type: application/json
 
 lycan:
-  admin:
-    # 管理端运行时配置文件（仅保存非敏感配置，可由后台页面在线修改）
-    runtime-config-path: data/admin-runtime-config.json
   system:
     # 系统时间时区（管理端检查时间、配置更新时间等）
     zone-id: Asia/Shanghai
   cors:
     # 允许跨域来源，多个域名用英文逗号分隔
-    allowed-origins: http://localhost:5173,http://127.0.0.1:5173,https://wreckloud.com,https://www.wreckloud.com
+    allowed-origins: http://localhost:5173,http://127.0.0.1:5173,https://wreckloud.com,https://www.wreckloud.com,https://lycanclaw.netlify.app
   security:
     # 静态管理员令牌（可选，应急调试时通过环境变量提供）
     admin-token: ${LYCAN_SECURITY_ADMIN_TOKEN:}
@@ -85,42 +84,40 @@ lycan:
     trust-forwarded-headers: false
   analytics:
     # 前端生成的知识笔记统计索引，用于后台文章与主题关注分析
-    knowledge-stats-json-path: ${LYCAN_ANALYTICS_KNOWLEDGE_STATS_JSON_PATH:D:/Portfolio/Website/LycanClaw/frontend/docs/public/knowledge-stats.json}
+    knowledge-stats-json-path: ${LYCAN_ANALYTICS_KNOWLEDGE_STATS_JSON_PATH:../frontend/docs/public/knowledge-stats.json}
     ip-region:
       # ip2region IPv4 XDB 文件路径；留空时仅展示原始 IP
       v4-xdb-path: ${LYCAN_IP2REGION_V4_XDB_PATH:}
       # ip2region IPv6 XDB 文件路径；留空时不解析 IPv6 地区
       v6-xdb-path: ${LYCAN_IP2REGION_V6_XDB_PATH:}
+  content:
+    # 前端构建输出的文章索引，供标签、推荐和文章指标同步共用
+    posts-json-path: ${LYCAN_CONTENT_POSTS_JSON_PATH:../frontend/docs/public/posts.json}
   music:
     # 首页随机流与关于页榜单固定账号 uid（与登录态解耦）
-    playlist-owner-uid: 629126546
+    playlist-owner-uid: ${LYCAN_MUSIC_PLAYLIST_OWNER_UID:629126546}
     # 默认目标音质（公开链路降级顺序：exhigh -> higher -> standard）
-    preferred-level: exhigh
+    preferred-level: ${LYCAN_MUSIC_PREFERRED_LEVEL:exhigh}
     upstream:
       # 上游网易云 API 服务地址（api-enhanced）
       base-url: http://127.0.0.1:3000
   recommendation:
-    # 前端 posts.json 路径（用于读取文章元信息）
-    posts-json-path: ${LYCAN_RECOMMENDATION_POSTS_JSON_PATH:D:/Portfolio/Website/LycanClaw/frontend/docs/public/posts.json}
-    # 手动推荐配置文件（管理员接口写入）
-    manual-config-path: data/recommendation-manual.json
-    # 推荐聚合调度周期（毫秒，默认 5 分钟）
-    aggregation-interval-millis: 300000
-    # 单次聚合抓取 Waline 指标的并发数
-    aggregation-fetch-parallelism: 6
-    # 单篇文章聚合抓取超时时间（秒）
-    aggregation-fetch-timeout-seconds: 15
-    # 聚合快照保鲜窗口（秒）
-    snapshot-fresh-seconds: 900
-    # 启动后自动异步触发首轮聚合
-    startup-warmup-enabled: true
     # 最大候选文章数
-    max-candidate-posts: 200
+    max-candidate-posts: ${LYCAN_RECOMMENDATION_MAX_CANDIDATE_POSTS:200}
     score:
       # 浏览量权重
-      pageview-weight: 1.0
+      pageview-weight: ${LYCAN_RECOMMENDATION_PAGEVIEW_WEIGHT:1.0}
       # 评论数权重
-      comment-weight: 24.0
+      comment-weight: ${LYCAN_RECOMMENDATION_COMMENT_WEIGHT:24.0}
+  article-metrics:
+    # 从 Waline 同步阅读量和评论量的周期
+    sync-interval-millis: ${LYCAN_ARTICLE_METRICS_SYNC_INTERVAL_MILLIS:300000}
+    # 同步 Waline 指标的并发数
+    fetch-parallelism: ${LYCAN_ARTICLE_METRICS_FETCH_PARALLELISM:6}
+    # 单篇文章指标请求超时秒数
+    fetch-timeout-seconds: ${LYCAN_ARTICLE_METRICS_FETCH_TIMEOUT_SECONDS:15}
+    # 启动后自动同步一次文章指标
+    startup-sync-enabled: ${LYCAN_ARTICLE_METRICS_STARTUP_SYNC_ENABLED:true}
   waline:
     # Waline 服务地址（用于评论/阅读统计聚合）
     base-url: http://127.0.0.1:8360
@@ -137,8 +134,3 @@ lycan:
       mail-template-admin: ${WALINE_MAIL_TEMPLATE_ADMIN:}
       comment-audit: ${WALINE_COMMENT_AUDIT:false}
       disable-author-notify: ${WALINE_DISABLE_AUTHOR_NOTIFY:false}
-  tag:
-    # 标签聚合读取的文章索引路径
-    posts-json-path: ${LYCAN_TAG_POSTS_JSON_PATH:D:/Portfolio/Website/LycanClaw/frontend/docs/public/posts.json}
-    # 标签数据缓存秒数
-    cache-seconds: 300

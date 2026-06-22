@@ -78,12 +78,9 @@ public class AdminGovernanceService {
         Map<String, Object> waline = asMap(services.get("waline"));
         Map<String, Object> ncm = asMap(services.get("ncmUpstream"));
         Map<String, Object> posts = asMap(sync.get("postsJson"));
-        Map<String, Object> tagPosts = asMap(sync.get("tagPostsJson"));
-
         Map<String, Object> recommendationCache = recommendationService.cacheState();
-        Map<String, Object> tagCache = tagService.cacheState();
 
-        HealthLevel level = computeLevel(waline, ncm, posts, tagPosts, recommendationCache, tagCache);
+        HealthLevel level = computeLevel(waline, ncm, posts, recommendationCache);
 
         return Map.of(
                 "level", level,
@@ -91,8 +88,7 @@ public class AdminGovernanceService {
                 "services", services,
                 "sync", sync,
                 "caches", Map.of(
-                        "recommendation", recommendationCache,
-                        "tag", tagCache
+                        "recommendation", recommendationCache
                 )
         );
     }
@@ -101,25 +97,20 @@ public class AdminGovernanceService {
             Map<String, Object> waline,
             Map<String, Object> ncm,
             Map<String, Object> posts,
-            Map<String, Object> tagPosts,
-            Map<String, Object> recommendationCache,
-            Map<String, Object> tagCache
+            Map<String, Object> recommendationCache
     ) {
         boolean walineOk = asBoolean(waline.get("ok"));
         boolean ncmOk = asBoolean(ncm.get("ok"));
         boolean postsExists = asBoolean(posts.get("exists"));
-        boolean tagPostsExists = asBoolean(tagPosts.get("exists"));
 
-        if (!postsExists || !tagPostsExists || !walineOk) {
+        if (!postsExists || !walineOk) {
             return HealthLevel.RED;
         }
 
         boolean recommendationExpired = asBoolean(recommendationCache.get("expired"));
-        boolean tagExpired = asBoolean(tagCache.get("expired"));
-        boolean recommendationMissing = !asBoolean(recommendationCache.get("hasCache"));
-        boolean tagMissing = !asBoolean(tagCache.get("hasCache"));
+        boolean recommendationMissing = !asBoolean(recommendationCache.get("hasSnapshot"));
 
-        if (!ncmOk || recommendationExpired || tagExpired || recommendationMissing || tagMissing) {
+        if (!ncmOk || recommendationExpired || recommendationMissing) {
             return HealthLevel.YELLOW;
         }
         return HealthLevel.GREEN;

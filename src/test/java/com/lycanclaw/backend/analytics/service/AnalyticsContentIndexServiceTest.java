@@ -1,7 +1,7 @@
 package com.lycanclaw.backend.analytics.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lycanclaw.backend.recommendation.config.RecommendationProperties;
+import com.lycanclaw.backend.content.config.ContentProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -48,7 +48,7 @@ class AnalyticsContentIndexServiceTest {
                 ]
                 """);
 
-        RecommendationProperties properties = new RecommendationProperties();
+        ContentProperties properties = new ContentProperties();
         properties.setPostsJsonPath(postsPath.toString());
         AnalyticsContentIndexService service = new AnalyticsContentIndexService(
                 new ObjectMapper(),

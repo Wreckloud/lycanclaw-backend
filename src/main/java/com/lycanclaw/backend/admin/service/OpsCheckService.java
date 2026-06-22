@@ -3,12 +3,10 @@ package com.lycanclaw.backend.admin.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lycanclaw.backend.common.api.ErrorCode;
 import com.lycanclaw.backend.common.json.JsonNodeExtractors;
+import com.lycanclaw.backend.content.config.ContentProperties;
 import com.lycanclaw.backend.music.service.NcmUpstreamClient;
 import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
-import com.lycanclaw.backend.recommendation.service.RecommendationManualConfigService;
 import com.lycanclaw.backend.recommendation.service.RecommendationService;
-import com.lycanclaw.backend.recommendation.config.RecommendationProperties;
-import com.lycanclaw.backend.tag.config.TagProperties;
 import com.lycanclaw.backend.common.time.AppTimeProvider;
 import com.lycanclaw.backend.waline.config.WalineProperties;
 import com.lycanclaw.backend.waline.service.WalineGatewayClient;
@@ -32,10 +30,8 @@ public class OpsCheckService {
     private final WalineGatewayClient walineGatewayClient;
     private final NcmUpstreamClient ncmUpstreamClient;
     private final JsonNodeExtractors jsonNodeExtractors;
-    private final RecommendationManualConfigService recommendationManualConfigService;
     private final RecommendationService recommendationService;
-    private final RecommendationProperties recommendationProperties;
-    private final TagProperties tagProperties;
+    private final ContentProperties contentProperties;
     private final WalineProperties walineProperties;
     private final AppTimeProvider appTimeProvider;
 
@@ -43,20 +39,16 @@ public class OpsCheckService {
             WalineGatewayClient walineGatewayClient,
             NcmUpstreamClient ncmUpstreamClient,
             JsonNodeExtractors jsonNodeExtractors,
-            RecommendationManualConfigService recommendationManualConfigService,
             RecommendationService recommendationService,
-            RecommendationProperties recommendationProperties,
-            TagProperties tagProperties,
+            ContentProperties contentProperties,
             WalineProperties walineProperties,
             AppTimeProvider appTimeProvider
     ) {
         this.walineGatewayClient = walineGatewayClient;
         this.ncmUpstreamClient = ncmUpstreamClient;
         this.jsonNodeExtractors = jsonNodeExtractors;
-        this.recommendationManualConfigService = recommendationManualConfigService;
         this.recommendationService = recommendationService;
-        this.recommendationProperties = recommendationProperties;
-        this.tagProperties = tagProperties;
+        this.contentProperties = contentProperties;
         this.walineProperties = walineProperties;
         this.appTimeProvider = appTimeProvider;
     }
@@ -74,10 +66,9 @@ public class OpsCheckService {
         ));
 
         result.put("sync", Map.of(
-                "recommendationManual", recommendationManualMeta(),
-                "recommendationAggregation", recommendationService.cacheState(),
-                "postsJson", postsJsonMeta(recommendationProperties.getPostsJsonPath()),
-                "tagPostsJson", postsJsonMeta(tagProperties.getPostsJsonPath())
+                "recommendationRules", recommendationRuleMeta(),
+                "articleMetrics", recommendationService.cacheState(),
+                "postsJson", postsJsonMeta(contentProperties.getPostsJsonPath())
         ));
 
         result.put("commonErrors", List.of(
@@ -157,9 +148,9 @@ public class OpsCheckService {
     /**
      * 读取手动推荐配置的元数据，不返回完整内容。
      */
-    private Map<String, Object> recommendationManualMeta() {
+    private Map<String, Object> recommendationRuleMeta() {
         try {
-            RecommendationManualConfigDto dto = recommendationManualConfigService.read();
+            RecommendationManualConfigDto dto = recommendationService.getManualConfig();
             return Map.of(
                     "ok", true,
                     "updatedAt", dto.updatedAt() == null ? "" : dto.updatedAt(),

@@ -22,16 +22,11 @@ docker compose "${COMPOSE_ARGS[@]}" exec -T mysql sh -c \
   'exec mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction --quick --routines --triggers "$MYSQL_DATABASE"' \
   > "${BACKUP_DIR}/database.sql"
 
-echo "导出后端运行配置..."
-docker compose "${COMPOSE_ARGS[@]}" exec -T backend \
-  tar -czf - -C /app/data . > "${BACKUP_DIR}/backend-data.tar.gz"
-
 test -s "${BACKUP_DIR}/database.sql"
-gzip -t "${BACKUP_DIR}/backend-data.tar.gz"
 
 cat > "${BACKUP_DIR}/manifest.txt" <<EOF
 created_at=${TIMESTAMP}
-files=database.sql,backend-data.tar.gz
+files=database.sql
 EOF
 
 find "${BACKUP_ROOT}" -mindepth 1 -maxdepth 1 -type d -mtime +14 -exec rm -rf -- {} +

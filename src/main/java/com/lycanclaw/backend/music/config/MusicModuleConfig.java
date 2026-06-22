@@ -10,6 +10,6 @@ import org.springframework.context.annotation.Configuration;
  * @since 2026-05-15
  */
 @Configuration
-@EnableConfigurationProperties(MusicUpstreamProperties.class)
+@EnableConfigurationProperties({MusicProperties.class, MusicUpstreamProperties.class})
 public class MusicModuleConfig {
 }
