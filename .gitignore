@@ -1,11 +1,30 @@
+# build and test outputs
 /target/
+coverage/
+.cache/
+
+# IDE metadata
 /.idea/
 /.vscode/
 /.mvn/
+.settings/
+.classpath
+.project
 *.iml
+
+# logs and temporary files
 *.log
+*.tmp
+*.pid
+*.hprof
+hs_err_pid*.log
 node_modules/
 logs/
+.runlogs/
+
+# OS metadata
+.DS_Store
+Thumbs.db
 
 # local env
 application-local.yml
