@@ -104,7 +104,7 @@ Copy-Item dev-services\waline\.env.example dev-services\waline\.env.local
 - `LYCAN_RECOMMENDATION_POSTS_JSON_PATH`：VitePress 文章索引。
 - `LYCAN_IP2REGION_V4_XDB_PATH`、`LYCAN_IP2REGION_V6_XDB_PATH`：可选 IP 地区数据库。
 
-完整默认值和注释见 `src/main/resources/application.yml`。
+完整默认值和注释见 `../src/main/resources/application.yml`。
 
 ## 验证
 
@@ -112,6 +112,8 @@ Copy-Item dev-services\waline\.env.example dev-services\waline\.env.local
 mvn test
 ```
 
-Docker Compose、Nginx、HTTPS、自动前端发布、备份和恢复说明见 `deploy/README.md`。
+Docker Compose、Nginx、HTTPS、自动前端发布、备份和恢复说明见 `DEPLOYMENT.md`。
+
+本地目录和联调说明见 `LOCAL_DEVELOPMENT.md`。
 
 完整工作区位于 `D:\Portfolio\Website\LycanClaw`，本仓库是其中的 `backend` 子目录。
