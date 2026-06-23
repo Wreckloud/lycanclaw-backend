@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 前台访问统计接口。
- * 接收核心页面访问开始和离开时的有效停留时间结算。
+ * 接收公开页面访问开始和离开时的有效停留时间结算。
  * @author Wreckloud
  * @since 2026-06-04
  */

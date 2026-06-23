@@ -228,7 +228,7 @@
         <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>热门歌曲</h3><small>按完成度</small></div><div class="list" id="musicTopSongs"></div><div class="pager"><button class="btn link" id="musicTopPrevBtn">上一页</button><span id="musicTopPageInfo">第 1 页</span><button class="btn link" id="musicTopNextBtn">下一页</button></div></div><div class="card"><div class="card-title"><h3>最近收听</h3><small>访客与完成度</small></div><div class="list" id="musicRecentList"></div><div class="pager"><button class="btn link" id="musicRecentPrevBtn">上一页</button><span id="musicRecentPageInfo">第 1 页</span><button class="btn link" id="musicRecentNextBtn">下一页</button></div></div></div>
       </section>
       <section class="section" id="section-recommendation">
-        <div class="section-head"><div><h2>推荐</h2><p>指定文章优先展示，其余位置由文章热度自动补齐。</p></div></div>
+        <div class="section-head"><div><h2>推荐</h2><p>指定文章优先展示，其余位置由文章热度自动补齐。</p></div><button class="btn" id="syncArticleMetricsBtn">同步文章指标</button></div>
         <div class="grid recommendation-grid">
           <div class="card recommendation-primary"><div class="card-title"><h3>当前首页推荐</h3><small id="manualUpdatedAt">-</small></div><div class="field-hint" style="margin-bottom:12px;">指定项可调整顺序；自动项可排除，后续文章会立即补位。</div><div class="list" id="manualList"></div></div>
           <div class="recommendation-side">
@@ -366,14 +366,12 @@
     }
     return normalized;
   }
-  function aggregationText(data) {
+  function articleMetricSyncText(data) {
     if (!data) return '-';
-    if (data.running) return '正在更新文章热度';
-    if (!data.hasSnapshot) return '尚未生成文章热度';
-    const status = data.expired ? '已有数据，建议更新' : '文章热度已更新';
-    const updated = data.lastSuccessAt || data.updatedAt || data.lastFinishedAt;
-    const count = data.metricCount ?? data.successCount ?? data.candidateCount;
-    return [status, updated ? `${relativeTime(updated)}` : '', count != null ? `${count} 篇文章` : ''].filter(Boolean).join(' · ');
+    if (data.running) return '正在同步文章指标';
+    if (!data.lastFinishedAt) return '尚未执行同步';
+    const status = Number(data.failureCount || 0) > 0 ? '部分文章同步失败' : '文章指标已同步';
+    return [status, relativeTime(data.lastFinishedAt)].filter(Boolean).join(' · ');
   }
   async function api(url, options = {}, authRequired = true) {
     return adminCommon.requestJson(url, options, authRequired);
@@ -502,7 +500,7 @@
     const insights = dashboard.writingInsights || {};
     const governance = dashboard.governance || {};
     const sync = state.ops?.sync || {};
-    const aggregation = governance.recommendationAggregation || sync.recommendationAggregation || {};
+    const articleMetricSync = governance.articleMetricSyncStatus || sync.articleMetrics || {};
     $('#overviewMetrics').innerHTML = [
       metricCard(insights.visits ?? 0, '近 30 天访问', `独立访客 ${insights.uniqueVisitors ?? 0}`),
       metricCard(`${insights.averageDurationSeconds ?? 0}s`, '平均停留', '只统计页面可见时间'),
@@ -511,7 +509,7 @@
     ].join('');
     $('#overviewCheckedAt').textContent = `检查于 ${relativeTime(dashboard.checkedAt || state.console?.checkedAt || new Date())}`;
     $('#overviewServices').innerHTML = kvRows([['音乐登录', `${music.loggedIn ? '已登录' : '未登录'} ${music.nickname || ''}`.trim()], ['Waline', serviceText(state.ops?.services?.waline)], ['NCM 上游', serviceText(state.ops?.services?.ncmUpstream)]]);
-    $('#overviewRecommendation').innerHTML = kvRows([['推荐热度', aggregationText(aggregation)], ['成功文章', aggregation.successCount ?? aggregation.metricCount ?? 0], ['失败文章', aggregation.failureCount ?? 0], ['更新时间', relativeTime(aggregation.lastSuccessAt || aggregation.updatedAt || aggregation.lastFinishedAt)]]);
+    $('#overviewRecommendation').innerHTML = kvRows([['文章指标', articleMetricSyncText(articleMetricSync)], ['成功文章', articleMetricSync.successCount ?? 0], ['失败文章', articleMetricSync.failureCount ?? 0], ['完成时间', relativeTime(articleMetricSync.lastFinishedAt)]]);
     renderWritingInsightCharts(insights);
     renderTopArticles(insights.topArticles || []);
     renderEncouragementRanking(insights.encouragement?.topVisitors || []);
@@ -907,12 +905,13 @@
     await Promise.all([refreshRecommendation(), refreshConsole(), refreshOps()]);
     showMessage(message || '推荐配置已保存');
   }
-  async function rebuildRecommendation(showAcceptedMessage = true) {
-    const result = await api('/api/admin/governance/recommendations/rebuild', { method: 'POST' });
-    if (showAcceptedMessage) {
-      showMessage(result?.result?.accepted === false ? '推荐热度正在更新中' : '推荐热度更新任务已受理');
-    }
+  async function syncArticleMetrics() {
+    const button = $('#syncArticleMetricsBtn');
+    button.disabled = true;
+    const result = await api('/api/admin/governance/article-metrics/sync', { method: 'POST' });
+    showMessage(result?.result?.accepted === false ? '文章指标正在同步中' : '文章指标同步任务已受理');
     await Promise.all([refreshConsole(), refreshOps(), refreshRecommendation()]);
+    button.disabled = false;
   }
   function renderWalineSummary() {
     const waline = state.ops?.services?.waline || {};
@@ -1177,6 +1176,10 @@
       task?.catch((error) => showMessage(error.message || String(error), true));
     });
     $('#searchCandidatesBtn').addEventListener('click', () => refreshCandidates(1).catch((e) => showMessage(e.message, true)));
+    $('#syncArticleMetricsBtn').addEventListener('click', () => syncArticleMetrics().catch((e) => {
+      $('#syncArticleMetricsBtn').disabled = false;
+      showMessage(e.message, true);
+    }));
     $('#candidateKeywordInput').addEventListener('keydown', (event) => {
       if (event.key === 'Enter') refreshCandidates(1).catch((e) => showMessage(e.message, true));
     });

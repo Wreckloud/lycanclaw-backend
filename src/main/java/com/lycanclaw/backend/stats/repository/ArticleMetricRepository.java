@@ -5,11 +5,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
+/**
+ * 文章指标快照仓库。
+ *
+ * @author Wreckloud
+ * @since 2026-06-23
+ */
 public interface ArticleMetricRepository extends JpaRepository<ArticleMetricEntity, String> {
 
     List<ArticleMetricEntity> findAllByPathIn(Collection<String> paths);
-
-    Optional<ArticleMetricEntity> findTopByOrderBySyncedAtDesc();
 }

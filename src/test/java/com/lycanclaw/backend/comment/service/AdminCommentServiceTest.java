@@ -3,12 +3,12 @@ package com.lycanclaw.backend.comment.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lycanclaw.backend.admin.auth.service.AdminSessionService;
-import com.lycanclaw.backend.analytics.service.AnalyticsContentIndexService;
 import com.lycanclaw.backend.analytics.service.AnalyticsPathPolicy;
 import com.lycanclaw.backend.analytics.service.IpRegionService;
 import com.lycanclaw.backend.comment.dto.AdminCommentItemDto;
 import com.lycanclaw.backend.comment.dto.AdminCommentListDto;
 import com.lycanclaw.backend.comment.dto.AdminCommentUpdateRequest;
+import com.lycanclaw.backend.content.service.ContentCatalogService;
 import com.lycanclaw.backend.waline.service.WalineGatewayClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,23 +34,30 @@ class AdminCommentServiceTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final AdminSessionService adminSessionService = mock(AdminSessionService.class);
     private final WalineGatewayClient walineGatewayClient = mock(WalineGatewayClient.class);
-    private final AnalyticsContentIndexService contentIndexService = mock(AnalyticsContentIndexService.class);
+    private final ContentCatalogService contentCatalogService = mock(ContentCatalogService.class);
     private final IpRegionService ipRegionService = mock(IpRegionService.class);
     private AdminCommentService service;
 
     @BeforeEach
     void setUp() {
         when(adminSessionService.findWalineToken("admin")).thenReturn(Optional.of("waline-token"));
-        when(contentIndexService.loadPostMap()).thenReturn(Map.of(
+        when(contentCatalogService.loadArticleMap()).thenReturn(Map.of(
                 "/thoughts/测试.html",
-                new AnalyticsContentIndexService.PostInfo("/thoughts/测试.html", "测试文章", java.util.List.of())
+                new ContentCatalogService.ContentItem(
+                        "/thoughts/测试.html",
+                        "测试文章",
+                        "",
+                        "2026-06-20",
+                        java.util.List.of(),
+                        ContentCatalogService.ContentKind.THOUGHT
+                )
         ));
         service = new AdminCommentService(
                 adminSessionService,
                 walineGatewayClient,
                 objectMapper,
                 new CommentTextNormalizer(),
-                contentIndexService,
+                contentCatalogService,
                 new AnalyticsPathPolicy(),
                 ipRegionService
         );

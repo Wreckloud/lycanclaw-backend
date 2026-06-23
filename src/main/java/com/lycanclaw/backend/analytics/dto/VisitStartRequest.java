@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * 页面访问开始请求。
- * 用于前端在进入核心页面或文章页时创建一次访问记录。
+ * 用于前端在进入公开页面时创建一次访问记录。
  * @author Wreckloud
  * @since 2026-06-04
  */
@@ -17,8 +17,6 @@ public record VisitStartRequest(
         @Schema(description = "来源页面")
         String referrer,
         @Schema(description = "前端生成的匿名访客 ID")
-        String visitorId,
-        @Schema(description = "页面类型，可为空，由后端兜底推断")
-        String pageType
+        String visitorId
 ) {
 }

@@ -7,6 +7,7 @@ import com.lycanclaw.backend.content.config.ContentProperties;
 import com.lycanclaw.backend.music.service.NcmUpstreamClient;
 import com.lycanclaw.backend.recommendation.dto.RecommendationManualConfigDto;
 import com.lycanclaw.backend.recommendation.service.RecommendationService;
+import com.lycanclaw.backend.stats.service.ArticleMetricSyncService;
 import com.lycanclaw.backend.common.time.AppTimeProvider;
 import com.lycanclaw.backend.waline.config.WalineProperties;
 import com.lycanclaw.backend.waline.service.WalineGatewayClient;
@@ -20,7 +21,7 @@ import java.util.Map;
 
 /**
  * 运维检查服务。
- * 执行依赖服务、索引文件与缓存状态的运维健康检查。
+ * 执行依赖服务、索引文件与同步状态的运维健康检查。
  * @author Wreckloud
  * @since 2026-05-15
  */
@@ -31,6 +32,7 @@ public class OpsCheckService {
     private final NcmUpstreamClient ncmUpstreamClient;
     private final JsonNodeExtractors jsonNodeExtractors;
     private final RecommendationService recommendationService;
+    private final ArticleMetricSyncService articleMetricSyncService;
     private final ContentProperties contentProperties;
     private final WalineProperties walineProperties;
     private final AppTimeProvider appTimeProvider;
@@ -40,6 +42,7 @@ public class OpsCheckService {
             NcmUpstreamClient ncmUpstreamClient,
             JsonNodeExtractors jsonNodeExtractors,
             RecommendationService recommendationService,
+            ArticleMetricSyncService articleMetricSyncService,
             ContentProperties contentProperties,
             WalineProperties walineProperties,
             AppTimeProvider appTimeProvider
@@ -48,6 +51,7 @@ public class OpsCheckService {
         this.ncmUpstreamClient = ncmUpstreamClient;
         this.jsonNodeExtractors = jsonNodeExtractors;
         this.recommendationService = recommendationService;
+        this.articleMetricSyncService = articleMetricSyncService;
         this.contentProperties = contentProperties;
         this.walineProperties = walineProperties;
         this.appTimeProvider = appTimeProvider;
@@ -67,8 +71,9 @@ public class OpsCheckService {
 
         result.put("sync", Map.of(
                 "recommendationRules", recommendationRuleMeta(),
-                "articleMetrics", recommendationService.cacheState(),
-                "postsJson", postsJsonMeta(contentProperties.getPostsJsonPath())
+                "articleMetrics", articleMetricSyncService.snapshotState(),
+                "postsJson", contentFileMeta(contentProperties.getPostsJsonPath()),
+                "knowledgeStatsJson", contentFileMeta(contentProperties.getKnowledgeStatsJsonPath())
         ));
 
         result.put("commonErrors", List.of(
@@ -79,8 +84,8 @@ public class OpsCheckService {
                 ),
                 Map.of(
                         "title", "推荐列表为空",
-                        "cause", "posts.json 路径异常，或推荐聚合任务尚未成功生成快照",
-                        "suggestion", "确认共享目录中的 posts.json 已由前端发布，然后手动触发一次推荐聚合"
+                        "cause", "内容索引路径异常，或文章指标尚未成功同步",
+                        "suggestion", "确认共享目录中的两个内容索引存在，然后手动同步文章指标"
                 ),
                 Map.of(
                         "title", "音乐接口失败",
@@ -170,7 +175,7 @@ public class OpsCheckService {
     /**
      * 返回索引文件存在性与体积，便于快速排查挂载或路径错误。
      */
-    private Map<String, Object> postsJsonMeta(String pathValue) {
+    private Map<String, Object> contentFileMeta(String pathValue) {
         if (pathValue == null || pathValue.isBlank()) {
             return Map.of(
                     "path", "",

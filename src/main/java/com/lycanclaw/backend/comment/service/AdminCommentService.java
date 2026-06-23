@@ -9,9 +9,9 @@ import com.lycanclaw.backend.comment.dto.AdminCommentListDto;
 import com.lycanclaw.backend.comment.dto.AdminCommentBatchRequest;
 import com.lycanclaw.backend.comment.dto.AdminCommentReplyRequest;
 import com.lycanclaw.backend.comment.dto.AdminCommentUpdateRequest;
-import com.lycanclaw.backend.analytics.service.AnalyticsContentIndexService;
 import com.lycanclaw.backend.analytics.service.AnalyticsPathPolicy;
 import com.lycanclaw.backend.analytics.service.IpRegionService;
+import com.lycanclaw.backend.content.service.ContentCatalogService;
 import com.lycanclaw.backend.waline.service.WalineGatewayClient;
 import org.springframework.stereotype.Service;
 
@@ -36,7 +36,7 @@ public class AdminCommentService {
     private final WalineGatewayClient walineGatewayClient;
     private final ObjectMapper objectMapper;
     private final CommentTextNormalizer commentTextNormalizer;
-    private final AnalyticsContentIndexService contentIndexService;
+    private final ContentCatalogService contentCatalogService;
     private final AnalyticsPathPolicy pathPolicy;
     private final IpRegionService ipRegionService;
 
@@ -45,7 +45,7 @@ public class AdminCommentService {
             WalineGatewayClient walineGatewayClient,
             ObjectMapper objectMapper,
             CommentTextNormalizer commentTextNormalizer,
-            AnalyticsContentIndexService contentIndexService,
+            ContentCatalogService contentCatalogService,
             AnalyticsPathPolicy pathPolicy,
             IpRegionService ipRegionService
     ) {
@@ -53,7 +53,7 @@ public class AdminCommentService {
         this.walineGatewayClient = walineGatewayClient;
         this.objectMapper = objectMapper;
         this.commentTextNormalizer = commentTextNormalizer;
-        this.contentIndexService = contentIndexService;
+        this.contentCatalogService = contentCatalogService;
         this.pathPolicy = pathPolicy;
         this.ipRegionService = ipRegionService;
     }
@@ -205,7 +205,7 @@ public class AdminCommentService {
 
     private AdminCommentItemDto parseComment(JsonNode item) {
         String url = pathPolicy.normalizePath(text(item, "url", "path"));
-        AnalyticsContentIndexService.PostInfo post = contentIndexService.loadPostMap().get(url);
+        ContentCatalogService.ContentItem post = contentCatalogService.loadArticleMap().get(url);
         String original = text(item, "orig", "comment", "content");
         return new AdminCommentItemDto(
                 text(item, "objectId", "id"),

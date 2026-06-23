@@ -120,7 +120,7 @@ public class AdminDashboardService {
             int tagCount = toInt(tagSummary.get("tagCount"));
             int thoughtPostCount = toInt(tagSummary.get("thoughtPostCount"));
             List<RecentCommentDto> recent = commentService.recentComments(5);
-            Map<String, Object> recommendationAggregation = asMap(asMap(syncStatus.get("caches")).get("recommendation"));
+            Map<String, Object> articleMetricSyncStatus = asMap(asMap(syncStatus.get("jobs")).get("articleMetrics"));
             return new AdminGovernanceSummaryDto(
                     true,
                     "",
@@ -131,7 +131,7 @@ public class AdminDashboardService {
                     recent.size(),
                     parseHealthLevel(syncStatus.get("level")),
                     String.valueOf(syncStatus.getOrDefault("checkedAt", "")),
-                    recommendationAggregation,
+                    articleMetricSyncStatus,
                     actions()
             );
         } catch (Exception ex) {
@@ -231,7 +231,7 @@ public class AdminDashboardService {
 
     private Map<String, String> actions() {
         return Map.of(
-                "rebuildRecommendations", "/api/admin/governance/recommendations/rebuild",
+                "syncArticleMetrics", "/api/admin/governance/article-metrics/sync",
                 "refreshTags", "/api/admin/governance/tags/refresh",
                 "syncStatus", "/api/admin/governance/sync-status"
         );

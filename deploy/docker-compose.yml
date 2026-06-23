@@ -101,8 +101,8 @@ services:
       LYCAN_DB_URL: jdbc:mysql://mysql:3306/${WALINE_DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       LYCAN_DB_USERNAME: ${WALINE_DB_USER}
       LYCAN_DB_PASSWORD: ${WALINE_DB_PASSWORD}
-      LYCAN_ANALYTICS_KNOWLEDGE_STATS_JSON_PATH: /data/content/knowledge-stats.json
       LYCAN_CONTENT_POSTS_JSON_PATH: /data/content/posts.json
+      LYCAN_CONTENT_KNOWLEDGE_STATS_JSON_PATH: /data/content/knowledge-stats.json
       LYCAN_MUSIC_UPSTREAM_BASE_URL: http://ncm-api:3000
       LYCAN_MUSIC_PLAYLIST_OWNER_UID: ${MUSIC_PLAYLIST_OWNER_UID:-629126546}
       LYCAN_MUSIC_PREFERRED_LEVEL: ${MUSIC_PREFERRED_LEVEL:-exhigh}

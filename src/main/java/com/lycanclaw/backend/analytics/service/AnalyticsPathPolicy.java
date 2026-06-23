@@ -12,30 +12,44 @@ import org.springframework.stereotype.Component;
 @Component
 public class AnalyticsPathPolicy {
 
+    private static final int MAX_PATH_LENGTH = 512;
+    private static final String[] STATIC_SUFFIXES = {
+            ".js", ".css", ".map", ".json", ".xml", ".txt", ".ico",
+            ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".avif", ".bmp",
+            ".wasm", ".woff", ".woff2", ".ttf", ".otf", ".eot",
+            ".mp3", ".wav", ".ogg", ".flac", ".m4a", ".mp4", ".webm",
+            ".pdf", ".zip", ".gz"
+    };
+
     public String normalizePath(String value) {
         return WebPathNormalizer.normalize(value);
     }
 
     public boolean isTrackable(String path) {
-        String normalized = normalizePath(path);
-        if (normalized.startsWith("/admin") || normalized.startsWith("/api") || normalized.startsWith("/assets")) {
+        if (path == null || path.isBlank()) {
             return false;
         }
-        return isHome(normalized) || isCorePage(normalized) || isArticle(normalized);
+        String normalized = normalizePath(path);
+        if (isInvalid(normalized)
+                || isReservedPrefix(normalized, "/admin")
+                || isReservedPrefix(normalized, "/api")
+                || isReservedPrefix(normalized, "/assets")
+                || isReservedPrefix(normalized, "/.vitepress")
+                || hasStaticSuffix(normalized)) {
+            return false;
+        }
+        return true;
     }
 
-    public String inferPageType(String path, String requestedType) {
+    public String inferPageType(String path) {
         String normalized = normalizePath(path);
-        if (requestedType != null && !requestedType.isBlank()) {
-            return requestedType.trim().toLowerCase();
-        }
         if (isHome(normalized)) {
             return "home";
         }
         if (isArticle(normalized)) {
             return "article";
         }
-        return "core";
+        return "page";
     }
 
     public boolean isArticle(String path) {
@@ -50,14 +64,34 @@ public class AnalyticsPathPolicy {
         return "/".equals(path) || "/index.html".equals(path);
     }
 
-    private boolean isCorePage(String path) {
-        return path.equals("/about.html")
-                || path.equals("/about")
-                || path.equals("/thoughts/")
-                || path.equals("/thoughts/index.html")
-                || path.equals("/knowledge/")
-                || path.equals("/knowledge/index.html")
-                || path.equals("/projects/")
-                || path.equals("/projects/index.html");
+    private boolean isInvalid(String path) {
+        if (path.isBlank() || path.length() > MAX_PATH_LENGTH || path.indexOf('\\') >= 0 || path.contains("//")) {
+            return true;
+        }
+        for (int index = 0; index < path.length(); index++) {
+            if (Character.isISOControl(path.charAt(index))) {
+                return true;
+            }
+        }
+        for (String segment : path.split("/")) {
+            if ("..".equals(segment) || ".".equals(segment)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isReservedPrefix(String path, String prefix) {
+        return path.equals(prefix) || path.startsWith(prefix + "/");
+    }
+
+    private boolean hasStaticSuffix(String path) {
+        String lowerCasePath = path.toLowerCase();
+        for (String suffix : STATIC_SUFFIXES) {
+            if (lowerCasePath.endsWith(suffix)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

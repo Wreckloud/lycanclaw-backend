@@ -24,6 +24,7 @@ import com.lycanclaw.backend.analytics.repository.AnalyticsVisitRepository;
 import com.lycanclaw.backend.analytics.repository.AnalyticsVisitorIdentityRepository;
 import com.lycanclaw.backend.analytics.repository.EncouragementEventRepository;
 import com.lycanclaw.backend.analytics.repository.MusicListenSessionRepository;
+import com.lycanclaw.backend.content.service.ContentCatalogService;
 import com.lycanclaw.backend.stats.entity.ArticleMetricEntity;
 import com.lycanclaw.backend.stats.service.ArticleMetricService;
 import org.springframework.beans.factory.annotation.Value;
@@ -64,7 +65,7 @@ public class AdminAnalyticsService {
     private final EncouragementEventRepository encouragementRepository;
     private final AnalyticsVisitorIdentityRepository identityRepository;
     private final MusicListenSessionRepository musicRepository;
-    private final AnalyticsContentIndexService contentIndexService;
+    private final ContentCatalogService contentCatalogService;
     private final AnalyticsPathPolicy pathPolicy;
     private final IpRegionService ipRegionService;
     private final VisitorIdentityService visitorIdentityService;
@@ -76,7 +77,7 @@ public class AdminAnalyticsService {
             EncouragementEventRepository encouragementRepository,
             AnalyticsVisitorIdentityRepository identityRepository,
             MusicListenSessionRepository musicRepository,
-            AnalyticsContentIndexService contentIndexService,
+            ContentCatalogService contentCatalogService,
             AnalyticsPathPolicy pathPolicy,
             IpRegionService ipRegionService,
             VisitorIdentityService visitorIdentityService,
@@ -87,7 +88,7 @@ public class AdminAnalyticsService {
         this.encouragementRepository = encouragementRepository;
         this.identityRepository = identityRepository;
         this.musicRepository = musicRepository;
-        this.contentIndexService = contentIndexService;
+        this.contentCatalogService = contentCatalogService;
         this.pathPolicy = pathPolicy;
         this.ipRegionService = ipRegionService;
         this.visitorIdentityService = visitorIdentityService;
@@ -345,7 +346,7 @@ public class AdminAnalyticsService {
             List<AnalyticsVisitEntity> visits,
             List<EncouragementEventEntity> encouragements
     ) {
-        Map<String, AnalyticsContentIndexService.PostInfo> posts = contentIndexService.loadPostMap();
+        Map<String, ContentCatalogService.ContentItem> posts = contentCatalogService.loadArticleMap();
         Map<String, ArticleAccumulator> byPath = new LinkedHashMap<>();
         long articleVisitCount = visits.stream().filter(visit -> "article".equalsIgnoreCase(visit.getPageType())).count();
         for (AnalyticsVisitEntity visit : visits) {
@@ -375,7 +376,7 @@ public class AdminAnalyticsService {
     }
 
     private List<AnalyticsRecentVisitDto> buildRecentArticleVisits(List<AnalyticsVisitEntity> visits) {
-        Map<String, AnalyticsContentIndexService.PostInfo> posts = contentIndexService.loadPostMap();
+        Map<String, ContentCatalogService.ContentItem> posts = contentCatalogService.loadArticleMap();
         Map<String, AnalyticsVisitorIdentityEntity> identities = identityMap();
         return visits.stream()
                 .filter(visit -> "article".equalsIgnoreCase(visit.getPageType()))
@@ -399,11 +400,11 @@ public class AdminAnalyticsService {
     }
 
     private List<AnalyticsTagMetricDto> buildTagMetrics(List<AnalyticsVisitEntity> visits) {
-        Map<String, AnalyticsContentIndexService.PostInfo> posts = contentIndexService.loadPostMap();
+        Map<String, ContentCatalogService.ContentItem> posts = contentCatalogService.loadArticleMap();
         Map<String, TagAccumulator> byTag = new HashMap<>();
         for (AnalyticsVisitEntity visit : visits) {
             String path = pathPolicy.normalizePath(visit.getPath());
-            AnalyticsContentIndexService.PostInfo post = posts.get(path);
+            ContentCatalogService.ContentItem post = posts.get(path);
             if (post == null) {
                 continue;
             }
@@ -586,7 +587,7 @@ public class AdminAnalyticsService {
     }
 
     private AnalyticsArticleMetricDto emptyArticleMetric(String path) {
-        String title = resolveTitle(path, "", contentIndexService.loadPostMap());
+        String title = resolveTitle(path, "", contentCatalogService.loadArticleMap());
         return new AnalyticsArticleMetricDto(
                 path,
                 title,
@@ -633,9 +634,9 @@ public class AdminAnalyticsService {
     private String resolveTitle(
             String path,
             String fallback,
-            Map<String, AnalyticsContentIndexService.PostInfo> posts
+            Map<String, ContentCatalogService.ContentItem> posts
     ) {
-        AnalyticsContentIndexService.PostInfo post = posts.get(path);
+        ContentCatalogService.ContentItem post = posts.get(path);
         if (post != null && !post.title().isBlank()) {
             return post.title();
         }

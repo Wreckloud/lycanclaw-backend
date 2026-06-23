@@ -2,10 +2,16 @@ package com.lycanclaw.backend.stats.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * 文章指标同步配置。
+ *
+ * @author Wreckloud
+ * @since 2026-06-23
+ */
 @ConfigurationProperties(prefix = "lycan.article-metrics")
 public class ArticleMetricProperties {
 
-    private long syncIntervalMillis = 300_000L;
+    private long syncIntervalMillis = 600_000L;
     private int fetchParallelism = 6;
     private int fetchTimeoutSeconds = 15;
     private boolean startupSyncEnabled = true;

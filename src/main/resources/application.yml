@@ -83,16 +83,15 @@ lycan:
     # 是否信任代理头（反向代理后可开启，按 X-Forwarded-For 识别真实 IP）
     trust-forwarded-headers: false
   analytics:
-    # 前端生成的知识笔记统计索引，用于后台文章与主题关注分析
-    knowledge-stats-json-path: ${LYCAN_ANALYTICS_KNOWLEDGE_STATS_JSON_PATH:../frontend/docs/public/knowledge-stats.json}
     ip-region:
       # ip2region IPv4 XDB 文件路径；留空时仅展示原始 IP
       v4-xdb-path: ${LYCAN_IP2REGION_V4_XDB_PATH:}
       # ip2region IPv6 XDB 文件路径；留空时不解析 IPv6 地区
       v6-xdb-path: ${LYCAN_IP2REGION_V6_XDB_PATH:}
   content:
-    # 前端构建输出的文章索引，供标签、推荐和文章指标同步共用
+    # 前端构建输出的内容索引，供标签、推荐、评论标题、后台分析和文章指标同步共用
     posts-json-path: ${LYCAN_CONTENT_POSTS_JSON_PATH:../frontend/docs/public/posts.json}
+    knowledge-stats-json-path: ${LYCAN_CONTENT_KNOWLEDGE_STATS_JSON_PATH:../frontend/docs/public/knowledge-stats.json}
   music:
     # 首页随机流与关于页榜单固定账号 uid（与登录态解耦）
     playlist-owner-uid: ${LYCAN_MUSIC_PLAYLIST_OWNER_UID:629126546}
@@ -111,7 +110,7 @@ lycan:
       comment-weight: ${LYCAN_RECOMMENDATION_COMMENT_WEIGHT:24.0}
   article-metrics:
     # 从 Waline 同步阅读量和评论量的周期
-    sync-interval-millis: ${LYCAN_ARTICLE_METRICS_SYNC_INTERVAL_MILLIS:300000}
+    sync-interval-millis: ${LYCAN_ARTICLE_METRICS_SYNC_INTERVAL_MILLIS:600000}
     # 同步 Waline 指标的并发数
     fetch-parallelism: ${LYCAN_ARTICLE_METRICS_FETCH_PARALLELISM:6}
     # 单篇文章指标请求超时秒数

@@ -60,7 +60,6 @@ public class WebSecurityConfig implements WebMvcConfigurer {
         registry.addInterceptor(publicWriteRateLimitInterceptor)
                 .addPathPatterns(
                         "/api/stats/pageview",
-                        "/api/article-metrics/batch",
                         "/api/analytics/visit/**",
                         "/api/analytics/identity/**",
                         "/api/encouragement/**",

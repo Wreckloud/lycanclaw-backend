@@ -3,9 +3,9 @@ package com.lycanclaw.backend.comment.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lycanclaw.backend.comment.dto.RecentCommentDto;
 import com.lycanclaw.backend.common.json.JsonNodeExtractors;
-import com.lycanclaw.backend.analytics.service.AnalyticsContentIndexService;
 import com.lycanclaw.backend.analytics.service.AnalyticsPathPolicy;
 import com.lycanclaw.backend.waline.service.WalineGatewayClient;
+import com.lycanclaw.backend.content.service.ContentCatalogService;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -26,20 +26,20 @@ public class CommentService {
     private final WalineGatewayClient walineGatewayClient;
     private final JsonNodeExtractors jsonNodeExtractors;
     private final CommentTextNormalizer commentTextNormalizer;
-    private final AnalyticsContentIndexService contentIndexService;
+    private final ContentCatalogService contentCatalogService;
     private final AnalyticsPathPolicy pathPolicy;
 
     public CommentService(
             WalineGatewayClient walineGatewayClient,
             JsonNodeExtractors jsonNodeExtractors,
             CommentTextNormalizer commentTextNormalizer,
-            AnalyticsContentIndexService contentIndexService,
+            ContentCatalogService contentCatalogService,
             AnalyticsPathPolicy pathPolicy
     ) {
         this.walineGatewayClient = walineGatewayClient;
         this.jsonNodeExtractors = jsonNodeExtractors;
         this.commentTextNormalizer = commentTextNormalizer;
-        this.contentIndexService = contentIndexService;
+        this.contentCatalogService = contentCatalogService;
         this.pathPolicy = pathPolicy;
     }
 
@@ -79,7 +79,7 @@ public class CommentService {
         String path = firstText(item, "path", "url");
         String rawComment = firstText(item, "orig", "comment", "content");
         String normalizedPath = pathPolicy.normalizePath(path.isBlank() ? url : path);
-        AnalyticsContentIndexService.PostInfo post = contentIndexService.loadPostMap().get(normalizedPath);
+        ContentCatalogService.ContentItem post = contentCatalogService.loadArticleMap().get(normalizedPath);
         return new RecentCommentDto(
                 firstText(item, "objectId", "id"),
                 firstText(item, "nick", "name"),

@@ -7,7 +7,7 @@ import java.util.Map;
 
 /**
  * 推荐与索引摘要。
- * 用于后台展示手动推荐、标签缓存、最新评论采样和推荐聚合状态。
+ * 用于后台展示手动推荐、标签缓存、最新评论采样和文章指标同步状态。
  * @author Wreckloud
  * @since 2026-05-15
  */
@@ -31,8 +31,8 @@ public record AdminGovernanceSummaryDto(
         HealthLevel syncLevel,
         @Schema(description = "同步状态检查时间", example = "2026-05-28T22:05:43+08:00")
         String syncCheckedAt,
-        @Schema(description = "推荐聚合状态摘要（上次成功时间、耗时、失败数等）")
-        Map<String, Object> recommendationAggregation,
+        @Schema(description = "文章指标同步状态摘要")
+        Map<String, Object> articleMetricSyncStatus,
         @Schema(description = "治理动作接口路径映射")
         Map<String, String> actions
 ) {

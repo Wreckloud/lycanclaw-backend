@@ -18,7 +18,7 @@ public record RecommendationPostDto(
         String title,
         @Schema(description = "文章摘要")
         String description,
-        @Schema(description = "发布时间")
+        @Schema(description = "发布时间，格式为 yyyy-MM-dd HH:mm:ss", example = "2026-02-21 16:25:50")
         String date,
         @Schema(description = "文章标签")
         List<String> tags,

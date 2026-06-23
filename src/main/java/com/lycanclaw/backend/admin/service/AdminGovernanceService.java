@@ -1,6 +1,6 @@
 package com.lycanclaw.backend.admin.service;
 
-import com.lycanclaw.backend.recommendation.service.RecommendationService;
+import com.lycanclaw.backend.stats.service.ArticleMetricSyncService;
 import com.lycanclaw.backend.tag.service.TagService;
 import com.lycanclaw.backend.common.time.AppTimeProvider;
 import com.lycanclaw.backend.common.model.HealthLevel;
@@ -11,37 +11,37 @@ import java.util.Map;
 
 /**
  * 管理治理服务。
- * 提供推荐重算、标签缓存刷新与治理同步状态分级能力。
+ * 提供文章指标同步、标签缓存刷新与治理状态分级能力。
  * @author Wreckloud
  * @since 2026-05-15
  */
 @Service
 public class AdminGovernanceService {
 
-    private final RecommendationService recommendationService;
+    private final ArticleMetricSyncService articleMetricSyncService;
     private final TagService tagService;
     private final OpsCheckService opsCheckService;
     private final AppTimeProvider appTimeProvider;
 
     public AdminGovernanceService(
-            RecommendationService recommendationService,
+            ArticleMetricSyncService articleMetricSyncService,
             TagService tagService,
             OpsCheckService opsCheckService,
             AppTimeProvider appTimeProvider
     ) {
-        this.recommendationService = recommendationService;
+        this.articleMetricSyncService = articleMetricSyncService;
         this.tagService = tagService;
         this.opsCheckService = opsCheckService;
         this.appTimeProvider = appTimeProvider;
     }
 
     /**
-     * 手动触发推荐聚合任务，并返回受理与快照状态。
+     * 手动触发文章指标同步，并返回受理状态。
      */
-    public Map<String, Object> rebuildRecommendations() {
+    public Map<String, Object> syncArticleMetrics() {
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("action", "recommendations.aggregate");
-        payload.put("result", recommendationService.forceRebuildCache());
+        payload.put("action", "article-metrics.sync");
+        payload.put("result", articleMetricSyncService.triggerAsyncSync("manual"));
         payload.put("checkedAt", appTimeProvider.nowOffsetString());
         return payload;
     }
@@ -59,9 +59,9 @@ public class AdminGovernanceService {
 
     /**
      * 数据同步状态分级：
-     * - green：关键依赖正常；
-     * - yellow：缓存缺失/过期或部分依赖异常；
-     * - red：关键文件缺失或服务不可用。
+     * - green：关键依赖和最近一次指标同步正常；
+     * - yellow：音乐上游或部分文章指标同步异常；
+     * - red：内容索引缺失或 Waline 不可用。
      */
     public Map<String, Object> syncStatus() {
         Map<String, Object> checks = opsCheckService.collectChecks();
@@ -78,17 +78,18 @@ public class AdminGovernanceService {
         Map<String, Object> waline = asMap(services.get("waline"));
         Map<String, Object> ncm = asMap(services.get("ncmUpstream"));
         Map<String, Object> posts = asMap(sync.get("postsJson"));
-        Map<String, Object> recommendationCache = recommendationService.cacheState();
+        Map<String, Object> knowledge = asMap(sync.get("knowledgeStatsJson"));
+        Map<String, Object> articleMetrics = articleMetricSyncService.snapshotState();
 
-        HealthLevel level = computeLevel(waline, ncm, posts, recommendationCache);
+        HealthLevel level = computeLevel(waline, ncm, posts, knowledge, articleMetrics);
 
         return Map.of(
                 "level", level,
                 "checkedAt", checks.getOrDefault("checkedAt", ""),
                 "services", services,
                 "sync", sync,
-                "caches", Map.of(
-                        "recommendation", recommendationCache
+                "jobs", Map.of(
+                        "articleMetrics", articleMetrics
                 )
         );
     }
@@ -97,20 +98,24 @@ public class AdminGovernanceService {
             Map<String, Object> waline,
             Map<String, Object> ncm,
             Map<String, Object> posts,
-            Map<String, Object> recommendationCache
+            Map<String, Object> knowledge,
+            Map<String, Object> articleMetrics
     ) {
         boolean walineOk = asBoolean(waline.get("ok"));
         boolean ncmOk = asBoolean(ncm.get("ok"));
         boolean postsExists = asBoolean(posts.get("exists"));
+        boolean knowledgeExists = asBoolean(knowledge.get("exists"));
 
-        if (!postsExists || !walineOk) {
+        if (!postsExists || !knowledgeExists || !walineOk) {
             return HealthLevel.RED;
         }
 
-        boolean recommendationExpired = asBoolean(recommendationCache.get("expired"));
-        boolean recommendationMissing = !asBoolean(recommendationCache.get("hasSnapshot"));
+        int metricFailures = articleMetrics.get("failureCount") instanceof Number number
+                ? number.intValue()
+                : 0;
+        boolean metricError = !String.valueOf(articleMetrics.getOrDefault("lastError", "")).isBlank();
 
-        if (!ncmOk || recommendationExpired || recommendationMissing) {
+        if (!ncmOk || metricFailures > 0 || metricError) {
             return HealthLevel.YELLOW;
         }
         return HealthLevel.GREEN;

@@ -1,7 +1,7 @@
 package com.lycanclaw.backend.stats.service;
 
 import com.lycanclaw.backend.common.time.AppTimeProvider;
-import com.lycanclaw.backend.content.service.ArticleCatalogService;
+import com.lycanclaw.backend.content.service.ContentCatalogService;
 import com.lycanclaw.backend.stats.config.ArticleMetricProperties;
 import com.lycanclaw.backend.stats.entity.ArticleMetricEntity;
 import com.lycanclaw.backend.stats.repository.ArticleMetricRepository;
@@ -16,24 +16,30 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-import java.time.OffsetDateTime;
 
+/**
+ * 定期从 Waline 同步文章浏览量和评论数快照。
+ *
+ * @author Wreckloud
+ * @since 2026-06-23
+ */
 @Service
 public class ArticleMetricSyncService {
 
     private static final Logger log = LoggerFactory.getLogger(ArticleMetricSyncService.class);
 
-    private final ArticleCatalogService articleCatalogService;
+    private final ContentCatalogService contentCatalogService;
     private final ArticleMetricRepository repository;
     private final WalineGatewayClient walineGatewayClient;
     private final ArticleMetricProperties properties;
@@ -43,14 +49,14 @@ public class ArticleMetricSyncService {
     private final AtomicReference<SyncStatus> latestStatus = new AtomicReference<>(SyncStatus.initial());
 
     public ArticleMetricSyncService(
-            ArticleCatalogService articleCatalogService,
+            ContentCatalogService contentCatalogService,
             ArticleMetricRepository repository,
             WalineGatewayClient walineGatewayClient,
             ArticleMetricProperties properties,
             @Qualifier("articleMetricExecutor") ThreadPoolTaskExecutor executor,
             AppTimeProvider appTimeProvider
     ) {
-        this.articleCatalogService = articleCatalogService;
+        this.contentCatalogService = contentCatalogService;
         this.repository = repository;
         this.walineGatewayClient = walineGatewayClient;
         this.properties = properties;
@@ -66,86 +72,74 @@ public class ArticleMetricSyncService {
     }
 
     @Scheduled(
-            fixedDelayString = "${lycan.article-metrics.sync-interval-millis:300000}",
-            initialDelayString = "${lycan.article-metrics.sync-interval-millis:300000}"
+            fixedDelayString = "${lycan.article-metrics.sync-interval-millis:600000}",
+            initialDelayString = "${lycan.article-metrics.sync-interval-millis:600000}"
     )
     public void runScheduledSync() {
         triggerAsyncSync("scheduled");
     }
 
     public Map<String, Object> triggerAsyncSync(String trigger) {
+        // 启动、定时和手动触发共用此入口，同一时间只允许一个同步批次运行。
         if (!running.compareAndSet(false, true)) {
-            Map<String, Object> response = new LinkedHashMap<>(snapshotState());
-            response.put("accepted", false);
-            response.put("trigger", trigger);
-            return response;
+            return response(false);
         }
-        executor.execute(() -> executeSync(trigger));
-        Map<String, Object> response = new LinkedHashMap<>(snapshotState());
-        response.put("accepted", true);
-        response.put("trigger", trigger);
-        return response;
+        try {
+            executor.execute(() -> executeSync(trigger));
+        } catch (RuntimeException ex) {
+            String failedAt = appTimeProvider.nowOffsetString();
+            latestStatus.set(new SyncStatus(failedAt, failedAt, 0, 0, errorMessage(ex)));
+            running.set(false);
+            throw new IllegalStateException("文章指标同步任务提交失败", ex);
+        }
+        return response(true);
     }
 
     public Map<String, Object> snapshotState() {
+        return response(null);
+    }
+
+    private Map<String, Object> response(Boolean accepted) {
         SyncStatus status = latestStatus.get();
-        long metricCount = repository.count();
-        OffsetDateTime lastSuccessAt = repository.findTopByOrderBySyncedAtDesc()
-                .map(ArticleMetricEntity::getSyncedAt)
-                .orElse(null);
         Map<String, Object> payload = new LinkedHashMap<>();
+        if (accepted != null) {
+            payload.put("accepted", accepted);
+        }
         payload.put("running", running.get());
-        payload.put("metricCount", metricCount);
-        payload.put("hasSnapshot", metricCount > 0);
-        payload.put("expired", isExpired(lastSuccessAt));
         payload.put("lastStartedAt", status.startedAt());
         payload.put("lastFinishedAt", status.finishedAt());
-        payload.put("lastTrigger", status.trigger());
         payload.put("successCount", status.successCount());
         payload.put("failureCount", status.failureCount());
         payload.put("lastError", status.lastError());
-        payload.put("lastSuccessAt", lastSuccessAt == null ? "" : appTimeProvider.toOffsetString(lastSuccessAt));
         return payload;
-    }
-
-    private boolean isExpired(OffsetDateTime lastSuccessAt) {
-        if (lastSuccessAt == null) {
-            return true;
-        }
-        long staleAfterMillis = Math.max(60_000L, properties.getSyncIntervalMillis() * 3L);
-        return lastSuccessAt.isBefore(appTimeProvider.nowOffsetDateTime().minusNanos(staleAfterMillis * 1_000_000L));
     }
 
     private void executeSync(String trigger) {
         String startedAt = appTimeProvider.nowOffsetString();
-        latestStatus.set(new SyncStatus(trigger, startedAt, "", 0, 0, ""));
+        latestStatus.set(new SyncStatus(startedAt, "", 0, 0, ""));
         try {
-            List<ArticleCatalogService.ArticleCatalogItem> articles = articleCatalogService.loadPublishedThoughts();
-            Map<String, ArticleMetricEntity> existing = repository.findAllByPathIn(
-                    articles.stream().map(ArticleCatalogService.ArticleCatalogItem::path).toList()
-            ).stream().collect(Collectors.toMap(ArticleMetricEntity::getPath, entity -> entity));
-            SyncBatch batch = fetchBatch(articles, existing);
-            if (!batch.entities().isEmpty()) {
-                repository.saveAll(batch.entities());
-            }
+            List<ContentCatalogService.ContentItem> articles = contentCatalogService.loadPublishedArticles();
+            SyncBatch batch = fetchBatch(articles);
+            persistBatch(articles, batch);
             latestStatus.set(new SyncStatus(
-                    trigger,
                     startedAt,
                     appTimeProvider.nowOffsetString(),
                     batch.successCount(),
                     batch.failureCount(),
                     batch.lastError()
             ));
-            log.info(
-                    "article metric sync finished, trigger={}, articles={}, success={}, failed={}",
-                    trigger,
-                    articles.size(),
-                    batch.successCount(),
-                    batch.failureCount()
-            );
+            if (batch.failureCount() > 0) {
+                log.warn(
+                        "article metric sync partially failed, trigger={}, articles={}, success={}, failed={}, error={}",
+                        trigger,
+                        articles.size(),
+                        batch.successCount(),
+                        batch.failureCount(),
+                        batch.lastError()
+                );
+            }
         } catch (Exception ex) {
             latestStatus.set(new SyncStatus(
-                    trigger,
                     startedAt,
                     appTimeProvider.nowOffsetString(),
                     0,
@@ -158,15 +152,11 @@ public class ArticleMetricSyncService {
         }
     }
 
-    private SyncBatch fetchBatch(
-            List<ArticleCatalogService.ArticleCatalogItem> articles,
-            Map<String, ArticleMetricEntity> existing
-    ) {
+    private SyncBatch fetchBatch(List<ContentCatalogService.ContentItem> articles) {
         List<Future<MetricFetchResult>> futures = articles.stream()
                 .map(article -> executor.submit(() -> fetchOne(article.path())))
                 .toList();
-        List<ArticleMetricEntity> entities = new ArrayList<>(articles.size());
-        int successCount = 0;
+        List<ArticleMetricEntity> successfulEntities = new ArrayList<>(articles.size());
         int failureCount = 0;
         String lastError = "";
         int timeoutSeconds = Math.max(2, properties.getFetchTimeoutSeconds());
@@ -177,6 +167,7 @@ public class ArticleMetricSyncService {
             try {
                 result = futures.get(index).get(timeoutSeconds, TimeUnit.SECONDS);
             } catch (TimeoutException ex) {
+                futures.get(index).cancel(true);
                 result = MetricFetchResult.failed(path, "fetch timeout");
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
@@ -185,73 +176,61 @@ public class ArticleMetricSyncService {
                 result = MetricFetchResult.failed(path, errorMessage(ex));
             }
 
-            ArticleMetricEntity entity = merge(result, existing.get(path));
-            if (entity != null) {
-                entities.add(entity);
-            }
+            // 仅写入完整成功项；失败项不落库，因此会保留原有快照。
             if (result.success()) {
-                successCount++;
+                successfulEntities.add(toEntity(result));
             } else {
                 failureCount++;
                 lastError = result.errorMessage();
             }
         }
-        return new SyncBatch(entities, successCount, failureCount, lastError);
+        return new SyncBatch(successfulEntities, successfulEntities.size(), failureCount, lastError);
     }
 
     private MetricFetchResult fetchOne(String path) {
-        Integer pageviewCount = null;
-        Integer commentCount = null;
-        List<String> errors = new ArrayList<>();
         try {
-            pageviewCount = Math.max(0, walineGatewayClient.fetchPageview(path));
+            int pageviewCount = Math.max(0, walineGatewayClient.fetchPageview(path));
+            int commentCount = Math.max(0, walineGatewayClient.fetchCommentCount(path));
+            return MetricFetchResult.success(path, pageviewCount, commentCount);
         } catch (Exception ex) {
-            errors.add("pageview: " + errorMessage(ex));
+            return MetricFetchResult.failed(path, errorMessage(ex));
         }
-        try {
-            commentCount = Math.max(0, walineGatewayClient.fetchCommentCount(path));
-        } catch (Exception ex) {
-            errors.add("comment: " + errorMessage(ex));
-        }
-
-        if (errors.isEmpty()) {
-            return new MetricFetchResult(path, pageviewCount, commentCount, "ok", "", true);
-        }
-        return new MetricFetchResult(
-                path,
-                pageviewCount,
-                commentCount,
-                pageviewCount == null && commentCount == null ? "failed" : "partial_error",
-                String.join("; ", errors),
-                false
-        );
     }
 
-    private ArticleMetricEntity merge(MetricFetchResult result, ArticleMetricEntity existing) {
-        if (result.pageviewCount() == null && result.commentCount() == null) {
-            if (existing != null) {
-                existing.setSourceStatus(result.sourceStatus());
-                existing.setLastError(result.errorMessage());
-            }
-            return existing;
+    private void persistBatch(
+            List<ContentCatalogService.ContentItem> articles,
+            SyncBatch batch
+    ) {
+        // 全部请求失败时不改动快照，避免一次上游故障破坏现有数据。
+        if (!articles.isEmpty() && batch.successCount() == 0) {
+            return;
         }
-        ArticleMetricEntity entity = existing == null ? new ArticleMetricEntity() : existing;
+        if (!batch.entities().isEmpty()) {
+            repository.saveAll(batch.entities());
+        }
+        Set<String> publishedPaths = articles.stream()
+                .map(ContentCatalogService.ContentItem::path)
+                .collect(HashSet::new, Set::add, Set::addAll);
+        List<ArticleMetricEntity> removed = repository.findAll().stream()
+                .filter(entity -> !publishedPaths.contains(entity.getPath()))
+                .toList();
+        if (!removed.isEmpty()) {
+            repository.deleteAll(removed);
+        }
+    }
+
+    private ArticleMetricEntity toEntity(MetricFetchResult result) {
+        ArticleMetricEntity entity = new ArticleMetricEntity();
         entity.setPath(result.path());
-        if (result.pageviewCount() != null) {
-            entity.setPageviewCount(result.pageviewCount());
-        }
-        if (result.commentCount() != null) {
-            entity.setCommentCount(result.commentCount());
-        }
-        entity.setSyncedAt(appTimeProvider.nowOffsetDateTime());
-        entity.setSourceStatus(result.sourceStatus());
-        entity.setLastError(result.errorMessage());
+        entity.setPageviewCount(result.pageviewCount());
+        entity.setCommentCount(result.commentCount());
         return entity;
     }
 
     private String errorMessage(Exception ex) {
-        String message = ex.getMessage();
-        return message == null || message.isBlank() ? ex.getClass().getSimpleName() : message;
+        Throwable cause = ex instanceof ExecutionException && ex.getCause() != null ? ex.getCause() : ex;
+        String message = cause.getMessage();
+        return message == null || message.isBlank() ? cause.getClass().getSimpleName() : message;
     }
 
     private record SyncBatch(
@@ -264,19 +243,21 @@ public class ArticleMetricSyncService {
 
     private record MetricFetchResult(
             String path,
-            Integer pageviewCount,
-            Integer commentCount,
-            String sourceStatus,
+            int pageviewCount,
+            int commentCount,
             String errorMessage,
             boolean success
     ) {
+        private static MetricFetchResult success(String path, int pageviewCount, int commentCount) {
+            return new MetricFetchResult(path, pageviewCount, commentCount, "", true);
+        }
+
         private static MetricFetchResult failed(String path, String error) {
-            return new MetricFetchResult(path, null, null, "failed", error, false);
+            return new MetricFetchResult(path, 0, 0, error, false);
         }
     }
 
     private record SyncStatus(
-            String trigger,
             String startedAt,
             String finishedAt,
             int successCount,
@@ -284,7 +265,7 @@ public class ArticleMetricSyncService {
             String lastError
     ) {
         private static SyncStatus initial() {
-            return new SyncStatus("", "", "", 0, 0, "");
+            return new SyncStatus("", "", 0, 0, "");
         }
     }
 }

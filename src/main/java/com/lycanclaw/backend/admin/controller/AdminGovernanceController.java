@@ -28,10 +28,10 @@ public class AdminGovernanceController {
         this.adminGovernanceService = adminGovernanceService;
     }
 
-    @Operation(summary = "手动触发推荐重算")
-    @PostMapping("/recommendations/rebuild")
-    public ApiResponse<Map<String, Object>> rebuildRecommendations() {
-        return ApiResponse.ok(adminGovernanceService.rebuildRecommendations());
+    @Operation(summary = "手动同步文章指标")
+    @PostMapping("/article-metrics/sync")
+    public ApiResponse<Map<String, Object>> syncArticleMetrics() {
+        return ApiResponse.ok(adminGovernanceService.syncArticleMetrics());
     }
 
     @Operation(summary = "手动刷新标签缓存")

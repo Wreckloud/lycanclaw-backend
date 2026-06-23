@@ -1,6 +1,5 @@
 package com.lycanclaw.backend.stats.service;
 
-import com.lycanclaw.backend.common.time.AppTimeProvider;
 import com.lycanclaw.backend.common.path.WebPathNormalizer;
 import com.lycanclaw.backend.stats.dto.ArticleMetricDto;
 import com.lycanclaw.backend.stats.entity.ArticleMetricEntity;
@@ -11,17 +10,20 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
+/**
+ * 文章指标快照查询与更新服务。
+ *
+ * @author Wreckloud
+ * @since 2026-06-23
+ */
 @Service
 public class ArticleMetricService {
 
     private final ArticleMetricRepository repository;
-    private final AppTimeProvider appTimeProvider;
 
-    public ArticleMetricService(ArticleMetricRepository repository, AppTimeProvider appTimeProvider) {
+    public ArticleMetricService(ArticleMetricRepository repository) {
         this.repository = repository;
-        this.appTimeProvider = appTimeProvider;
     }
 
     @Transactional(readOnly = true)
@@ -30,22 +32,6 @@ public class ArticleMetricService {
         return repository.findById(normalized)
                 .map(this::toDto)
                 .orElseGet(() -> emptyMetric(normalized));
-    }
-
-    @Transactional(readOnly = true)
-    public List<ArticleMetricDto> findBatch(List<String> paths) {
-        List<String> normalized = paths.stream()
-                .filter(Objects::nonNull)
-                .map(this::normalizePath)
-                .distinct()
-                .toList();
-        Map<String, ArticleMetricEntity> byPath = loadEntities(normalized);
-        return normalized.stream()
-                .map(path -> {
-                    ArticleMetricEntity entity = byPath.get(path);
-                    return entity == null ? emptyMetric(path) : toDto(entity);
-                })
-                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -67,9 +53,6 @@ public class ArticleMetricService {
         entity.setPath(normalized);
         entity.setPageviewCount(Math.max(0, pageviewCount));
         entity.setCommentCount(Math.max(0, entity.getCommentCount()));
-        entity.setSyncedAt(appTimeProvider.nowOffsetDateTime());
-        entity.setSourceStatus("ok");
-        entity.setLastError("");
         repository.save(entity);
     }
 
@@ -77,13 +60,12 @@ public class ArticleMetricService {
         return new ArticleMetricDto(
                 entity.getPath(),
                 entity.getPageviewCount(),
-                entity.getCommentCount(),
-                appTimeProvider.toOffsetString(entity.getSyncedAt())
+                entity.getCommentCount()
         );
     }
 
     private ArticleMetricDto emptyMetric(String path) {
-        return new ArticleMetricDto(path, 0, 0, null);
+        return new ArticleMetricDto(path, 0, 0);
     }
 
     private String normalizePath(String value) {

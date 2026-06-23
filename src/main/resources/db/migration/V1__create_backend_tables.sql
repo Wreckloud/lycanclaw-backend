@@ -2,11 +2,7 @@ CREATE TABLE `article_metrics` (
   `path` VARCHAR(255) NOT NULL,
   `pageview_count` INT NOT NULL DEFAULT 0,
   `comment_count` INT NOT NULL DEFAULT 0,
-  `synced_at` DATETIME(6) NOT NULL,
-  `source_status` VARCHAR(32) NOT NULL DEFAULT 'ok',
-  `last_error` VARCHAR(1000) NULL,
-  PRIMARY KEY (`path`),
-  KEY `idx_article_metrics_synced_at` (`synced_at`)
+  PRIMARY KEY (`path`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `recommendation_rules` (
@@ -24,7 +20,7 @@ CREATE TABLE `analytics_visit` (
   `visit_id` VARCHAR(64) NOT NULL,
   `path` VARCHAR(512) NOT NULL,
   `title` VARCHAR(255) NOT NULL DEFAULT '',
-  `page_type` VARCHAR(32) NOT NULL DEFAULT 'core',
+  `page_type` VARCHAR(32) NOT NULL DEFAULT 'page',
   `visitor_id` VARCHAR(96) NOT NULL DEFAULT 'anonymous',
   `ip` VARCHAR(64) NOT NULL DEFAULT '',
   `user_agent` VARCHAR(1000) NULL,
