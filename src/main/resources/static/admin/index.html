@@ -112,7 +112,11 @@
     .comment-avatar { width: 42px; height: 42px; object-fit: cover; background: var(--surface-muted); }
     .comment-main { min-width: 0; }
     .comment-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 5px; }
-    .comment-content { color: var(--text); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+    .comment-content { color: var(--text); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .comment-content a { color: #b5ffd3; text-decoration: none; }
+    .comment-content a:hover { color: var(--accent); }
+    .comment-content img:not(.wl-emoji) { display: block; max-width: min(100%, 360px); max-height: 220px; margin: 8px 0; object-fit: contain; background: var(--surface-muted); border-radius: 3px; }
+    .comment-content img.wl-emoji { display: inline; width: 1.35em; height: 1.35em; margin: 0 .1em; vertical-align: -.25em; background: transparent; }
     .comment-actions { display: flex; gap: 4px; align-items: flex-start; flex-wrap: wrap; justify-content: flex-end; }
     .comment-actions .btn { min-height: 30px; padding: 5px 8px; font-size: 12px; }
     .user-item { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; padding: 12px; background: var(--surface-soft); align-items: center; }
@@ -284,6 +288,77 @@
 
   function escapeHtml(value) {
     return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+  }
+  function markdownImagesToHtml(value) {
+    return String(value ?? '').replace(/!\[([^\]]*)]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g, (_, alt, source) => {
+      return `<img src="${escapeHtml(source)}" alt="${escapeHtml(alt || '图片')}">`;
+    });
+  }
+  function isSafeCommentResource(value, imageOnly = false) {
+    const raw = String(value || '').trim();
+    if (!raw) return false;
+    if (raw.startsWith('/')) return true;
+    if (imageOnly && /^data:image\/(?:png|jpe?g|gif|webp);base64,/i.test(raw)) return true;
+    try {
+      const url = new URL(raw, location.origin);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+  function sanitizeCommentHtml(value) {
+    const template = document.createElement('template');
+    template.innerHTML = markdownImagesToHtml(value);
+    const allowedTags = new Set(['a', 'blockquote', 'br', 'code', 'del', 'div', 'em', 'i', 'img', 'li', 'ol', 'p', 'pre', 's', 'span', 'strong', 'ul']);
+    const sanitizeNode = (node) => {
+      [...node.childNodes].forEach((child) => {
+        if (child.nodeType === Node.COMMENT_NODE) {
+          child.remove();
+          return;
+        }
+        if (child.nodeType !== Node.ELEMENT_NODE) return;
+        const element = child;
+        const tag = element.tagName.toLowerCase();
+        if (!allowedTags.has(tag)) {
+          element.replaceWith(document.createTextNode(element.textContent || ''));
+          return;
+        }
+
+        const source = element.getAttribute('src') || '';
+        const href = element.getAttribute('href') || '';
+        const alt = element.getAttribute('alt') || '';
+        const title = element.getAttribute('title') || '';
+        const keepEmojiClass = tag === 'img' && /\bwl-emoji\b/.test(element.getAttribute('class') || '');
+        [...element.attributes].forEach((attribute) => element.removeAttribute(attribute.name));
+
+        if (tag === 'img') {
+          if (!isSafeCommentResource(source, true)) {
+            element.replaceWith(document.createTextNode(alt || '[图片]'));
+            return;
+          }
+          element.setAttribute('src', source);
+          element.setAttribute('alt', alt || '图片');
+          element.setAttribute('loading', 'lazy');
+          element.setAttribute('referrerpolicy', 'no-referrer');
+          if (title) element.setAttribute('title', title);
+          if (keepEmojiClass) element.setAttribute('class', 'wl-emoji');
+        } else if (tag === 'a') {
+          if (isSafeCommentResource(href)) {
+            element.setAttribute('href', href);
+            element.setAttribute('target', '_blank');
+            element.setAttribute('rel', 'noopener noreferrer');
+          }
+          if (title) element.setAttribute('title', title);
+        }
+        sanitizeNode(element);
+      });
+    };
+    sanitizeNode(template.content);
+    return template.innerHTML.trim();
+  }
+  function renderAdminCommentContent(item) {
+    const content = sanitizeCommentHtml(item.commentHtml || item.comment || '');
+    return content || escapeHtml(item.comment || '');
   }
   function statusLevel(value) {
     const raw = String(value ?? '').toLowerCase();
@@ -960,7 +1035,7 @@
     }
     $('#recentComments').innerHTML = state.recentComments.map((item) => {
       const path = item.url || item.path || '';
-      return `<div class="list-item"><div><div class="list-title">${escapeHtml(item.nick || '匿名')}</div><div class="list-meta">${escapeHtml(relativeTime(item.createdAt))} · <a class="article-link" href="${escapeHtml(articleHref(path))}" target="_blank" rel="noopener">${escapeHtml(item.articleTitle || pathTitle(path))}</a></div><div class="list-meta">${escapeHtml(item.comment || '')}</div></div></div>`;
+      return `<div class="list-item"><div><div class="list-title">${escapeHtml(item.nick || '匿名')}</div><div class="list-meta">${escapeHtml(relativeTime(item.createdAt))} · <a class="article-link" href="${escapeHtml(articleHref(path))}" target="_blank" rel="noopener">${escapeHtml(item.articleTitle || pathTitle(path))}</a></div><div class="comment-content">${renderAdminCommentContent(item)}</div></div></div>`;
     }).join('');
   }
   function renderCommentNotification() {
@@ -1014,7 +1089,7 @@
         <img class="comment-avatar" src="${escapeHtml(item.avatar || '/admin/default.png')}" alt="" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/admin/default.png'" />
         <div class="comment-main">
           <div class="comment-head"><input type="checkbox" data-comment-select value="${escapeHtml(item.id)}" aria-label="选择评论" /><strong>${escapeHtml(item.nick || '匿名')}</strong><span class="tag ${statusClass}">${escapeHtml(commentStatusText(status))}</span>${item.sticky ? '<span class="tag green">置顶</span>' : ''}</div>
-          <div class="comment-content">${escapeHtml(item.comment || '')}</div>
+          <div class="comment-content">${renderAdminCommentContent(item)}</div>
           <div class="list-meta">${escapeHtml(relativeTime(item.createdAt))} · <a class="article-link" href="${escapeHtml(articleHref(item.url))}" target="_blank" rel="noopener">${escapeHtml(item.articleTitle || pathTitle(item.url))}</a></div>
           <div class="list-meta">${escapeHtml([item.region || item.ip, item.browser, item.os, item.userType].filter(Boolean).join(' · '))}</div>
         </div>

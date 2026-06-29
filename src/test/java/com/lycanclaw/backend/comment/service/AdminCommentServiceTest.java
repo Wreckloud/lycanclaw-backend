@@ -109,6 +109,7 @@ class AdminCommentServiceTest {
         assertThat(result.data()).hasSize(1);
         AdminCommentItemDto comment = result.data().get(0);
         assertThat(comment.comment()).isEqualTo("正文");
+        assertThat(comment.commentHtml()).isEqualTo("<p>正文</p>");
         assertThat(comment.articleTitle()).isEqualTo("测试文章");
         assertThat(comment.url()).isEqualTo("/thoughts/测试.html");
         assertThat(comment.createdAt()).isNotBlank();

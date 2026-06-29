@@ -138,7 +138,6 @@ $walineToBackendKeys = @(
     'SMTP_PASS',
     'AUTHOR_EMAIL',
     'COMMENT_AUDIT',
-    'DISABLE_AUTHOR_NOTIFY',
     'MAIL_SUBJECT',
     'MAIL_TEMPLATE',
     'MAIL_SUBJECT_ADMIN',
@@ -147,7 +146,7 @@ $walineToBackendKeys = @(
 foreach ($key in $walineToBackendKeys) {
     $value = $walineEnv[$key]
     if (-not [string]::IsNullOrWhiteSpace($value)) {
-        $backendEnvironment["WALINE_$key"] = $value
+        $backendEnvironment[('WALINE_' + $key)] = $value
     }
 }
 

@@ -22,6 +22,8 @@ public record AdminCommentItemDto(
         String avatar,
         @Schema(description = "评论正文")
         String comment,
+        @Schema(description = "评论原始内容，用于管理端预览表情和图片")
+        String commentHtml,
         @Schema(description = "文章路径")
         String url,
         @Schema(description = "文章标题")

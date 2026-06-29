@@ -223,6 +223,7 @@ public class AdminCommentService {
                 text(item, "link"),
                 text(item, "avatar", "avatarUrl"),
                 commentTextNormalizer.toPlainText(original),
+                original,
                 url,
                 post == null ? fallbackTitle(url) : post.title(),
                 commentTime(item),
