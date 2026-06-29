@@ -11,8 +11,8 @@ import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 
 /**
- * 访客身份关联实体。
- * 保存匿名 visitorId 与服务端验证后的 Waline 基础资料，不持久化登录 token。
+ * Waline 访客身份映射实体。
+ * 仅保存已验证 Waline 账号与 visitorId 的关联，不保存匿名派生名称和登录 token。
  * @author Wreckloud
  * @since 2026-06-09
  */
@@ -38,9 +38,6 @@ public class AnalyticsVisitorIdentityEntity {
 
     @Column(name = "nickname", nullable = false, length = 128)
     private String nickname;
-
-    @Column(name = "anonymous_label", length = 32, unique = true)
-    private String anonymousLabel;
 
     @Column(name = "avatar", length = 1000)
     private String avatar;
@@ -72,14 +69,6 @@ public class AnalyticsVisitorIdentityEntity {
 
     public String getNickname() {
         return nickname;
-    }
-
-    public String getAnonymousLabel() {
-        return anonymousLabel;
-    }
-
-    public void setAnonymousLabel(String anonymousLabel) {
-        this.anonymousLabel = anonymousLabel;
     }
 
     public void setNickname(String nickname) {

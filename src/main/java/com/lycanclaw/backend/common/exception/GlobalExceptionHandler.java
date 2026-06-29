@@ -6,9 +6,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * 全局异常处理器。
@@ -32,13 +36,28 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 请求体、请求参数和参数类型错误统一返回稳定的400响应。
+     */
+    @ExceptionHandler({
+            HttpMessageNotReadableException.class,
+            ServletRequestBindingException.class,
+            MethodArgumentTypeMismatchException.class,
+            BindException.class
+    })
+    public ResponseEntity<ApiResponse<Void>> handleRequestFormat(Exception ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail(ErrorCode.BAD_REQUEST, "请求参数格式错误"));
+    }
+
+    /**
      * 未匹配路由统一返回 404。
      */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(NoResourceFoundException ex) {
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.fail(ErrorCode.NOT_FOUND, ex.getMessage()));
+                .body(ApiResponse.fail(ErrorCode.NOT_FOUND));
     }
 
     /**

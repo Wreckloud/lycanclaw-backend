@@ -22,8 +22,8 @@ import java.time.OffsetDateTime;
         indexes = {
                 @Index(name = "idx_music_listen_session_key", columnList = "listen_session_id", unique = true),
                 @Index(name = "idx_music_listen_started_at", columnList = "started_at"),
-                @Index(name = "idx_music_listen_visitor", columnList = "visitor_id"),
-                @Index(name = "idx_music_listen_song", columnList = "song_id")
+                @Index(name = "idx_music_listen_visitor_started", columnList = "visitor_id, started_at"),
+                @Index(name = "idx_music_listen_song_started", columnList = "song_id, started_at")
         }
 )
 public class MusicListenSessionEntity {

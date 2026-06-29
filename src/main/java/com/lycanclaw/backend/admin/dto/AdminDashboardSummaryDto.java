@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * 管理端首页概览响应。
- * 用于聚合音乐状态、写作洞察、推荐索引状态、风控配置和运维检查结果。
+ * 用于聚合音乐状态、访问统计、推荐索引状态、风控配置和运维检查结果。
  * @author Wreckloud
  * @since 2026-05-15
  */
@@ -15,8 +15,8 @@ public record AdminDashboardSummaryDto(
         String checkedAt,
         @Schema(description = "音乐登录状态摘要")
         AdminMusicStatusDto music,
-        @Schema(description = "写作洞察摘要")
-        AdminAnalyticsSummaryDto writingInsights,
+        @Schema(description = "访问与互动统计摘要")
+        AdminAnalyticsSummaryDto analytics,
         @Schema(description = "推荐与索引摘要")
         AdminGovernanceSummaryDto governance,
         @Schema(description = "风控配置摘要")

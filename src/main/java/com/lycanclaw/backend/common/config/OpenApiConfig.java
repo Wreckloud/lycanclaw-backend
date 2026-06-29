@@ -10,11 +10,6 @@ import io.swagger.v3.oas.models.info.Info;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * OpenAPI 文档配置
- * @author Wreckloud
- * @since 2026-05-15
- */
 @Configuration
 @SecurityScheme(
         name = "adminToken",
@@ -26,7 +21,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * OpenAPI 文档配置。
- * 用于配置 Swagger 文档展示信息。
+ * 定义管理鉴权方式和Swagger文档展示信息。
  * @author Wreckloud
  * @since 2026-05-15
  */

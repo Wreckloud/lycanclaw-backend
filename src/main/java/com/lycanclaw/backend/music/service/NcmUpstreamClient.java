@@ -37,9 +37,8 @@ public class NcmUpstreamClient {
         this.properties = properties;
     }
 
-    // 统一上游 GET 调用入口：拼接 base-url + path + query，然后解析为 JsonNode。
     /**
-     * 获取数据。
+     * 向网易云上游发送 GET 请求并解析 JSON 响应。
      */
     public JsonNode get(String path, Map<String, String> queryParams) {
         URI uri = UriComponentsBuilder

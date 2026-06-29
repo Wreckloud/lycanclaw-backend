@@ -1,12 +1,8 @@
 package com.lycanclaw.backend.analytics.controller;
 
-import com.lycanclaw.backend.analytics.dto.AdminAnalyticsSummaryDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsArticleDetailDto;
-import com.lycanclaw.backend.analytics.dto.AnalyticsArticleMetricDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsArticlePageDto;
-import com.lycanclaw.backend.analytics.dto.AnalyticsTagMetricDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsVisitorProfileDto;
-import com.lycanclaw.backend.analytics.dto.EncouragementSummaryDto;
 import com.lycanclaw.backend.analytics.dto.MusicAnalyticsSummaryDto;
 import com.lycanclaw.backend.analytics.service.AdminAnalyticsService;
 import com.lycanclaw.backend.common.api.ApiResponse;
@@ -18,31 +14,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 /**
- * 管理端写作洞察接口。
- * 提供访问趋势、文章排行、标签关注和催更统计数据。
+ * 管理端统计分析接口。
+ * 提供文章、访客和音乐明细；总览数据统一由管理控制台接口返回。
  * @author Wreckloud
  * @since 2026-06-04
  */
 @RestController
 @RequestMapping("/api/admin/analytics")
-@Tag(name = "管理端写作洞察", description = "后台访问分析与催更统计")
+@Tag(name = "管理端统计分析", description = "后台文章、访客和音乐统计")
 public class AdminAnalyticsController {
 
     private final AdminAnalyticsService adminAnalyticsService;
 
     public AdminAnalyticsController(AdminAnalyticsService adminAnalyticsService) {
         this.adminAnalyticsService = adminAnalyticsService;
-    }
-
-    @Operation(summary = "获取写作洞察总览")
-    @GetMapping("/summary")
-    public ApiResponse<AdminAnalyticsSummaryDto> summary(
-            @Parameter(description = "统计天数") @RequestParam(defaultValue = "30") int days
-    ) {
-        return ApiResponse.ok(adminAnalyticsService.summary(days));
     }
 
     @Operation(summary = "获取文章访问指标")
@@ -61,33 +47,17 @@ public class AdminAnalyticsController {
     @Operation(summary = "获取文章洞察详情")
     @GetMapping("/article")
     public ApiResponse<AnalyticsArticleDetailDto> article(
-            @RequestParam String path,
-            @RequestParam(defaultValue = "30") int days
+            @Parameter(description = "文章路径") @RequestParam String path,
+            @Parameter(description = "统计天数") @RequestParam(defaultValue = "30") int days
     ) {
         return ApiResponse.ok(adminAnalyticsService.articleDetail(days, path));
-    }
-
-    @Operation(summary = "获取标签关注指标")
-    @GetMapping("/tags")
-    public ApiResponse<List<AnalyticsTagMetricDto>> tags(
-            @Parameter(description = "统计天数") @RequestParam(defaultValue = "30") int days
-    ) {
-        return ApiResponse.ok(adminAnalyticsService.tagMetrics(days));
-    }
-
-    @Operation(summary = "获取催更统计")
-    @GetMapping("/encouragement")
-    public ApiResponse<EncouragementSummaryDto> encouragement(
-            @Parameter(description = "统计天数") @RequestParam(defaultValue = "30") int days
-    ) {
-        return ApiResponse.ok(adminAnalyticsService.encouragementSummary(days));
     }
 
     @Operation(summary = "获取访客画像")
     @GetMapping("/visitor")
     public ApiResponse<AnalyticsVisitorProfileDto> visitor(
-            @RequestParam String visitorId,
-            @RequestParam(defaultValue = "30") int days
+            @Parameter(description = "匿名访客 ID") @RequestParam String visitorId,
+            @Parameter(description = "统计天数") @RequestParam(defaultValue = "30") int days
     ) {
         return ApiResponse.ok(adminAnalyticsService.visitorProfile(days, visitorId));
     }
@@ -95,7 +65,7 @@ public class AdminAnalyticsController {
     @Operation(summary = "获取音乐收听分析")
     @GetMapping("/music")
     public ApiResponse<MusicAnalyticsSummaryDto> music(
-            @RequestParam(defaultValue = "30") int days
+            @Parameter(description = "统计天数") @RequestParam(defaultValue = "30") int days
     ) {
         return ApiResponse.ok(adminAnalyticsService.musicAnalytics(days));
     }

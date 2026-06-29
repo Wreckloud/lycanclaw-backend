@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lycanclaw.backend.admin.auth.service.AdminSessionService;
+import com.lycanclaw.backend.common.security.AdminAuthPrincipal;
 import com.lycanclaw.backend.comment.dto.AdminCommentItemDto;
 import com.lycanclaw.backend.comment.dto.AdminCommentListDto;
 import com.lycanclaw.backend.comment.dto.AdminCommentBatchRequest;
@@ -146,11 +147,14 @@ public class AdminCommentService {
             throw new IllegalArgumentException("回复内容不能为空");
         }
         String url = pathPolicy.normalizePath(request.url());
+        AdminAuthPrincipal principal = requireSessionPrincipal(adminToken);
         ObjectNode body = objectMapper.createObjectNode();
         body.put("comment", request.comment().trim());
         body.put("url", url);
         body.put("pid", commentId);
         body.put("rid", request.rootId() == null || request.rootId().isBlank() ? commentId : request.rootId().trim());
+        body.put("nick", principal.nickname());
+        body.put("mail", principal.email());
         return parseComment(walineGatewayClient.createAdminComment(requireWalineToken(adminToken), body));
     }
 
@@ -185,6 +189,11 @@ public class AdminCommentService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "评论管理需要使用 Waline QQ 或 GitHub 登录"
                 ));
+    }
+
+    private AdminAuthPrincipal requireSessionPrincipal(String adminToken) {
+        return adminSessionService.verify(adminToken)
+                .orElseThrow(() -> new IllegalArgumentException("当前管理员会话无效"));
     }
 
     private String normalizeStatus(String status) {

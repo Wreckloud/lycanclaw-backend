@@ -223,6 +223,19 @@ public class WalineGatewayClient {
         return authenticatedRequest("POST", "/api/db", query, row, walineToken);
     }
 
+    /**
+     * 清空指定 Waline 数据表。
+     */
+    public void clearDatabaseTable(String walineToken, String table) {
+        if (table == null || table.isBlank()) {
+            throw new IllegalArgumentException("清理表名不能为空");
+        }
+        MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
+        query.add("table", table.trim());
+        query.add("lang", "zh-CN");
+        authenticatedRequest("DELETE", "/api/db", query, null, walineToken);
+    }
+
     private JsonNode get(String path, MultiValueMap<String, String> query) {
         URI uri = buildUri(path, query);
         HttpRequest request = buildGetRequest(uri).build();

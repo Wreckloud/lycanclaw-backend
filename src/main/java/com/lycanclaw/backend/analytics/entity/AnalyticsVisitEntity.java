@@ -22,8 +22,8 @@ import java.time.OffsetDateTime;
         indexes = {
                 @Index(name = "idx_analytics_visit_visit_id", columnList = "visit_id", unique = true),
                 @Index(name = "idx_analytics_visit_started_at", columnList = "started_at"),
-                @Index(name = "idx_analytics_visit_path", columnList = "path"),
-                @Index(name = "idx_analytics_visit_visitor", columnList = "visitor_id")
+                @Index(name = "idx_analytics_visit_path_started", columnList = "path, started_at"),
+                @Index(name = "idx_analytics_visit_visitor_started", columnList = "visitor_id, started_at")
         }
 )
 public class AnalyticsVisitEntity {

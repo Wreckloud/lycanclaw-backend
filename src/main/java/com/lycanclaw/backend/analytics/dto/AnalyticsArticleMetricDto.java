@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * 文章访问指标。
- * 用于后台展示文章访问量、独立访客、停留时间和催更归属统计。
+ * 用于后台展示文章访问量、独立访客、停留时间、阅读进度和累计评论数。
  * @author Wreckloud
  * @since 2026-06-04
  */
@@ -22,17 +22,13 @@ public record AnalyticsArticleMetricDto(
         double averageDurationSeconds,
         @Schema(description = "总停留秒数")
         long totalDurationSeconds,
-        @Schema(description = "访问量占统计窗口总访问的百分比")
-        double visitSharePercent,
         @Schema(description = "复访率")
         double revisitRate,
         @Schema(description = "平均阅读进度")
         double averageScrollPercent,
         @Schema(description = "读完率，阅读进度达到 90% 视为读完")
         double completionRate,
-        @Schema(description = "催更次数")
-        long encouragements,
-        @Schema(description = "Waline 评论数")
+        @Schema(description = "累计 Waline 评论数")
         int commentCount
 ) {
 }

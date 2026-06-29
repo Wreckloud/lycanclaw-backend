@@ -1,18 +1,18 @@
 package com.lycanclaw.backend.music.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.lycanclaw.backend.common.exception.UpstreamServiceException;
 import com.lycanclaw.backend.common.json.JsonNodeExtractors;
 import com.lycanclaw.backend.common.security.InMemorySlidingWindowRateLimiter;
+import com.lycanclaw.backend.music.config.MusicProperties;
 import com.lycanclaw.backend.music.dto.MusicLyricLineDto;
 import com.lycanclaw.backend.music.dto.MusicTrackDto;
 import com.lycanclaw.backend.music.dto.MusicTrackLyricDto;
 import com.lycanclaw.backend.music.model.MusicQualityLevel;
-import com.lycanclaw.backend.music.config.MusicProperties;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +35,9 @@ public class MusicDataService {
     private static final long TRACK_URL_LOGIN_CACHE_TTL_MS = 3L * 60 * 1000;
     private static final long TRACK_URL_FAILURE_CACHE_TTL_MS = 30L * 1000;
     private static final long LYRIC_CACHE_TTL_MS = 12L * 60 * 60 * 1000;
+    private static final long USER_RECORD_CACHE_TTL_MS = 10L * 60 * 1000;
+    private static final int USER_RECORD_CACHE_LIMIT = 200;
+    private static final Pattern SONG_ID_PATTERN = Pattern.compile("\\d{1,20}");
     private static final Pattern LRC_LINE_PATTERN = Pattern.compile("\\[(\\d{1,2}):(\\d{1,2})(?:[.:](\\d{1,3}))?\\](.*)");
 
     @Value("${lycan.security.music-login-url-global-limit-per-minute:60}")
@@ -48,6 +51,7 @@ public class MusicDataService {
     private final Map<String, CacheEntry<SongDetail>> songDetailCache = new ConcurrentHashMap<>();
     private final Map<String, CacheEntry<TrackUrlResolveResult>> resolvedTrackUrlCache = new ConcurrentHashMap<>();
     private final Map<String, CacheEntry<MusicTrackLyricDto>> lyricCache = new ConcurrentHashMap<>();
+    private final Map<String, CacheEntry<List<MusicTrackDto>>> userRecordCache = new ConcurrentHashMap<>();
 
     public MusicDataService(
             NcmUpstreamClient upstreamClient,
@@ -64,18 +68,17 @@ public class MusicDataService {
     }
 
     /**
-     * 拉取周听歌榜：固定读取配置账号，和登录态解耦。
+     * 拉取运维配置账号的周听歌榜，不向前端暴露用户 UID。
      */
     public Map<String, Object> getWeeklyRanking(int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 100));
-        String uid = resolvePlaylistOwnerUid();
-        List<MusicTrackDto> tracks = fetchUserRecordTracks(uid, safeLimit, false);
+        String uid = resolveRankingOwnerUid();
+        List<MusicTrackDto> tracks = limitTracks(loadUserRecordTracks(uid, false), safeLimit);
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("limit", safeLimit);
-        data.put("uid", uid);
         data.put("tracks", tracks);
-        data.put("source", "playlist-owner");
+        data.put("source", "user-record");
         return data;
     }
 
@@ -84,14 +87,14 @@ public class MusicDataService {
      */
     public List<MusicTrackDto> getHomeTrackPool(int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 200));
-        String uid = resolvePlaylistOwnerUid();
+        String uid = resolveRankingOwnerUid();
 
-        List<MusicTrackDto> weekTracks = fetchUserRecordTracks(uid, safeLimit, false);
+        List<MusicTrackDto> weekTracks = limitTracks(loadUserRecordTracks(uid, false), safeLimit);
         if (weekTracks.size() >= safeLimit) {
             return weekTracks;
         }
 
-        List<MusicTrackDto> allTracks = fetchUserRecordTracks(uid, safeLimit, true);
+        List<MusicTrackDto> allTracks = limitTracks(loadUserRecordTracks(uid, true), safeLimit);
         LinkedHashMap<String, MusicTrackDto> merged = new LinkedHashMap<>();
         for (MusicTrackDto track : weekTracks) {
             merged.put(track.id(), track);
@@ -110,7 +113,7 @@ public class MusicDataService {
      */
     public List<MusicTrackDto> getAboutRankingTracks(int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 10));
-        return fetchUserRecordTracks(resolvePlaylistOwnerUid(), safeLimit, false);
+        return limitTracks(loadUserRecordTracks(resolveRankingOwnerUid(), false), safeLimit);
     }
 
     /**
@@ -118,7 +121,7 @@ public class MusicDataService {
      * 1) 先用公开模式尝试（不带 cookie）；
      * 2) 公开全部失败后，再尝试登录模式（带 cookie）。
      */
-    public Map<String, Object> getTrackUrl(String id, String level) {
+    private Map<String, Object> resolveTrackUrl(String id, String level) {
         String safeId = validateSongId(id);
         String preferred = normalizeLevel(level);
         boolean hasLoginCookie = sessionService.hasCookie();
@@ -207,8 +210,9 @@ public class MusicDataService {
      */
     public Map<String, Object> getTrackDetailWithUrl(String id, String level) {
         String safeId = validateSongId(id);
+        String preferredLevel = normalizeLevel(level);
         SongDetail detail = getSongDetail(safeId);
-        Map<String, Object> urlInfo = getTrackUrl(safeId, level);
+        Map<String, Object> urlInfo = resolveTrackUrl(safeId, preferredLevel);
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("id", detail.id());
@@ -259,7 +263,7 @@ public class MusicDataService {
             JsonNode lyricNode = upstreamClient.get(endpoint, Map.of("id", songId));
             JsonNode lrcNode = lyricNode.path("lrc");
             return safeText(lrcNode, "lyric");
-        } catch (IllegalStateException ex) {
+        } catch (UpstreamServiceException ex) {
             if (is404StatusError(ex)) {
                 return "";
             }
@@ -267,17 +271,19 @@ public class MusicDataService {
         }
     }
 
-    private boolean is404StatusError(IllegalStateException ex) {
+    private boolean is404StatusError(UpstreamServiceException ex) {
         String message = ex.getMessage();
         return message != null && message.contains("状态码: 404");
     }
 
-    private String resolvePlaylistOwnerUid() {
-        String playlistOwnerUid = musicProperties.getPlaylistOwnerUid();
-        if (playlistOwnerUid != null && !playlistOwnerUid.isBlank()) {
-            return playlistOwnerUid;
+    private String resolveRankingOwnerUid() {
+        String rankingOwnerUid = musicProperties.getRankingOwnerUid() == null
+                ? ""
+                : musicProperties.getRankingOwnerUid().trim();
+        if (rankingOwnerUid.matches("\\d{1,20}")) {
+            return rankingOwnerUid;
         }
-        throw new IllegalStateException("未配置 lycan.music.playlist-owner-uid");
+        throw new IllegalStateException("lycan.music.ranking-owner-uid 必须配置为有效的网易云用户 ID");
     }
 
     /**
@@ -308,7 +314,15 @@ public class MusicDataService {
         return TrackUrlFetchResult.success(normalized, level, isTrialUrl(first, songDurationMs));
     }
 
-    private List<MusicTrackDto> fetchUserRecordTracks(String uid, int limit, boolean useAllData) {
+    private List<MusicTrackDto> loadUserRecordTracks(String uid, boolean useAllData) {
+        cleanupCaches();
+        String cacheKey = uid + "|" + (useAllData ? "all" : "week");
+        CacheEntry<List<MusicTrackDto>> cached = userRecordCache.get(cacheKey);
+        long now = System.currentTimeMillis();
+        if (cached != null && !cached.expired(now)) {
+            return cached.value();
+        }
+
         Map<String, String> query = new LinkedHashMap<>();
         query.put("uid", uid);
         query.put("type", "1");
@@ -325,7 +339,9 @@ public class MusicDataService {
                 ? jsonNodeExtractors.findArray(node, "allData").orElse(null)
                 : jsonNodeExtractors.findArray(node, "weekData").orElse(null);
         if (recordArray == null || !recordArray.isArray()) {
-            return List.of();
+            List<MusicTrackDto> empty = List.of();
+            userRecordCache.put(cacheKey, new CacheEntry<>(empty, now + USER_RECORD_CACHE_TTL_MS));
+            return empty;
         }
 
         List<MusicTrackDto> tracks = new ArrayList<>();
@@ -345,11 +361,17 @@ public class MusicDataService {
                     parseArtists(song.get("ar")),
                     safeText(song.path("al"), "picUrl")
             ));
-            if (tracks.size() >= limit) {
+            if (tracks.size() >= USER_RECORD_CACHE_LIMIT) {
                 break;
             }
         }
-        return tracks;
+        List<MusicTrackDto> result = List.copyOf(tracks);
+        userRecordCache.put(cacheKey, new CacheEntry<>(result, now + USER_RECORD_CACHE_TTL_MS));
+        return result;
+    }
+
+    private List<MusicTrackDto> limitTracks(List<MusicTrackDto> tracks, int limit) {
+        return List.copyOf(tracks.subList(0, Math.min(limit, tracks.size())));
     }
 
     private Map<String, Object> toTrackUrlResponse(String songId, String preferred, TrackUrlResolveResult resolved) {
@@ -455,16 +477,11 @@ public class MusicDataService {
         cleanupExpired(songDetailCache, now);
         cleanupExpired(resolvedTrackUrlCache, now);
         cleanupExpired(lyricCache, now);
+        cleanupExpired(userRecordCache, now);
     }
 
     private <T> void cleanupExpired(Map<String, CacheEntry<T>> cache, long now) {
-        Iterator<Map.Entry<String, CacheEntry<T>>> iterator = cache.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, CacheEntry<T>> entry = iterator.next();
-            if (entry.getValue().expired(now)) {
-                iterator.remove();
-            }
-        }
+        cache.entrySet().removeIf(entry -> entry.getValue().expired(now));
     }
 
     /**
@@ -481,18 +498,22 @@ public class MusicDataService {
     }
 
     private String validateSongId(String id) {
-        if (id == null || id.isBlank()) {
-            throw new IllegalArgumentException("id 参数不能为空");
+        String normalized = id == null ? "" : id.trim();
+        if (!SONG_ID_PATTERN.matcher(normalized).matches()) {
+            throw new IllegalArgumentException("id 必须是有效的网易云歌曲 ID");
         }
-        return id.trim();
+        return normalized;
     }
 
     private String normalizeLevel(String level) {
-        MusicQualityLevel configuredDefault = MusicQualityLevel.parseOrDefault(musicProperties.getPreferredLevel(), MusicQualityLevel.EXHIGH);
+        MusicQualityLevel configuredDefault = MusicQualityLevel.fromValue(musicProperties.getPreferredLevel())
+                .orElseThrow(() -> new IllegalStateException("lycan.music.preferred-level 配置无效"));
         if (level == null || level.isBlank()) {
             return configuredDefault.value();
         }
-        return MusicQualityLevel.parseOrDefault(level, configuredDefault).value();
+        return MusicQualityLevel.fromValue(level)
+                .orElseThrow(() -> new IllegalArgumentException("不支持的音质级别: " + level.trim()))
+                .value();
     }
 
     /**

@@ -13,10 +13,6 @@ public record EncouragementSettleRequest(
         @Schema(description = "本轮催更增量", example = "12")
         Integer delta,
         @Schema(description = "前端生成的匿名访客 ID")
-        String visitorId,
-        @Schema(description = "页面路径，首页催更固定归属首页", example = "/")
-        String path,
-        @Schema(description = "页面标题", example = "LycanClaw")
-        String title
+        String visitorId
 ) {
 }

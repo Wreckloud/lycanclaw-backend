@@ -35,12 +35,12 @@ public class PublicMusicRateLimitInterceptor implements HandlerInterceptor {
     }
 
     /**
-     * 对公开音乐接口做分钟级限流，防止被批量刷接口。
+     * 同一 IP 的全部公开音乐接口共享分钟级额度，避免通过切换路径绕过。
      */
     @Override
     public boolean preHandle(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull Object handler) throws Exception {
         String clientIp = clientIpResolver.resolve(request);
-        boolean allow = rateLimiter.allow("music:" + clientIp + ":" + request.getRequestURI(), rateLimitPerMinute);
+        boolean allow = rateLimiter.allow("music:" + clientIp, rateLimitPerMinute);
         if (!allow) {
             apiErrorResponseWriter.write(response, 429, ErrorCode.MUSIC_RATE_LIMITED);
             return false;

@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 管理会话服务。
- * 管理管理员会话令牌的签发、校验、续期与撤销。
+ * 管理管理员会话令牌的签发、校验与撤销。
  * @author Wreckloud
  * @since 2026-05-15
  */

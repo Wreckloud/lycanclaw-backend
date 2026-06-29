@@ -12,7 +12,7 @@ import java.time.OffsetDateTime;
 
 /**
  * 催更结算事件实体。
- * 用于记录首页催更组件一次前端批量结算后的增量，不改变前台个人点击特效。
+ * 用于记录首页催更组件一次前端批量结算后的增量，不保存固定的首页路径和标题。
  * @author Wreckloud
  * @since 2026-06-04
  */
@@ -21,8 +21,7 @@ import java.time.OffsetDateTime;
         name = "encouragement_event",
         indexes = {
                 @Index(name = "idx_encouragement_created_at", columnList = "created_at"),
-                @Index(name = "idx_encouragement_visitor", columnList = "visitor_id"),
-                @Index(name = "idx_encouragement_path", columnList = "path")
+                @Index(name = "idx_encouragement_visitor_created", columnList = "visitor_id, created_at")
         }
 )
 public class EncouragementEventEntity {
@@ -30,12 +29,6 @@ public class EncouragementEventEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(name = "path", nullable = false, length = 512)
-    private String path;
-
-    @Column(name = "title", nullable = false, length = 255)
-    private String title;
 
     @Column(name = "visitor_id", nullable = false, length = 96)
     private String visitorId;
@@ -54,22 +47,6 @@ public class EncouragementEventEntity {
 
     public Long getId() {
         return id;
-    }
-
-    public String getPath() {
-        return path;
-    }
-
-    public void setPath(String path) {
-        this.path = path;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
     }
 
     public String getVisitorId() {

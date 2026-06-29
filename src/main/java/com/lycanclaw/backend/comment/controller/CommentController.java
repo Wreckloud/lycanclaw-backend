@@ -21,7 +21,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/comments")
-@Tag(name = "评论", description = "最新评论与评论计数接口")
+@Tag(name = "评论", description = "最新评论接口")
 public class CommentController {
 
     private final CommentService commentService;
@@ -39,12 +39,4 @@ public class CommentController {
         return ApiResponse.ok(commentService.recentComments(limit));
     }
 
-    @Operation(summary = "获取文章评论数")
-    @GetMapping("/count")
-    public ApiResponse<Integer> count(
-            @Parameter(description = "文章路径，例如 /thoughts/xxx.html", required = true)
-            @RequestParam("path") String path
-    ) {
-        return ApiResponse.ok(commentService.commentCount(path));
-    }
 }

@@ -5,19 +5,16 @@ import com.lycanclaw.backend.admin.auth.dto.AdminAuthSessionDto;
 import com.lycanclaw.backend.admin.auth.dto.AdminWalineExchangeRequest;
 import com.lycanclaw.backend.admin.auth.service.AdminAuthService;
 import com.lycanclaw.backend.common.api.ApiResponse;
-import com.lycanclaw.backend.common.api.ErrorCode;
 import com.lycanclaw.backend.common.security.AdminAuthConstants;
 import com.lycanclaw.backend.common.security.AdminAuthPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
@@ -53,19 +50,10 @@ public class AdminAuthController {
      */
     @Operation(summary = "查看当前管理会话")
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<AdminAuthMeDto>> me(
-            @RequestHeader(name = AdminAuthConstants.ADMIN_TOKEN_HEADER, required = false) String token,
-            HttpServletRequest request
+    public ApiResponse<AdminAuthMeDto> me(
+            @RequestAttribute(AdminAuthConstants.ADMIN_PRINCIPAL_ATTR) AdminAuthPrincipal principal
     ) {
-        Object attr = request.getAttribute(AdminAuthConstants.ADMIN_PRINCIPAL_ATTR);
-        if (attr instanceof AdminAuthPrincipal principal) {
-            return ResponseEntity.ok(ApiResponse.ok(adminAuthService.toMeDto(principal)));
-        }
-        return adminAuthService.currentAdmin(token)
-                .map(dto -> ResponseEntity.ok(ApiResponse.ok(dto)))
-                .orElseGet(() -> ResponseEntity
-                        .status(HttpStatus.UNAUTHORIZED)
-                        .body(ApiResponse.fail(ErrorCode.ADMIN_TOKEN_INVALID)));
+        return ApiResponse.ok(adminAuthService.toMeDto(principal));
     }
 
     /**
@@ -74,7 +62,7 @@ public class AdminAuthController {
     @Operation(summary = "退出当前管理会话")
     @PostMapping("/logout")
     public ApiResponse<Map<String, Object>> logout(
-            @RequestHeader(name = AdminAuthConstants.ADMIN_TOKEN_HEADER, required = false) String token
+            @RequestHeader(AdminAuthConstants.ADMIN_TOKEN_HEADER) String token
     ) {
         adminAuthService.logout(token);
         return ApiResponse.ok(Map.of("success", true));

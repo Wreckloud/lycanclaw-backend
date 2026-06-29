@@ -61,7 +61,7 @@ lycan:
     # 静态管理员令牌（可选，应急调试时通过环境变量提供）
     admin-token: ${LYCAN_SECURITY_ADMIN_TOKEN:}
     # 管理员 QQ 身份白名单（逗号分隔，可填 QQ 号或 Waline QQ OAuth 标识）
-    admin-qq-whitelist: 1677820334,UID_E59B5290860ADD10C36077980031A6FE
+    admin-qq-whitelist: ${LYCAN_SECURITY_ADMIN_QQ_WHITELIST:}
     # 是否要求 Waline 账号必须是 administrator 才能换取后端会话
     admin-require-waline-administrator: true
     # 后端管理会话有效期（秒）
@@ -76,10 +76,8 @@ lycan:
     public-write-rate-limit-per-minute: 60
     # 会员登录 cookie 请求上游播放 URL 的全局限流（每分钟）
     music-login-url-global-limit-per-minute: 60
-    # 管理接口访问日志开关（记录 IP / URI / method / 放行或拒绝）
+    # 管理鉴权失败日志开关（记录 IP / URI / method / 拒绝原因）
     admin-auth-log-enabled: true
-    # 公共 API 访问日志开关（记录访客 IP / URI / UA）
-    public-access-log-enabled: true
     # 是否信任代理头（反向代理后可开启，按 X-Forwarded-For 识别真实 IP）
     trust-forwarded-headers: false
   analytics:
@@ -94,12 +92,12 @@ lycan:
     knowledge-stats-json-path: ${LYCAN_CONTENT_KNOWLEDGE_STATS_JSON_PATH:../frontend/docs/public/knowledge-stats.json}
   music:
     # 首页随机流与关于页榜单固定账号 uid（与登录态解耦）
-    playlist-owner-uid: ${LYCAN_MUSIC_PLAYLIST_OWNER_UID:629126546}
+    ranking-owner-uid: ${LYCAN_MUSIC_RANKING_OWNER_UID:}
     # 默认目标音质（公开链路降级顺序：exhigh -> higher -> standard）
     preferred-level: ${LYCAN_MUSIC_PREFERRED_LEVEL:exhigh}
     upstream:
       # 上游网易云 API 服务地址（api-enhanced）
-      base-url: http://127.0.0.1:3000
+      base-url: ${LYCAN_MUSIC_UPSTREAM_BASE_URL:http://127.0.0.1:3000}
   recommendation:
     # 最大候选文章数
     max-candidate-posts: ${LYCAN_RECOMMENDATION_MAX_CANDIDATE_POSTS:200}
@@ -127,9 +125,3 @@ lycan:
       smtp-user: ${WALINE_SMTP_USER:}
       smtp-pass: ${WALINE_SMTP_PASS:}
       author-email: ${WALINE_AUTHOR_EMAIL:}
-      mail-subject: ${WALINE_MAIL_SUBJECT:}
-      mail-template: ${WALINE_MAIL_TEMPLATE:}
-      mail-subject-admin: ${WALINE_MAIL_SUBJECT_ADMIN:}
-      mail-template-admin: ${WALINE_MAIL_TEMPLATE_ADMIN:}
-      comment-audit: ${WALINE_COMMENT_AUDIT:false}
-      disable-author-notify: ${WALINE_DISABLE_AUTHOR_NOTIFY:false}

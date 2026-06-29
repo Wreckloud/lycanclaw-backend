@@ -46,8 +46,8 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
 
     /**
      * 访问顺序：
-     * 1) 先按来源 IP + URI 限流，减少暴力探测成本；
-     * 2) 再校验管理员凭证（静态 token 或 Waline 会话 token）。
+     * 1) 先按来源IP统一限流，减少暴力探测成本；
+     * 2) 登录交换限流后放行，其他接口继续校验管理员凭证。
      */
     @Override
     public boolean preHandle(
@@ -58,10 +58,14 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         String uri = request.getRequestURI();
         String method = request.getMethod();
 
-        if (!allowByRateLimit(clientIp, uri)) {
+        if (!allowByRateLimit(clientIp)) {
             logDenied(clientIp, method, uri, "rate_limited");
             apiErrorResponseWriter.write(response, 429, ErrorCode.ADMIN_RATE_LIMITED);
             return false;
+        }
+
+        if (AdminAuthConstants.WALINE_EXCHANGE_PATH.equals(uri)) {
+            return true;
         }
 
         String token = request.getHeader(AdminAuthConstants.ADMIN_TOKEN_HEADER);
@@ -73,15 +77,14 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         }
 
         request.setAttribute(AdminAuthConstants.ADMIN_PRINCIPAL_ATTR, principal.get());
-        logAllowed(clientIp, method, uri);
         return true;
     }
 
     /**
-     * 管理接口限流：按 clientIp + URI 的分钟窗口限流。
+     * 登录交换与所有管理接口共用同一 IP 分钟窗口，避免通过变化 URI 绕过限制。
      */
-    private boolean allowByRateLimit(String clientIp, String uri) {
-        return rateLimiter.allow("admin:" + clientIp + ":" + uri, rateLimitPerMinute);
+    private boolean allowByRateLimit(String clientIp) {
+        return rateLimiter.allow("admin:" + clientIp, rateLimitPerMinute);
     }
 
     private void logDenied(String clientIp, String method, String uri, String reason) {
@@ -91,10 +94,4 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         log.warn("admin_access_denied ip={} method={} uri={} reason={}", clientIp, method, uri, reason);
     }
 
-    private void logAllowed(String clientIp, String method, String uri) {
-        if (!adminAuthLogEnabled) {
-            return;
-        }
-        log.info("admin_access_allowed ip={} method={} uri={}", clientIp, method, uri);
-    }
 }

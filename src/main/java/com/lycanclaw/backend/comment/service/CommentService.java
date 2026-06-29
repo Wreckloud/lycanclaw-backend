@@ -67,13 +67,6 @@ public class CommentService {
         return result;
     }
 
-    /**
-     * 查询指定文章路径的评论数量。
-     */
-    public int commentCount(String path) {
-        return walineGatewayClient.fetchCommentCount(path);
-    }
-
     private RecentCommentDto parseRecentComment(JsonNode item) {
         String url = firstText(item, "url", "path");
         String path = firstText(item, "path", "url");

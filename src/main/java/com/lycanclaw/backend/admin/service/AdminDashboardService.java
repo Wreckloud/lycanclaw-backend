@@ -162,7 +162,7 @@ public class AdminDashboardService {
                 List.of(
                         "管理端统一使用 X-Lycan-Admin-Token 鉴权（支持静态 token 与会话 token）",
                         "管理员请求启用分钟级限流，降低暴力探测风险",
-                        "管理员请求会记录访问日志（IP / URI / 方法 / 结果）"
+                        "管理员鉴权失败和限流拒绝会记录必要日志"
                 )
         );
     }

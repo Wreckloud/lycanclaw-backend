@@ -28,44 +28,19 @@ public class WalineNotificationStatusService {
     @Value("${lycan.waline.notification.author-email:}")
     private String authorEmail;
 
-    @Value("${lycan.waline.notification.mail-subject:}")
-    private String mailSubject;
-
-    @Value("${lycan.waline.notification.mail-template:}")
-    private String mailTemplate;
-
-    @Value("${lycan.waline.notification.mail-subject-admin:}")
-    private String mailSubjectAdmin;
-
-    @Value("${lycan.waline.notification.mail-template-admin:}")
-    private String mailTemplateAdmin;
-
-    @Value("${lycan.waline.notification.comment-audit:false}")
-    private boolean commentAudit;
-
-    @Value("${lycan.waline.notification.disable-author-notify:false}")
-    private boolean disableAuthorNotify;
-
     /**
      * 返回邮件通知能力的脱敏配置状态。
      */
     public WalineNotificationStatusDto status() {
+        boolean smtpConfigured = (configured(smtpHost) || configured(smtpService))
+                && configured(smtpUser)
+                && configured(smtpPass);
+        boolean authorEmailConfigured = configured(authorEmail);
         return new WalineNotificationStatusDto(
-                (configured(smtpHost) || configured(smtpService))
-                        && configured(smtpUser)
-                        && configured(smtpPass),
-                configured(authorEmail),
-                templatesConfigured(),
-                commentAudit,
-                !disableAuthorNotify
+                smtpConfigured,
+                authorEmailConfigured,
+                smtpConfigured && authorEmailConfigured
         );
-    }
-
-    private boolean templatesConfigured() {
-        return configured(mailSubject)
-                || configured(mailTemplate)
-                || configured(mailSubjectAdmin)
-                || configured(mailTemplateAdmin);
     }
 
     private boolean configured(String value) {

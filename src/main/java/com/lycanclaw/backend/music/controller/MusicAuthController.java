@@ -16,8 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * 音乐鉴权接口控制器。
- * 用于提供音乐鉴权相关 REST 接口。
+ * 网易云登录管理接口。
+ * 仅允许管理员扫码、检查状态和清理内存登录态。
  * @author Wreckloud
  * @since 2026-05-15
  */
@@ -73,15 +73,6 @@ public class MusicAuthController {
     @GetMapping("/status")
     public ApiResponse<MusicLoginStatusDto> status() {
         return ApiResponse.ok(musicAuthService.loginStatus());
-    }
-
-    /**
-     * 刷新登录态，延长 cookie 有效期。
-     */
-    @Operation(summary = "刷新登录态")
-    @PostMapping("/refresh")
-    public ApiResponse<Map<String, Object>> refresh() {
-        return ApiResponse.ok(musicAuthService.refreshLogin());
     }
 
     /**

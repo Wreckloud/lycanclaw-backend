@@ -1,8 +1,11 @@
 package com.lycanclaw.backend.waline.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lycanclaw.backend.waline.config.WalineProperties;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +37,7 @@ import java.util.regex.Pattern;
  * @since 2026-06-03
  */
 @RestController
+@Tag(name = "Waline 代理", description = "评论服务页面、API 与静态资源同源代理")
 public class WalineProxyController {
 
     private static final Logger log = LoggerFactory.getLogger(WalineProxyController.class);
@@ -78,7 +82,8 @@ public class WalineProxyController {
               }
 
               body:has(.typecho-login) .typecho-head-nav {
-                width: min(380px, calc(100% - 32px)) !important;
+                display: block !important;
+                margin: min(16vh, 96px) auto 16px !important;
               }
 
               body .waline-header {
@@ -86,14 +91,26 @@ public class WalineProxyController {
                 padding: 12px 16px !important;
                 background: var(--lycan-surface) !important;
                 border: 0 !important;
-                border-radius: 0 !important;
+                border-radius: 3px !important;
                 box-shadow: none !important;
+              }
+
+              body:has(.typecho-login) .waline-header {
+                min-height: auto !important;
+                padding: 0 !important;
+                justify-content: center !important;
+                background: transparent !important;
               }
 
               body .waline-brand-link {
                 gap: 10px !important;
                 color: var(--lycan-text) !important;
                 text-decoration: none !important;
+              }
+
+              body:has(.typecho-login) .waline-brand-link {
+                pointer-events: none !important;
+                cursor: default !important;
               }
 
               body .waline-brand-mark {
@@ -109,13 +126,17 @@ public class WalineProxyController {
                 font-weight: 800 !important;
               }
 
+              body:has(.typecho-login) .waline-brand-copy strong {
+                font-size: 20px !important;
+              }
+
               body .language-select {
                 display: none !important;
               }
 
               body .typecho-login-wrap {
                 width: min(380px, calc(100% - 32px)) !important;
-                margin: 8px auto 32px !important;
+                margin: 0 auto 32px !important;
                 padding: 0 !important;
               }
 
@@ -125,7 +146,7 @@ public class WalineProxyController {
                 padding: 20px 16px 18px !important;
                 background: var(--lycan-surface) !important;
                 border: 0 !important;
-                border-radius: 0 !important;
+                border-radius: 3px !important;
                 box-shadow: none !important;
                 text-align: center !important;
               }
@@ -155,9 +176,9 @@ public class WalineProxyController {
                 height: 42px !important;
                 display: grid !important;
                 place-items: center !important;
-                background: var(--lycan-surface-soft) !important;
+                background: transparent !important;
                 border: 0 !important;
-                border-radius: 0 !important;
+                border-radius: 3px !important;
                 box-shadow: none !important;
               }
 
@@ -177,7 +198,7 @@ public class WalineProxyController {
                 color: var(--lycan-text) !important;
                 background: #1b222f !important;
                 border: 0 !important;
-                border-radius: 0 !important;
+                border-radius: 3px !important;
                 box-shadow: none !important;
               }
 
@@ -210,7 +231,7 @@ public class WalineProxyController {
                 color: var(--lycan-text) !important;
                 background: var(--lycan-surface-soft) !important;
                 border: 0 !important;
-                border-radius: 0 !important;
+                border-radius: 3px !important;
                 box-shadow: none !important;
                 outline: 0 !important;
               }
@@ -227,7 +248,7 @@ public class WalineProxyController {
                 color: var(--lycan-text) !important;
                 background: #1b222f !important;
                 border: 0 !important;
-                border-radius: 0 !important;
+                border-radius: 3px !important;
                 box-shadow: none !important;
               }
 
@@ -267,20 +288,6 @@ public class WalineProxyController {
               }
             </style>
             """;
-    private static final String OAUTH_FILTER_STYLE = """
-            <style id="lycan-waline-oauth-filter-style">
-              a[href*="type=google"],
-              a[href*="type=weibo"],
-              a[href*="type=twitter"],
-              a[href*="type=facebook"],
-              a[href*="type%3Dgoogle"],
-              a[href*="type%3Dweibo"],
-              a[href*="type%3Dtwitter"],
-              a[href*="type%3Dfacebook"] {
-                display: none !important;
-              }
-            </style>
-            """;
     private static final String PROFILE_PAGE_STYLE = """
             <style id="lycan-waline-profile-theme">
               body * {
@@ -312,21 +319,32 @@ public class WalineProxyController {
                 padding: 0 18px !important;
                 display: flex !important;
                 align-items: center !important;
-                gap: 18px !important;
-                background: #151a24 !important;
+                justify-content: flex-end !important;
+                gap: 10px !important;
+                background: transparent !important;
+              }
+
+              body .waline-header .waline-brand-link,
+              body .waline-header .waline-brand-copy,
+              body .waline-header .waline-brand-mark,
+              body .waline-header nav,
+              body .waline-header ul,
+              body .waline-header li {
+                display: none !important;
               }
 
               body .waline-header a,
               body .waline-header button,
               body .waline-header .btn {
-                height: 38px !important;
-                padding: 0 14px !important;
+                min-height: 32px !important;
+                padding: 0 12px !important;
                 display: inline-flex !important;
                 align-items: center !important;
                 justify-content: center !important;
                 color: #eef3ff !important;
-                background: #10151e !important;
+                background: transparent !important;
                 border: 1px solid #202838 !important;
+                border-radius: 3px !important;
                 text-decoration: none !important;
                 font-weight: 700 !important;
               }
@@ -365,6 +383,7 @@ public class WalineProxyController {
                 color: #eef3ff !important;
                 background: #151a24 !important;
                 border: 1px solid #202838 !important;
+                border-radius: 3px !important;
               }
 
               body .typecho-profile {
@@ -383,6 +402,7 @@ public class WalineProxyController {
                 padding: 18px !important;
                 background: #10151e !important;
                 border: 1px solid #202838 !important;
+                border-radius: 3px !important;
               }
 
               body .typecho-profile > :not(:first-child) {
@@ -447,6 +467,7 @@ public class WalineProxyController {
                 color: #eef3ff !important;
                 background: #10151e !important;
                 border: 1px solid #202838 !important;
+                border-radius: 3px !important;
                 outline: 0 !important;
               }
 
@@ -526,6 +547,7 @@ public class WalineProxyController {
                 object-fit: cover !important;
                 background: #10151e !important;
                 border: 1px solid #202838 !important;
+                border-radius: 3px !important;
               }
 
               body .typecho-profile img,
@@ -548,53 +570,6 @@ public class WalineProxyController {
                 }
               }
             </style>
-            """;
-    private static final String OAUTH_FILTER_SCRIPT = """
-            <script id="lycan-waline-oauth-filter">
-              (() => {
-                const allowed = new Set(['github', 'qq']);
-                const getType = (href) => {
-                  if (!href) return '';
-                  try {
-                    const url = new URL(href, window.location.origin);
-                    return (url.searchParams.get('type') || '').toLowerCase();
-                  } catch {
-                    try {
-                      const decoded = decodeURIComponent(href);
-                      const match = decoded.match(/[?&]type=([^&#]+)/);
-                      return match ? match[1].toLowerCase() : '';
-                    } catch {
-                      return '';
-                    }
-                  }
-                };
-                const prune = () => {
-                  if (Array.isArray(window.oauthServices)) {
-                    window.oauthServices = window.oauthServices.filter(service =>
-                      allowed.has(String(service?.name || '').toLowerCase())
-                    );
-                  }
-                  document.querySelectorAll('a[href*="oauth"]').forEach(link => {
-                    const type = getType(link.getAttribute('href') || '');
-                    if (type && !allowed.has(type)) {
-                      link.remove();
-                    }
-                  });
-                };
-                const install = () => {
-                  prune();
-                  new MutationObserver(prune).observe(document.documentElement, {
-                    childList: true,
-                    subtree: true
-                  });
-                };
-                if (document.readyState === 'loading') {
-                  document.addEventListener('DOMContentLoaded', install, { once: true });
-                } else {
-                  install();
-                }
-              })();
-            </script>
             """;
     private static final String UI_CLEANUP_SCRIPT = """
             <script id="lycan-waline-ui-cleanup">
@@ -726,11 +701,17 @@ public class WalineProxyController {
     /**
      * 代理 Waline 页面、API 与静态资源。
      */
+    @Operation(summary = "代理 Waline 页面和接口")
     @RequestMapping("/waline/**")
     public ResponseEntity<byte[]> proxy(HttpServletRequest request) {
         try {
+            byte[] body = request.getInputStream().readAllBytes();
+            ResponseEntity<byte[]> rejected = rejectUnsafePublicWrite(request, body);
+            if (rejected != null) {
+                return rejected;
+            }
             HttpResponse<byte[]> response = httpClient.send(
-                    buildProxyRequest(request),
+                    buildProxyRequest(request, body),
                     HttpResponse.BodyHandlers.ofByteArray()
             );
             return buildResponse(request, response);
@@ -744,7 +725,7 @@ public class WalineProxyController {
         }
     }
 
-    private HttpRequest buildProxyRequest(HttpServletRequest request) throws IOException {
+    private HttpRequest buildProxyRequest(HttpServletRequest request, byte[] body) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(targetUri(request))
                 .timeout(Duration.ofSeconds(20));
 
@@ -754,7 +735,6 @@ public class WalineProxyController {
             }
         });
 
-        byte[] body = request.getInputStream().readAllBytes();
         HttpRequest.BodyPublisher publisher = body.length == 0
                 ? HttpRequest.BodyPublishers.noBody()
                 : HttpRequest.BodyPublishers.ofByteArray(body);
@@ -790,7 +770,7 @@ public class WalineProxyController {
             rewritten = injectBeforeClosingTag(
                     rewritten,
                     "</head>",
-                    AUTH_PAGE_STYLE + PROFILE_PAGE_STYLE + OAUTH_FILTER_STYLE + OAUTH_FILTER_SCRIPT + UI_CLEANUP_SCRIPT
+                    AUTH_PAGE_STYLE + PROFILE_PAGE_STYLE + UI_CLEANUP_SCRIPT
             );
         }
         return rewritten.getBytes(StandardCharsets.UTF_8);
@@ -824,6 +804,47 @@ public class WalineProxyController {
             return false;
         }
         return ALLOWED_OAUTH_PROVIDERS.contains(rawName.toString().toLowerCase(Locale.ROOT));
+    }
+
+    private ResponseEntity<byte[]> rejectUnsafePublicWrite(HttpServletRequest request, byte[] body) {
+        if (!"POST".equalsIgnoreCase(request.getMethod())) {
+            return null;
+        }
+        String path = proxyRequestPath(request);
+        if ((PROXY_PREFIX + "/api/article").equals(path)) {
+            return textResponse(HttpStatus.FORBIDDEN, "阅读量只能通过博客统计接口更新");
+        }
+        if (!(PROXY_PREFIX + "/api/comment").equals(path)) {
+            return null;
+        }
+        try {
+            JsonNode payload = objectMapper.readTree(body);
+            if (payload == null || !payload.isObject() || payload.path("nick").asText("").isBlank()) {
+                return textResponse(HttpStatus.BAD_REQUEST, "评论称谓不能为空");
+            }
+            return null;
+        } catch (IOException ex) {
+            return textResponse(HttpStatus.BAD_REQUEST, "评论请求格式错误");
+        }
+    }
+
+    /**
+     * Waline 管理前端偶尔会跳转到裸 /ui 路径，这里统一收回到同源代理前缀。
+     */
+    @Operation(summary = "重定向 Waline UI 裸路径")
+    @RequestMapping({"/ui", "/ui/**"})
+    public ResponseEntity<Void> redirectBareUiPath(HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, walineUiRedirectLocation(request))
+                .build();
+    }
+
+    private String proxyRequestPath(HttpServletRequest request) {
+        String contextPath = request.getContextPath() == null ? "" : request.getContextPath();
+        String path = request.getRequestURI().substring(contextPath.length());
+        return path.length() > PROXY_PREFIX.length() && path.endsWith("/")
+                ? path.substring(0, path.length() - 1)
+                : path;
     }
 
     private boolean isWalineUiPage(HttpServletRequest request) {
@@ -887,6 +908,13 @@ public class WalineProxyController {
         String targetPath = path.length() <= PROXY_PREFIX.length() ? "/" : path.substring(PROXY_PREFIX.length());
         String query = request.getQueryString();
         return URI.create(normalizeBaseUrl() + targetPath + (query == null || query.isBlank() ? "" : "?" + query));
+    }
+
+    private String walineUiRedirectLocation(HttpServletRequest request) {
+        String contextPath = request.getContextPath() == null ? "" : request.getContextPath();
+        String path = request.getRequestURI().substring(contextPath.length());
+        String query = request.getQueryString();
+        return contextPath + PROXY_PREFIX + path + (query == null || query.isBlank() ? "" : "?" + query);
     }
 
     private boolean isHtml(HttpHeaders headers) {

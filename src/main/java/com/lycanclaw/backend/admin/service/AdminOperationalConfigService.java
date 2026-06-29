@@ -26,7 +26,7 @@ public class AdminOperationalConfigService {
     public AdminOperationalConfigDto view() {
         return new AdminOperationalConfigDto(
                 new AdminOperationalConfigDto.Music(
-                        musicProperties.getPlaylistOwnerUid(),
+                        musicProperties.getRankingOwnerUid(),
                         musicProperties.getPreferredLevel()
                 ),
                 new AdminOperationalConfigDto.Recommendation(

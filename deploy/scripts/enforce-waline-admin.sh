@@ -11,9 +11,9 @@ if [[ ! -f "${ENV_FILE}" ]]; then
   exit 1
 fi
 
-OWNER_EMAIL="$(grep -E '^WALINE_OWNER_EMAIL=' "${ENV_FILE}" | tail -n 1 | cut -d= -f2-)"
+OWNER_EMAIL="$(grep -E '^WALINE_AUTHOR_EMAIL=' "${ENV_FILE}" | tail -n 1 | cut -d= -f2-)"
 if [[ -z "${OWNER_EMAIL}" ]]; then
-  echo "请先在 .env 设置 WALINE_OWNER_EMAIL"
+  echo "请先在 .env 设置 WALINE_AUTHOR_EMAIL"
   exit 1
 fi
 

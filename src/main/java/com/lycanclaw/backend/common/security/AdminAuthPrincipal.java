@@ -16,9 +16,9 @@ public record AdminAuthPrincipal(
         String userId,
         @Schema(description = "昵称", example = "Wreckloud")
         String nickname,
-        @Schema(description = "邮箱", example = "1677820334@qq.com")
+        @Schema(description = "邮箱", example = "123456789@qq.com")
         String email,
-        @Schema(description = "QQ 号", example = "1677820334")
+        @Schema(description = "QQ 号", example = "123456789")
         String qq,
         @Schema(description = "角色", example = "administrator")
         String role,

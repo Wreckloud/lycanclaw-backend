@@ -18,4 +18,8 @@ public interface AnalyticsVisitRepository extends JpaRepository<AnalyticsVisitEn
     Optional<AnalyticsVisitEntity> findByVisitId(String visitId);
 
     List<AnalyticsVisitEntity> findByStartedAtAfter(OffsetDateTime startedAt);
+
+    List<AnalyticsVisitEntity> findByPathAndStartedAtAfter(String path, OffsetDateTime startedAt);
+
+    List<AnalyticsVisitEntity> findByVisitorIdAndStartedAtAfter(String visitorId, OffsetDateTime startedAt);
 }

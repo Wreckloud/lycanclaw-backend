@@ -29,20 +29,17 @@ public class AnalyticsVisitService {
     private final AnalyticsVisitRepository repository;
     private final AnalyticsPathPolicy pathPolicy;
     private final ClientIpResolver clientIpResolver;
-    private final VisitorIdentityService visitorIdentityService;
     private final ZoneId zoneId;
 
     public AnalyticsVisitService(
             AnalyticsVisitRepository repository,
             AnalyticsPathPolicy pathPolicy,
             ClientIpResolver clientIpResolver,
-            VisitorIdentityService visitorIdentityService,
             @Value("${lycan.system.zone-id:Asia/Shanghai}") String zoneId
     ) {
         this.repository = repository;
         this.pathPolicy = pathPolicy;
         this.clientIpResolver = clientIpResolver;
-        this.visitorIdentityService = visitorIdentityService;
         this.zoneId = ZoneId.of(zoneId);
     }
 
@@ -71,7 +68,6 @@ public class AnalyticsVisitService {
         entity.setDurationMs(0);
         entity.setMaxScrollPercent(0);
         repository.save(entity);
-        visitorIdentityService.ensureAnonymousIdentity(entity.getVisitorId(), entity.getStartedAt());
         return new VisitStartResponse(entity.getVisitId());
     }
 

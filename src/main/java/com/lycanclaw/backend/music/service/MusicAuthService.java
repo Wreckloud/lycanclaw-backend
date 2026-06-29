@@ -6,7 +6,6 @@ import com.lycanclaw.backend.music.dto.MusicLoginStatusDto;
 import com.lycanclaw.backend.music.model.MusicQrLoginStatus;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -33,7 +32,6 @@ public class MusicAuthService {
         this.jsonNodeExtractors = jsonNodeExtractors;
     }
 
-    // 第一步：向上游申请二维码 key（unikey）。
     /**
      * 创建二维码登录 key（unikey）。
      */
@@ -42,13 +40,9 @@ public class MusicAuthService {
         String key = jsonNodeExtractors.findText(node, "unikey")
                 .orElseThrow(() -> new IllegalStateException("上游未返回二维码 key"));
 
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("key", key);
-        data.put("timestamp", Instant.now().toString());
-        return data;
+        return Map.of("key", key);
     }
 
-    // 第二步：根据 key 生成二维码图片/链接，前端直接展示 qrimg。
     /**
      * 根据 key 生成二维码图片与登录链接。
      */
@@ -62,14 +56,15 @@ public class MusicAuthService {
                 "timestamp", String.valueOf(System.currentTimeMillis())
         ));
 
+        String qrImage = jsonNodeExtractors.findText(node, "qrimg")
+                .orElseThrow(() -> new IllegalStateException("上游未返回二维码图片"));
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("key", key);
         data.put("qrurl", jsonNodeExtractors.findText(node, "qrurl").orElse(""));
-        data.put("qrimg", jsonNodeExtractors.findText(node, "qrimg").orElse(""));
+        data.put("qrimg", qrImage);
         return data;
     }
 
-    // 第三步：轮询扫码状态；803 时写入本地 cookie 会话。
     /**
      * 轮询二维码登录状态；登录成功后写入本地会话。
      */
@@ -99,7 +94,6 @@ public class MusicAuthService {
         return data;
     }
 
-    // 使用已保存 cookie 查询当前登录账号信息。
     /**
      * 查询当前音乐账号登录状态。
      */
@@ -115,6 +109,9 @@ public class MusicAuthService {
 
         boolean loggedIn = jsonNodeExtractors.findInt(node, "code").orElse(-1) == 200
                 && jsonNodeExtractors.findText(node, "nickname").isPresent();
+        if (!loggedIn) {
+            sessionService.clear();
+        }
 
         return new MusicLoginStatusDto(
                 loggedIn,
@@ -125,27 +122,6 @@ public class MusicAuthService {
         );
     }
 
-    // 保活登录态，避免 cookie 过快失效。
-    /**
-     * 刷新当前登录态。
-     */
-    public Map<String, Object> refreshLogin() {
-        if (!sessionService.hasCookie()) {
-            throw new IllegalStateException("当前未登录，无法刷新登录状态");
-        }
-        JsonNode node = upstreamClient.get("/login/refresh", Map.of(
-                "cookie", sessionService.getCookie(),
-                "timestamp", String.valueOf(System.currentTimeMillis())
-        ));
-
-        int code = jsonNodeExtractors.findInt(node, "code").orElse(-1);
-        return Map.of(
-                "code", code,
-                "message", code == 200 ? "刷新成功" : "刷新失败"
-        );
-    }
-
-    // 仅清理本地会话，不主动调用上游退出接口。
     /**
      * 退出登录并清除本地会话。
      */

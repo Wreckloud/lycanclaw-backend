@@ -48,15 +48,12 @@ public enum MusicQualityLevel {
         return Optional.empty();
     }
 
-    public static MusicQualityLevel parseOrDefault(String raw, MusicQualityLevel fallback) {
-        return fromValue(raw).orElse(fallback);
-    }
-
     /**
      * 构建公开链路默认尝试顺序：优先指定值，再补齐 exhigh/higher/standard。
      */
     public static List<String> buildPublicAttemptOrder(String preferredRaw) {
-        MusicQualityLevel preferred = parseOrDefault(preferredRaw, EXHIGH);
+        MusicQualityLevel preferred = fromValue(preferredRaw)
+                .orElseThrow(() -> new IllegalArgumentException("不支持的音质级别: " + preferredRaw));
         List<String> order = new ArrayList<>();
         order.add(preferred.value());
         for (MusicQualityLevel fallback : DEFAULT_PUBLIC_FALLBACK_CHAIN) {

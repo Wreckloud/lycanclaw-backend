@@ -3,8 +3,8 @@ package com.lycanclaw.backend.admin.auth.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 管理WalineExchange请求参数。
- * 用于接收管理WalineExchange业务链路输入数据。
+ * Waline管理员身份交换请求。
+ * 接收Waline登录token，用于换取后端管理员会话。
  * @author Wreckloud
  * @since 2026-05-15
  */

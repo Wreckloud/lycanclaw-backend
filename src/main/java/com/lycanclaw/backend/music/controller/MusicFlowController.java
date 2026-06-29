@@ -8,16 +8,11 @@ import com.lycanclaw.backend.music.service.MusicFlowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 /**
  * 音乐流控制器。
@@ -44,10 +39,9 @@ public class MusicFlowController {
     @Operation(summary = "启动首页随机流")
     @PostMapping("/start-random")
     public ApiResponse<MusicFlowStateDto> startRandom(
-            @Parameter(hidden = true) @RequestHeader(value = SESSION_HEADER, required = false) String sessionHeader,
-            HttpServletRequest request
+            @Parameter(hidden = true) @RequestHeader(SESSION_HEADER) String sessionId
     ) {
-        return ApiResponse.ok(musicFlowService.startRandom(resolveSessionId(sessionHeader, request)));
+        return ApiResponse.ok(musicFlowService.startRandom(sessionId));
     }
 
     /**
@@ -56,13 +50,12 @@ public class MusicFlowController {
     @Operation(summary = "启动关于页顺序流")
     @PostMapping("/start-about-sequence")
     public ApiResponse<MusicFlowStateDto> startAboutSequence(
-            @Parameter(hidden = true) @RequestHeader(value = SESSION_HEADER, required = false) String sessionHeader,
-            @RequestBody AboutSequenceStartRequest body,
-            HttpServletRequest request
+            @Parameter(hidden = true) @RequestHeader(SESSION_HEADER) String sessionId,
+            @RequestBody AboutSequenceStartRequest body
     ) {
         return ApiResponse.ok(
                 musicFlowService.startAboutSequence(
-                        resolveSessionId(sessionHeader, request),
+                        sessionId,
                         body == null ? null : body.startSongId()
                 )
         );
@@ -74,13 +67,12 @@ public class MusicFlowController {
     @Operation(summary = "打断插入单曲")
     @PostMapping("/interrupt-single")
     public ApiResponse<MusicFlowStateDto> interruptSingle(
-            @Parameter(hidden = true) @RequestHeader(value = SESSION_HEADER, required = false) String sessionHeader,
-            @RequestBody InterruptSingleRequest body,
-            HttpServletRequest request
+            @Parameter(hidden = true) @RequestHeader(SESSION_HEADER) String sessionId,
+            @RequestBody InterruptSingleRequest body
     ) {
         return ApiResponse.ok(
                 musicFlowService.interruptSingle(
-                        resolveSessionId(sessionHeader, request),
+                        sessionId,
                         body == null ? null : body.songId(),
                         body == null ? null : body.source()
                 )
@@ -93,22 +85,9 @@ public class MusicFlowController {
     @Operation(summary = "推进到下一首")
     @PostMapping("/next")
     public ApiResponse<MusicFlowStateDto> next(
-            @Parameter(hidden = true) @RequestHeader(value = SESSION_HEADER, required = false) String sessionHeader,
-            HttpServletRequest request
+            @Parameter(hidden = true) @RequestHeader(SESSION_HEADER) String sessionId
     ) {
-        return ApiResponse.ok(musicFlowService.next(resolveSessionId(sessionHeader, request)));
-    }
-
-    /**
-     * 查询当前播放流状态。
-     */
-    @Operation(summary = "查询播放流状态")
-    @GetMapping("/state")
-    public ApiResponse<MusicFlowStateDto> state(
-            @Parameter(hidden = true) @RequestHeader(value = SESSION_HEADER, required = false) String sessionHeader,
-            HttpServletRequest request
-    ) {
-        return ApiResponse.ok(musicFlowService.state(resolveSessionId(sessionHeader, request)));
+        return ApiResponse.ok(musicFlowService.next(sessionId));
     }
 
     /**
@@ -117,19 +96,8 @@ public class MusicFlowController {
     @Operation(summary = "停止当前播放会话")
     @PostMapping("/stop")
     public ApiResponse<MusicFlowStateDto> stop(
-            @Parameter(hidden = true) @RequestHeader(value = SESSION_HEADER, required = false) String sessionHeader,
-            HttpServletRequest request
+            @Parameter(hidden = true) @RequestHeader(SESSION_HEADER) String sessionId
     ) {
-        return ApiResponse.ok(musicFlowService.stop(resolveSessionId(sessionHeader, request)));
-    }
-
-    private String resolveSessionId(String sessionHeader, HttpServletRequest request) {
-        if (sessionHeader != null && !sessionHeader.isBlank()) {
-            return sessionHeader.trim();
-        }
-        String remoteIp = request.getRemoteAddr() == null ? "unknown" : request.getRemoteAddr();
-        String userAgent = request.getHeader("User-Agent") == null ? "unknown" : request.getHeader("User-Agent");
-        String seed = remoteIp + "|" + userAgent;
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(seed.getBytes(StandardCharsets.UTF_8));
+        return ApiResponse.ok(musicFlowService.stop(sessionId));
     }
 }

@@ -18,4 +18,6 @@ public interface MusicListenSessionRepository extends JpaRepository<MusicListenS
     Optional<MusicListenSessionEntity> findByListenSessionId(String listenSessionId);
 
     List<MusicListenSessionEntity> findByStartedAtAfter(OffsetDateTime startedAt);
+
+    List<MusicListenSessionEntity> findByVisitorIdAndStartedAtAfter(String visitorId, OffsetDateTime startedAt);
 }

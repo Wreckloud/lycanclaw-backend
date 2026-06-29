@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * 催更事件仓储。
- * 提供催更增量保存、总量统计和最近事件查询。
+ * 提供首页催更增量保存、访客查询和总量统计。
  * @author Wreckloud
  * @since 2026-06-04
  */
@@ -18,7 +18,7 @@ public interface EncouragementEventRepository extends JpaRepository<Encouragemen
 
     List<EncouragementEventEntity> findByCreatedAtAfter(OffsetDateTime createdAt);
 
-    List<EncouragementEventEntity> findTop20ByOrderByCreatedAtDesc();
+    List<EncouragementEventEntity> findByVisitorIdAndCreatedAtAfter(String visitorId, OffsetDateTime createdAt);
 
     @Query("select coalesce(sum(e.delta), 0) from EncouragementEventEntity e")
     long sumAllDelta();

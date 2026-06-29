@@ -25,18 +25,15 @@ public class EncouragementService {
 
     private final EncouragementEventRepository repository;
     private final ClientIpResolver clientIpResolver;
-    private final VisitorIdentityService visitorIdentityService;
     private final ZoneId zoneId;
 
     public EncouragementService(
             EncouragementEventRepository repository,
             ClientIpResolver clientIpResolver,
-            VisitorIdentityService visitorIdentityService,
             @Value("${lycan.system.zone-id:Asia/Shanghai}") String zoneId
     ) {
         this.repository = repository;
         this.clientIpResolver = clientIpResolver;
-        this.visitorIdentityService = visitorIdentityService;
         this.zoneId = ZoneId.of(zoneId);
     }
 
@@ -46,16 +43,13 @@ public class EncouragementService {
     public EncouragementSettleResponse settle(EncouragementSettleRequest request, HttpServletRequest servletRequest) {
         int delta = normalizeDelta(request == null ? null : request.delta());
         EncouragementEventEntity entity = new EncouragementEventEntity();
-        entity.setPath("/");
-        entity.setTitle("首页催更");
-        entity.setVisitorId(normalizeVisitorId(request == null ? "" : request.visitorId()));
+        entity.setVisitorId(requireVisitorId(request == null ? null : request.visitorId()));
         entity.setIp(clientIpResolver.resolve(servletRequest));
         entity.setUserAgent(truncate(servletRequest.getHeader("User-Agent"), 1000));
         entity.setDelta(delta);
         entity.setCreatedAt(OffsetDateTime.now(zoneId));
         repository.save(entity);
-        visitorIdentityService.ensureAnonymousIdentity(entity.getVisitorId(), entity.getCreatedAt());
-        return new EncouragementSettleResponse(true, delta);
+        return new EncouragementSettleResponse(delta);
     }
 
     private int normalizeDelta(Integer delta) {
@@ -63,12 +57,21 @@ public class EncouragementService {
         if (resolved <= 0) {
             throw new IllegalArgumentException("催更增量必须大于 0");
         }
-        return Math.min(resolved, MAX_DELTA_PER_SETTLEMENT);
+        if (resolved > MAX_DELTA_PER_SETTLEMENT) {
+            throw new IllegalArgumentException("单次催更增量不能超过 " + MAX_DELTA_PER_SETTLEMENT);
+        }
+        return resolved;
     }
 
-    private String normalizeVisitorId(String value) {
-        String resolved = value == null ? "" : value.trim();
-        return truncate(resolved.isBlank() ? "anonymous" : resolved, 96);
+    private String requireVisitorId(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("visitorId 不能为空");
+        }
+        String resolved = value.trim();
+        if (resolved.length() > 96) {
+            throw new IllegalArgumentException("visitorId 长度不能超过 96");
+        }
+        return resolved;
     }
 
     private String truncate(String value, int maxLength) {

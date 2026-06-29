@@ -32,8 +32,8 @@ CREATE TABLE `analytics_visit` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_analytics_visit_visit_id` (`visit_id`),
   KEY `idx_analytics_visit_started_at` (`started_at`),
-  KEY `idx_analytics_visit_path` (`path`),
-  KEY `idx_analytics_visit_visitor` (`visitor_id`)
+  KEY `idx_analytics_visit_path_started` (`path`, `started_at`),
+  KEY `idx_analytics_visit_visitor_started` (`visitor_id`, `started_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `analytics_visitor_identity` (
@@ -41,14 +41,12 @@ CREATE TABLE `analytics_visitor_identity` (
   `visitor_id` VARCHAR(96) NOT NULL,
   `waline_user_id` VARCHAR(128) NULL,
   `nickname` VARCHAR(128) NOT NULL DEFAULT '',
-  `anonymous_label` VARCHAR(32) NULL,
   `avatar` VARCHAR(1000) NULL,
   `provider` VARCHAR(32) NULL,
   `created_at` DATETIME(6) NULL,
   `updated_at` DATETIME(6) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_visitor_identity_visitor` (`visitor_id`),
-  UNIQUE KEY `idx_visitor_identity_label` (`anonymous_label`),
   KEY `idx_visitor_identity_waline_user` (`waline_user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -72,21 +70,18 @@ CREATE TABLE `music_listen_session` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_music_listen_session_key` (`listen_session_id`),
   KEY `idx_music_listen_started_at` (`started_at`),
-  KEY `idx_music_listen_visitor` (`visitor_id`),
-  KEY `idx_music_listen_song` (`song_id`)
+  KEY `idx_music_listen_visitor_started` (`visitor_id`, `started_at`),
+  KEY `idx_music_listen_song_started` (`song_id`, `started_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `encouragement_event` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `path` VARCHAR(512) NOT NULL DEFAULT '/',
-  `title` VARCHAR(255) NOT NULL DEFAULT '首页催更',
-  `visitor_id` VARCHAR(96) NOT NULL DEFAULT 'anonymous',
+  `visitor_id` VARCHAR(96) NOT NULL,
   `ip` VARCHAR(64) NOT NULL DEFAULT '',
   `user_agent` VARCHAR(1000) NULL,
   `delta` INT NOT NULL DEFAULT 1,
   `created_at` DATETIME(6) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_encouragement_created_at` (`created_at`),
-  KEY `idx_encouragement_visitor` (`visitor_id`),
-  KEY `idx_encouragement_path` (`path`)
+  KEY `idx_encouragement_visitor_created` (`visitor_id`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

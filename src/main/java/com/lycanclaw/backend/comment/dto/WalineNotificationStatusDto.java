@@ -12,8 +12,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record WalineNotificationStatusDto(
         boolean smtpConfigured,
         boolean authorEmailConfigured,
-        boolean templateConfigured,
-        boolean commentAuditEnabled,
-        boolean authorNotificationEnabled
+        boolean authorNotificationAvailable
 ) {
 }

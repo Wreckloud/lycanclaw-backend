@@ -17,6 +17,11 @@ public final class AdminAuthConstants {
      */
     public static final String ADMIN_PRINCIPAL_ATTR = "LYCAN_ADMIN_PRINCIPAL";
 
+    /**
+     * Waline 身份换取管理会话的公开入口。
+     */
+    public static final String WALINE_EXCHANGE_PATH = "/api/admin/auth/waline/exchange";
+
     private AdminAuthConstants() {
     }
 }

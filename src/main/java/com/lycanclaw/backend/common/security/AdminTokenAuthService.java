@@ -41,10 +41,6 @@ public class AdminTokenAuthService {
         return adminSessionService.verify(token);
     }
 
-    public void revokeSession(String token) {
-        adminSessionService.revoke(token);
-    }
-
     private boolean constantTimeEquals(String expected, String actual) {
         byte[] left = (expected == null ? "" : expected).getBytes(StandardCharsets.UTF_8);
         byte[] right = (actual == null ? "" : actual).getBytes(StandardCharsets.UTF_8);

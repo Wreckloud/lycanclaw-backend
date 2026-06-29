@@ -9,20 +9,22 @@ import com.lycanclaw.backend.waline.service.WalineGatewayClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
+import java.util.HexFormat;
 
 /**
  * 访客身份关联服务。
  * 验证 Waline token，并将安全的账号摘要绑定到匿名 visitorId。
+ * 匿名展示名由 visitorId 即时计算，身份表只保存已验证的 Waline 资料。
  * @author Wreckloud
  * @since 2026-06-09
  */
 @Service
 public class VisitorIdentityService {
-
-    private static final DateTimeFormatter ANONYMOUS_DATE_FORMAT = DateTimeFormatter.ofPattern("yyMMdd");
 
     private final AnalyticsVisitorIdentityRepository repository;
     private final WalineGatewayClient walineGatewayClient;
@@ -67,60 +69,31 @@ public class VisitorIdentityService {
         if (entity.getCreatedAt() == null) {
             entity.setCreatedAt(now);
         }
-        if (entity.getAnonymousLabel() == null || entity.getAnonymousLabel().isBlank()) {
-            entity.setAnonymousLabel(nextAnonymousLabel(now));
-        }
         entity.setUpdatedAt(now);
         return toDto(repository.save(entity));
     }
 
     /**
-     * 为未登录访客建立稳定的可读编号。
+     * 返回登录昵称或由 visitorId 派生的稳定匿名编号。
      */
-    public synchronized void ensureAnonymousIdentity(String visitorId, OffsetDateTime firstSeenAt) {
-        if (visitorId == null || visitorId.isBlank() || "anonymous".equalsIgnoreCase(visitorId)) {
-            return;
-        }
-        String normalizedVisitorId = truncate(visitorId, 96);
-        if (repository.findByVisitorId(normalizedVisitorId).isPresent()) {
-            return;
-        }
-        OffsetDateTime createdAt = firstSeenAt == null ? OffsetDateTime.now(zoneId) : firstSeenAt;
-        AnalyticsVisitorIdentityEntity entity = new AnalyticsVisitorIdentityEntity();
-        entity.setVisitorId(normalizedVisitorId);
-        entity.setWalineUserId(null);
-        entity.setNickname("");
-        entity.setAvatar("");
-        entity.setProvider("");
-        entity.setAnonymousLabel(nextAnonymousLabel(createdAt));
-        entity.setCreatedAt(createdAt);
-        entity.setUpdatedAt(createdAt);
-        repository.save(entity);
-    }
-
-    /**
-     * 返回登录昵称或稳定匿名编号。
-     */
-    public String displayName(AnalyticsVisitorIdentityEntity identity) {
-        if (identity == null) {
-            return "匿名访客";
-        }
-        if (identity.getNickname() != null && !identity.getNickname().isBlank()) {
+    public String displayName(String visitorId, AnalyticsVisitorIdentityEntity identity) {
+        if (identity != null && identity.getNickname() != null && !identity.getNickname().isBlank()) {
             return identity.getNickname();
         }
-        if (identity.getAnonymousLabel() != null && !identity.getAnonymousLabel().isBlank()) {
-            return identity.getAnonymousLabel();
+        if (visitorId == null || visitorId.isBlank() || "anonymous".equalsIgnoreCase(visitorId)) {
+            return "匿名访客";
         }
-        return "匿名访客";
+        return anonymousLabel(truncate(visitorId, 96));
     }
 
-    private String nextAnonymousLabel(OffsetDateTime createdAt) {
-        OffsetDateTime start = createdAt.toLocalDate().atStartOfDay(zoneId).toOffsetDateTime();
-        long sequence = repository.countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(
-                start,
-                start.plusDays(1)
-        ) + 1;
-        return "匿名" + ANONYMOUS_DATE_FORMAT.format(createdAt) + sequence;
+    private String anonymousLabel(String visitorId) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(visitorId.getBytes(StandardCharsets.UTF_8));
+            return "匿名-" + HexFormat.of().withUpperCase().formatHex(digest, 0, 4);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("当前运行环境不支持 SHA-256", ex);
+        }
     }
 
     private VisitorIdentityDto toDto(AnalyticsVisitorIdentityEntity entity) {

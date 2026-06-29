@@ -192,7 +192,7 @@
   <main class="main">
     <header class="topbar">
       <div><h1 class="page-title" id="pageTitle">总览</h1><div class="topbar-meta" id="pageSubtitle">加载控制台状态...</div></div>
-      <div class="topbar-actions"><span class="tag" id="meInfo">管理员：验证中</span><button class="btn primary" id="refreshAllBtn">刷新</button><button class="btn" id="logoutBtn">退出</button></div>
+      <div class="topbar-actions"><span class="tag" id="meInfo">管理员：验证中</span><button class="btn primary" id="refreshAllBtn">刷新当前页</button><button class="btn" id="logoutBtn">退出后台</button></div>
     </header>
     <div class="content">
       <section class="section active" id="section-overview">
@@ -200,7 +200,7 @@
         <div class="grid four" id="overviewMetrics"></div>
         <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>访问趋势</h3><small>最近 30 天</small></div><div class="chart" id="visitTrendChart"></div></div><div class="card"><div class="card-title"><h3>催更趋势</h3><small>最近 30 天</small></div><div class="chart" id="encourageTrendChart"></div></div></div>
         <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>热门文章</h3><small><button class="btn link" data-open-section="articles">查看全部</button></small></div><div class="list" id="topArticleList"></div></div><div class="card"><div class="card-title"><h3>主题关注</h3><small>访问次数</small></div><div class="chart small" id="tagFocusChart"></div></div></div>
-        <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>催更排行</h3><small>访客结算</small></div><div class="list" id="encouragementRanking"></div></div><div class="card"><div class="card-title"><h3>关键状态</h3><small id="overviewCheckedAt">-</small></div><div id="overviewServices" class="kv"></div><div id="overviewRecommendation" class="kv" style="margin-top:10px;"></div></div></div>
+        <div class="grid three" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>普通页面</h3><small>首页、列表与功能页</small></div><div class="list" id="topPageList"></div></div><div class="card"><div class="card-title"><h3>催更排行</h3><small>最近 30 天</small></div><div class="list" id="encouragementRanking"></div></div><div class="card"><div class="card-title"><h3>关键状态</h3><small id="overviewCheckedAt">-</small></div><div id="overviewServices" class="kv"></div><div id="overviewRecommendation" class="kv" style="margin-top:10px;"></div></div></div>
       </section>
       <section class="section" id="section-articles">
         <div class="section-head"><div><h2>文章</h2><p>查看文章访问、停留、阅读进度和访客构成。</p></div></div>
@@ -212,7 +212,7 @@
             <button class="btn primary" id="searchArticlesBtn">查询</button>
           </div>
           <div class="grid two" style="margin-top:16px;">
-            <div><div class="card-title"><h3>访问分布</h3><small>当前筛选结果</small></div><div class="chart small" id="articleTrafficChart"></div></div>
+            <div><div class="card-title"><h3>访问分布</h3><small>当前页</small></div><div class="chart small" id="articleTrafficChart"></div></div>
             <div><div class="card-title"><h3>阅读质量</h3><small>停留与读完率</small></div><div class="chart small" id="articleEngagementChart"></div></div>
           </div>
           <div id="articleTable"></div>
@@ -223,9 +223,9 @@
       </section>
       <section class="section" id="section-music">
         <div class="section-head"><div><h2>音乐</h2><p>网易云扫码登录、账号状态与播放流配置。</p></div></div>
-        <div class="grid aside music-grid"><div class="card"><div class="card-title"><h3>网易云扫码登录</h3><small id="musicStatusBadge">未检查</small></div><div class="qr-card" id="qrCard"><div class="qr-box"><img id="qrImg" alt="网易云登录二维码" /><div class="qr-placeholder" id="qrPlaceholder">点击生成二维码</div></div><div><div class="list-title">点击卡片开始扫码登录</div><div class="list-meta" id="qrStatus">登录只用于公开播放失败后的会员回退。</div><a class="list-meta" id="qrLink" href="#" target="_blank" rel="noopener"></a><div class="actions" style="margin-top:12px;"><button class="btn" id="checkMusicBtn">检查状态</button><button class="btn danger" id="logoutMusicBtn">退出网易云</button></div></div></div></div><div class="grid"><div class="card"><div class="card-title"><h3>账号状态</h3><small>网易云</small></div><div id="musicStatusDetail" class="kv"></div></div><form class="card" id="musicConfigForm"><div class="card-title"><h3>音乐配置</h3><small>服务器配置 · 只读</small></div><div class="field-grid"><div class="field"><label>歌单来源 UID</label><input name="playlistOwnerUid" disabled /></div><div class="field"><label>默认音质</label><input name="preferredLevel" disabled /></div></div><div class="field-hint" style="margin-top:12px;">通过 application.yml 或服务器环境变量修改，重启后端后生效。</div></form></div></div>
+        <div class="grid aside music-grid"><div class="card"><div class="card-title"><h3>网易云扫码登录</h3><small id="musicStatusBadge">未检查</small></div><div class="qr-card" id="qrCard"><div class="qr-box"><img id="qrImg" alt="网易云登录二维码" /><div class="qr-placeholder" id="qrPlaceholder">点击生成二维码</div></div><div><div class="list-title">点击卡片开始扫码登录</div><div class="list-meta" id="qrStatus">登录只用于公开播放失败后的会员回退。</div><a class="list-meta" id="qrLink" href="#" target="_blank" rel="noopener"></a><div class="actions" style="margin-top:12px;"><button class="btn" id="checkMusicBtn">检查状态</button><button class="btn danger" id="logoutMusicBtn">退出网易云</button></div></div></div></div><div class="grid"><div class="card"><div class="card-title"><h3>账号状态</h3><small>网易云</small></div><div id="musicStatusDetail" class="kv"></div></div><form class="card" id="musicConfigForm"><div class="card-title"><h3>音乐配置</h3><small>服务器配置 · 只读</small></div><div class="field-grid"><div class="field"><label>听歌排行 UID</label><input name="rankingOwnerUid" disabled /></div><div class="field"><label>默认音质</label><input name="preferredLevel" disabled /></div></div><div class="field-hint" style="margin-top:12px;">通过 application.yml 或服务器环境变量修改，重启后端后生效。</div></form></div></div>
         <div class="grid three" id="musicAnalyticsMetrics" style="margin-top:14px;"></div>
-        <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>热门歌曲</h3><small>按完成度</small></div><div class="list" id="musicTopSongs"></div><div class="pager"><button class="btn link" id="musicTopPrevBtn">上一页</button><span id="musicTopPageInfo">第 1 页</span><button class="btn link" id="musicTopNextBtn">下一页</button></div></div><div class="card"><div class="card-title"><h3>最近收听</h3><small>访客与完成度</small></div><div class="list" id="musicRecentList"></div><div class="pager"><button class="btn link" id="musicRecentPrevBtn">上一页</button><span id="musicRecentPageInfo">第 1 页</span><button class="btn link" id="musicRecentNextBtn">下一页</button></div></div></div>
+        <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>热门歌曲</h3><small>按播放次数</small></div><div class="list" id="musicTopSongs"></div><div class="pager"><button class="btn link" id="musicTopPrevBtn">上一页</button><span id="musicTopPageInfo">第 1 页</span><button class="btn link" id="musicTopNextBtn">下一页</button></div></div><div class="card"><div class="card-title"><h3>最近收听</h3><small>访客与完成度</small></div><div class="list" id="musicRecentList"></div><div class="pager"><button class="btn link" id="musicRecentPrevBtn">上一页</button><span id="musicRecentPageInfo">第 1 页</span><button class="btn link" id="musicRecentNextBtn">下一页</button></div></div></div>
       </section>
       <section class="section" id="section-recommendation">
         <div class="section-head"><div><h2>推荐</h2><p>指定文章优先展示，其余位置由文章热度自动补齐。</p></div><button class="btn" id="syncArticleMetricsBtn">同步文章指标</button></div>
@@ -239,13 +239,13 @@
       </section>
       <section class="section" id="section-comments">
         <div class="section-head"><div><h2>评论</h2><p>评论审核、数据导入导出与 Waline 用户管理。</p></div></div>
-        <div class="grid two"><div class="card"><div class="card-title"><h3>Waline 状态</h3><button class="btn link" id="toggleMailConfigBtn">邮件配置</button></div><div id="walineSummary" class="kv"></div><div id="mailNotificationStatus" class="kv" style="margin-top:10px;"></div><div class="inline-config" id="mailConfigPanel"><div class="field-hint" style="margin-bottom:8px;">使用 Waline 原生邮件能力：评论者填写邮箱后，收到回复时会收到通知；你配置作者邮箱后，新评论会提醒到你。</div><div class="config-code"><code>AUTHOR_EMAIL=你的邮箱</code><code>SMTP_SERVICE=QQ</code><code>SMTP_USER=你的 QQ 邮箱</code><code>SMTP_PASS=QQ 邮箱授权码</code><code>SMTP_SECURE=true</code><code>SENDER_NAME=LycanClaw</code><code>SENDER_EMAIL=你的邮箱</code><code>MAIL_SUBJECT=你在 LycanClaw 的评论有了新回复</code><code>MAIL_TEMPLATE=</code><code>MAIL_SUBJECT_ADMIN=LycanClaw 有新评论</code><code>MAIL_TEMPLATE_ADMIN=</code></div><div class="field-hint" style="margin-top:8px;">模板留空时使用 Waline 默认模板。密码使用邮箱授权码，不是登录密码。 <a class="article-link" href="https://waline.js.org/reference/server/env.html" target="_blank" rel="noopener">查看 Waline 文档</a></div></div></div><div class="card"><div class="card-title"><h3>最新评论</h3><small>最多 5 条</small></div><div class="list" id="recentComments"></div></div></div>
-        <div class="card" style="margin-top:12px;"><div class="card-title"><h3>Waline 数据</h3><small>评论导入导出</small></div><div class="import-box"><div class="actions"><button class="btn" id="exportWalineBtn">导出 Waline 数据</button><label class="btn" for="importWalineInput">导入 JSON</label><input id="importWalineInput" type="file" accept="application/json,.json" hidden /></div><div class="field-hint" id="walineImportNotice">导入使用 Waline 官方备份格式，适合迁移评论、计数和用户数据。</div></div></div>
+        <div class="grid two"><div class="card"><div class="card-title"><h3>Waline 状态</h3><button class="btn link" id="toggleMailConfigBtn">邮件配置</button></div><div id="walineSummary" class="kv"></div><div id="mailNotificationStatus" class="kv" style="margin-top:10px;"></div><div class="inline-config" id="mailConfigPanel"><div class="field-hint" style="margin-bottom:8px;">使用 Waline 原生邮件能力：评论者填写邮箱后，收到回复时会收到通知；你配置作者邮箱后，新评论会提醒到你。</div><div class="config-code"><code>WALINE_AUTHOR_EMAIL=你的邮箱</code><code>WALINE_SMTP_SERVICE=QQ</code><code>WALINE_SMTP_USER=你的 QQ 邮箱</code><code>WALINE_SMTP_PASS=QQ 邮箱授权码</code><code>WALINE_SMTP_SECURE=true</code><code>WALINE_SENDER_NAME=LycanClaw</code><code>WALINE_SENDER_EMAIL=你的邮箱</code><code>WALINE_MAIL_SUBJECT=你在 LycanClaw 的评论有了新回复</code><code>WALINE_MAIL_TEMPLATE=</code><code>WALINE_MAIL_SUBJECT_ADMIN=LycanClaw 有新评论</code><code>WALINE_MAIL_TEMPLATE_ADMIN=</code></div><div class="field-hint" style="margin-top:8px;">模板留空时使用 Waline 默认模板。密码使用邮箱授权码，不是登录密码。 <a class="article-link" href="https://waline.js.org/reference/server/env.html" target="_blank" rel="noopener">查看 Waline 文档</a></div></div></div><div class="card"><div class="card-title"><h3>最新评论</h3><small>最多 5 条</small></div><div class="list" id="recentComments"></div></div></div>
+        <div class="card" style="margin-top:12px;"><div class="card-title"><h3>Waline 数据</h3><small>评论导入导出</small></div><div class="import-box"><div class="actions"><button class="btn" id="exportWalineBtn">导出 Waline 数据</button><label class="btn" for="importWalineInput">初始化导入 JSON</label><input id="importWalineInput" type="file" accept="application/json,.json" hidden /></div><div class="field-hint" id="walineImportNotice">仅允许向空数据库导入标准 Waline 备份；已有评论时会拒绝，不会追加或覆盖。</div></div></div>
         <div class="card" style="margin-top:12px;">
           <div class="card-title"><h3>评论管理</h3><small id="commentCountSummary">-</small></div>
           <div class="filter-row">
             <div class="field"><label>状态</label><select id="commentStatusFilter"><option value="all">全部评论</option><option value="approved">已通过</option><option value="waiting">待审核</option><option value="spam">垃圾评论</option></select></div>
-            <div class="field"><label>关键词</label><input id="commentKeywordInput" placeholder="昵称、邮箱或评论内容" /></div>
+            <div class="field"><label>评论内容</label><input id="commentKeywordInput" placeholder="搜索评论内容" /></div>
             <button class="btn primary" id="searchCommentsBtn">查询</button>
           </div>
           <div id="commentManageNotice" class="field-hint" style="margin-top:10px;"></div>
@@ -256,7 +256,7 @@
         <div class="card" style="margin-top:12px;">
           <div class="card-title"><h3>用户管理</h3><small>Waline 登录用户</small></div>
           <div class="filter-row compact">
-            <div class="field"><label>用户搜索</label><input id="userKeywordInput" placeholder="昵称、邮箱、QQ 或 GitHub" /></div>
+            <div class="field"><label>用户搜索</label><input id="userKeywordInput" placeholder="输入完整邮箱" /></div>
             <button class="btn primary" id="searchUsersBtn">查询</button>
           </div>
           <div id="userManageNotice" class="field-hint" style="margin-top:10px;"></div>
@@ -278,7 +278,7 @@
     recommendation: ['推荐', '手动推荐优先，文章热度补齐。'],
     comments: ['评论', 'Waline 评论、用户和阅读统计状态。']
   };
-  const state = { me: null, console: null, ops: null, operationalConfig: null, musicStatus: null, musicAnalytics: null, musicTopPage: 1, musicRecentPage: 1, articles: null, articlePage: 1, manualUrls: [], excludedUrls: [], effectiveRecommendations: [], candidates: [], candidatePage: 1, candidateTotalPages: 1, recentComments: [], managedComments: null, commentNotification: null, commentPage: 1, commentManageError: '', walineUsers: null, userPage: 1, userManageError: '', qrKey: '', qrTimer: null, charts: {} };
+  const state = { me: null, activeSection: 'overview', loadedSections: new Set(), loadingSections: new Map(), console: null, ops: null, operationalConfig: null, musicStatus: null, musicAnalytics: null, musicTopPage: 1, musicRecentPage: 1, articles: null, articlePage: 1, manualUrls: [], excludedUrls: [], effectiveRecommendations: [], candidates: [], candidatePage: 1, candidateTotalPages: 1, recentComments: [], managedComments: null, commentNotification: null, commentPage: 1, commentManageError: '', walineUsers: null, userPage: 1, userManageError: '', qrKey: '', qrTimer: null, charts: {} };
   const $ = (selector) => document.querySelector(selector);
   const asArray = (value) => Array.isArray(value) ? value : [];
 
@@ -376,14 +376,19 @@
   async function api(url, options = {}, authRequired = true) {
     return adminCommon.requestJson(url, options, authRequired);
   }
-  function setSection(name) {
+  function setSection(name, load = true) {
     const section = sections[name] ? name : 'overview';
+    state.activeSection = section;
     Object.keys(sections).forEach((key) => {
       $(`#section-${key}`).classList.toggle('active', key === section);
       document.querySelector(`[data-section="${key}"]`)?.classList.toggle('active', key === section);
     });
     $('#pageTitle').textContent = sections[section][0];
+    $('#pageSubtitle').textContent = sections[section][1];
     if (location.hash !== `#${section}`) history.replaceState(null, '', `#${section}`);
+    if (load && state.me) {
+      loadSection(section).catch((error) => showMessage(error.message || String(error), true));
+    }
     window.setTimeout(() => Object.values(state.charts).forEach((chart) => chart.resize()), 50);
   }
   function renderMe() {
@@ -482,12 +487,39 @@
     state.musicStatus = status;
     renderMusicStatus(status);
   }
-  async function refreshAll() {
+  async function loadSection(section = state.activeSection, force = false) {
+    const target = sections[section] ? section : 'overview';
+    if (!force && state.loadedSections.has(target)) return;
+    const loading = state.loadingSections.get(target);
+    if (loading) return loading;
+    const task = (async () => {
+      if (target === 'overview') {
+        await refreshConsole();
+      } else if (target === 'articles') {
+        await refreshArticles(state.articlePage);
+      } else if (target === 'music') {
+        if (!state.console) await refreshConsole();
+        await Promise.all([refreshMusicStatus(), refreshMusicAnalytics()]);
+      } else if (target === 'recommendation') {
+        if (!state.console) await refreshConsole();
+        await refreshRecommendation();
+      } else if (target === 'comments') {
+        await Promise.all([refreshOps(), refreshComments(), refreshManagedComments(), refreshCommentNotification(), refreshUsers()]);
+      }
+      state.loadedSections.add(target);
+    })();
+    state.loadingSections.set(target, task);
+    try {
+      await task;
+    } finally {
+      state.loadingSections.delete(target);
+    }
+  }
+  async function refreshCurrentSection() {
     try {
       $('#refreshAllBtn').disabled = true;
-      await Promise.all([refreshConsole(), refreshOps(), refreshRecommendation(), refreshComments(), refreshManagedComments(), refreshCommentNotification(), refreshMusicStatus(), refreshMusicAnalytics(), refreshArticles(), refreshUsers()]);
-      renderOverview();
-      showMessage('控制台已刷新');
+      await loadSection(state.activeSection, true);
+      showMessage(`${sections[state.activeSection][0]}已刷新`);
     } catch (error) {
       showMessage(error.message || String(error), true);
     } finally {
@@ -497,22 +529,24 @@
   function renderOverview() {
     const dashboard = state.console?.dashboard || {};
     const music = dashboard.music || {};
-    const insights = dashboard.writingInsights || {};
+    const analytics = dashboard.analytics || {};
     const governance = dashboard.governance || {};
-    const sync = state.ops?.sync || {};
+    const ops = state.ops || dashboard.ops || {};
+    const sync = ops.sync || {};
     const articleMetricSync = governance.articleMetricSyncStatus || sync.articleMetrics || {};
     $('#overviewMetrics').innerHTML = [
-      metricCard(insights.visits ?? 0, '近 30 天访问', `独立访客 ${insights.uniqueVisitors ?? 0}`),
-      metricCard(`${insights.averageDurationSeconds ?? 0}s`, '平均停留', '只统计页面可见时间'),
-      metricCard(insights.totalEncouragements ?? 0, '总催更', `今日 ${insights.encouragement?.today ?? 0}`),
+      metricCard(analytics.visits ?? 0, '近 30 天访问', `独立访客 ${analytics.uniqueVisitors ?? 0}`),
+      metricCard(`${analytics.averageDurationSeconds ?? 0}s`, '平均停留', '只统计页面可见时间'),
+      metricCard(analytics.encouragement?.total ?? 0, '总催更', `今日 ${analytics.encouragement?.today ?? 0}`),
       metricCard(music.loggedIn ? '已登录' : '未登录', '网易云账号', music.nickname || music.message || '-')
     ].join('');
     $('#overviewCheckedAt').textContent = `检查于 ${relativeTime(dashboard.checkedAt || state.console?.checkedAt || new Date())}`;
-    $('#overviewServices').innerHTML = kvRows([['音乐登录', `${music.loggedIn ? '已登录' : '未登录'} ${music.nickname || ''}`.trim()], ['Waline', serviceText(state.ops?.services?.waline)], ['NCM 上游', serviceText(state.ops?.services?.ncmUpstream)]]);
+    $('#overviewServices').innerHTML = kvRows([['音乐登录', `${music.loggedIn ? '已登录' : '未登录'} ${music.nickname || ''}`.trim()], ['Waline', serviceText(ops.services?.waline)], ['NCM 上游', serviceText(ops.services?.ncmUpstream)]]);
     $('#overviewRecommendation').innerHTML = kvRows([['文章指标', articleMetricSyncText(articleMetricSync)], ['成功文章', articleMetricSync.successCount ?? 0], ['失败文章', articleMetricSync.failureCount ?? 0], ['完成时间', relativeTime(articleMetricSync.lastFinishedAt)]]);
-    renderWritingInsightCharts(insights);
-    renderTopArticles(insights.topArticles || []);
-    renderEncouragementRanking(insights.encouragement?.topVisitors || []);
+    renderAnalyticsCharts(analytics);
+    renderTopArticles(analytics.topArticles || []);
+    renderTopPages(analytics.topPages || []);
+    renderEncouragementRanking(analytics.encouragement?.topVisitors || []);
   }
   function chartColors() {
     return { text: '#9ca8bb', grid: 'rgba(156,168,187,.16)', green: '#19c56f', yellow: '#d7a441', surface: '#151a24' };
@@ -528,11 +562,11 @@
     state.charts[id]?.dispose();
     delete state.charts[id];
   }
-  function renderWritingInsightCharts(insights) {
+  function renderAnalyticsCharts(analytics) {
     const colors = chartColors();
-    const trend = asArray(insights.trend);
+    const trend = asArray(analytics.trend);
     const dates = trend.map((item) => item.date);
-    const tags = asArray(insights.topTags).slice(0, 8);
+    const tags = asArray(analytics.topTags).slice(0, 8);
     const visitChart = getChart('visitTrendChart');
     if (visitChart) {
       visitChart.setOption({
@@ -580,6 +614,13 @@
       return;
     }
     $('#topArticleList').innerHTML = articles.slice(0, 6).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.title || pathTitle(item.path))}</div><div class="list-meta">访问 ${item.visits ?? 0} · 平均停留 ${durationSecondsText(item.averageDurationSeconds)} · 阅读 ${percentText(item.averageScrollPercent)} · 评论 ${item.commentCount ?? 0}</div></div><button class="btn link" data-article-detail="${escapeHtml(item.path)}">详情</button></div>`).join('');
+  }
+  function renderTopPages(pages) {
+    if (!pages.length) {
+      $('#topPageList').innerHTML = '<div class="empty">暂无普通页面访问。</div>';
+      return;
+    }
+    $('#topPageList').innerHTML = pages.map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.title || pathTitle(item.path))}</div><div class="list-meta">访问 ${item.visits || 0} · 访客 ${item.uniqueVisitors || 0} · 平均停留 ${durationSecondsText(item.averageDurationSeconds)}</div></div></div>`).join('');
   }
   function renderEncouragementRanking(items) {
     if (!items.length) {
@@ -629,7 +670,7 @@
       renderArticleCharts([]);
       return;
     }
-    $('#articleTable').innerHTML = `<table class="data-table"><thead><tr><th>文章</th><th>站内访问</th><th>访客</th><th>平均停留</th><th>阅读进度</th><th>读完率</th><th>评论</th></tr></thead><tbody>${items.map((item) => `<tr><td><div class="article-title">${escapeHtml(item.title || pathTitle(item.path))}</div><button class="btn link" data-article-detail="${escapeHtml(item.path)}">查看详情</button></td><td>${item.visits || 0}</td><td>${item.uniqueVisitors || 0}<br/><span class="list-meta">复访 ${percentText(item.revisitRate)}</span></td><td>${durationSecondsText(item.averageDurationSeconds || 0)}</td><td>${percentText(item.averageScrollPercent)}</td><td>${percentText(item.completionRate)}</td><td>${item.commentCount || 0}</td></tr>`).join('')}</tbody></table>`;
+    $('#articleTable').innerHTML = `<table class="data-table"><thead><tr><th>文章</th><th>站内访问</th><th>访客</th><th>平均停留</th><th>阅读进度</th><th>读完率</th><th>累计评论</th></tr></thead><tbody>${items.map((item) => `<tr><td><div class="article-title">${escapeHtml(item.title || pathTitle(item.path))}</div><button class="btn link" data-article-detail="${escapeHtml(item.path)}">查看详情</button></td><td>${item.visits || 0}</td><td>${item.uniqueVisitors || 0}<br/><span class="list-meta">复访 ${percentText(item.revisitRate)}</span></td><td>${durationSecondsText(item.averageDurationSeconds || 0)}</td><td>${percentText(item.averageScrollPercent)}</td><td>${percentText(item.completionRate)}</td><td>${item.commentCount || 0}</td></tr>`).join('')}</tbody></table>`;
     renderArticleCharts(items);
   }
   function renderArticleCharts(items) {
@@ -688,7 +729,7 @@
     const sourceRow = sourceButton?.closest('tr');
     if (!sourceRow) {
       if (allowRefresh) {
-        setSection('articles');
+        setSection('articles', false);
         $('#articleKeywordInput').value = '';
         $('#articleDaysFilter').value = '30';
         $('#articleSortFilter').value = 'visits';
@@ -727,7 +768,7 @@
   async function openVisitorProfile(visitorId) {
     if (!visitorId) return;
     const data = await api(`/api/admin/analytics/visitor?visitorId=${encodeURIComponent(visitorId)}&days=365`);
-    setSection('articles');
+    setSection('articles', false);
     $('#visitorProfileTitle').textContent = data.nickname || '匿名访客';
     $('#visitorProfileMetrics').innerHTML = [
       metricCard(data.visits || 0, '访问次数', data.region || data.ip || '未知地区'),
@@ -750,12 +791,7 @@
       metricCard(percentText(data.completionRate), '播完率', '播放达到 90% 视为完成')
     ].join('');
 
-    const topSongs = asArray(data.topSongs).slice().sort((left, right) => {
-      const completion = Number(right.completionRate || 0) - Number(left.completionRate || 0);
-      const progress = Number(right.averageProgressPercent || 0) - Number(left.averageProgressPercent || 0);
-      const listeners = Number(right.uniqueListeners || 0) - Number(left.uniqueListeners || 0);
-      return completion || progress || listeners || Number(right.plays || 0) - Number(left.plays || 0);
-    });
+    const topSongs = asArray(data.topSongs);
     const topTotalPages = Math.max(1, Math.ceil(topSongs.length / pageSize));
     state.musicTopPage = Math.min(Math.max(1, state.musicTopPage), topTotalPages);
     const topPageItems = topSongs.slice((state.musicTopPage - 1) * pageSize, state.musicTopPage * pageSize);
@@ -788,7 +824,7 @@
     const form = $('#musicConfigForm');
     if (!form || !state.operationalConfig) return;
     const music = state.operationalConfig.music || {};
-    form.elements.playlistOwnerUid.value = music.playlistOwnerUid || '';
+    form.elements.rankingOwnerUid.value = music.rankingOwnerUid || '';
     form.elements.preferredLevel.value = music.preferredLevel || 'exhigh';
   }
   function renderRecommendationConfig() {
@@ -837,7 +873,7 @@
   }
   function startQrPoll() {
     if (state.qrTimer) return;
-    state.qrTimer = window.setInterval(() => pollQrOnce().catch((e) => $('#qrStatus').textContent = e.message), 2000);
+    state.qrTimer = window.setInterval(() => pollQrOnce().catch((e) => $('#qrStatus').textContent = e.message), 4000);
   }
   function stopQrPoll() {
     if (!state.qrTimer) return;
@@ -902,7 +938,7 @@
     state.manualUrls = asArray(saved.manualUrls);
     state.excludedUrls = asArray(saved.excludedUrls);
     $('#manualUpdatedAt').textContent = saved.updatedAt ? `更新于 ${relativeTime(saved.updatedAt)}` : '刚刚更新';
-    await Promise.all([refreshRecommendation(), refreshConsole(), refreshOps()]);
+    await Promise.all([refreshRecommendation(), refreshConsole()]);
     showMessage(message || '推荐配置已保存');
   }
   async function syncArticleMetrics() {
@@ -910,7 +946,7 @@
     button.disabled = true;
     const result = await api('/api/admin/governance/article-metrics/sync', { method: 'POST' });
     showMessage(result?.result?.accepted === false ? '文章指标正在同步中' : '文章指标同步任务已受理');
-    await Promise.all([refreshConsole(), refreshOps(), refreshRecommendation()]);
+    await Promise.all([refreshConsole(), refreshRecommendation()]);
     button.disabled = false;
   }
   function renderWalineSummary() {
@@ -930,11 +966,9 @@
   function renderCommentNotification() {
     const data = state.commentNotification || {};
     $('#mailNotificationStatus').innerHTML = kvRows([
-      ['SMTP', data.smtpConfigured ? '已配置' : '未配置'],
+      ['SMTP 配置', data.smtpConfigured ? '完整' : '不完整'],
       ['作者邮箱', data.authorEmailConfigured ? '已配置' : '未配置'],
-      ['邮件模板', data.templateConfigured ? '自定义' : '默认'],
-      ['评论审核', data.commentAuditEnabled ? '已开启' : '未开启'],
-      ['作者通知', data.authorNotificationEnabled ? '已开启' : '未开启']
+      ['作者通知', data.authorNotificationAvailable ? '可用' : '不可用']
     ]);
   }
   function commentStatusText(status) {
@@ -977,7 +1011,7 @@
         ? `<button class="btn link" data-comment-action="sticky">${item.sticky ? '取消置顶' : '置顶'}</button>`
         : '';
       return `<article class="comment-item" data-comment-id="${escapeHtml(item.id)}">
-        <img class="comment-avatar" src="${escapeHtml(item.avatar || '/admin/default.png')}" alt="" onerror="this.onerror=null;this.src='/admin/default.png'" />
+        <img class="comment-avatar" src="${escapeHtml(item.avatar || '/admin/default.png')}" alt="" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/admin/default.png'" />
         <div class="comment-main">
           <div class="comment-head"><input type="checkbox" data-comment-select value="${escapeHtml(item.id)}" aria-label="选择评论" /><strong>${escapeHtml(item.nick || '匿名')}</strong><span class="tag ${statusClass}">${escapeHtml(commentStatusText(status))}</span>${item.sticky ? '<span class="tag green">置顶</span>' : ''}</div>
           <div class="comment-content">${escapeHtml(item.comment || '')}</div>
@@ -1066,7 +1100,7 @@
         ? '<span class="field-hint">缺少用户 ID，不能修改权限</span>'
         : `<button class="btn link" data-user-action="edit-name">昵称</button><button class="btn link" data-user-action="edit-label">标签</button>${user.label ? '<button class="btn link" data-user-action="clear-label">移除标签</button>' : ''}${isSelf ? '<span class="tag green">当前账号</span>' : `${type !== 'administrator' ? '<button class="btn link" data-user-action="administrator">设为管理员</button>' : '<button class="btn link" data-user-action="guest">降为访客</button>'}${type !== 'banned' ? '<button class="btn link danger" data-user-action="banned">禁用</button>' : '<button class="btn link" data-user-action="guest">恢复</button>'}`}`;
       return `<article class="user-item" data-user-id="${escapeHtml(user.id)}">
-        <img class="user-avatar" src="${escapeHtml(user.avatar || '/admin/default.png')}" alt="" onerror="this.onerror=null;this.src='/admin/default.png'" />
+        <img class="user-avatar" src="${escapeHtml(user.avatar || '/admin/default.png')}" alt="" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/admin/default.png'" />
         <div>
           <div class="comment-head"><strong>${escapeHtml(user.displayName || user.email || '未命名用户')}</strong><span class="tag ${typeClass}">${escapeHtml(type)}</span>${user.label ? `<span class="tag green">${escapeHtml(user.label)}</span>` : ''}${isSelf ? '<span class="tag green">当前账号</span>' : ''}</div>
           <div class="list-meta">${escapeHtml([user.email, user.qq ? `QQ ${user.qq}` : '', user.github ? `GitHub ${user.github}` : '', user.url].filter(Boolean).join(' · '))}</div>
@@ -1120,7 +1154,7 @@
   }
   async function importWalineData(file) {
     if (!file) return;
-    if (!window.confirm('导入会追加 Waline 备份数据，请确认文件来自可信来源。继续？')) return;
+    if (!window.confirm('仅允许初始化空数据库。请确认文件来自可信来源，继续导入？')) return;
     const text = await file.text();
     const payload = JSON.parse(text);
     const result = await api('/api/admin/waline/import', { method: 'POST', body: JSON.stringify(payload) });
@@ -1139,7 +1173,7 @@
       if (button) setSection(button.dataset.section);
     });
     window.addEventListener('hashchange', () => setSection(location.hash.slice(1)));
-    $('#refreshAllBtn').addEventListener('click', refreshAll);
+    $('#refreshAllBtn').addEventListener('click', refreshCurrentSection);
     $('#logoutBtn').addEventListener('click', async () => { try { await adminCommon.logout(); } finally { location.href = '/admin/auth.html'; } });
     $('#checkMusicBtn').addEventListener('click', () => refreshMusicStatus().catch((e) => showMessage(e.message, true)));
     $('#logoutMusicBtn').addEventListener('click', async () => { await api('/api/music/auth/logout', { method: 'POST' }); await refreshMusicStatus(); showMessage('网易云登录态已清理'); });
@@ -1247,8 +1281,10 @@
       }
       const articleButton = event.target.closest('[data-article-detail]');
       if (articleButton) {
-        setSection('articles');
-        openArticleDetail(articleButton.dataset.articleDetail).catch((error) => showMessage(error.message || String(error), true));
+        setSection('articles', false);
+        loadSection('articles')
+          .then(() => openArticleDetail(articleButton.dataset.articleDetail))
+          .catch((error) => showMessage(error.message || String(error), true));
         return;
       }
       const visitorButton = event.target.closest('[data-visitor-id]');
@@ -1265,7 +1301,7 @@
     try {
       state.me = await adminCommon.ensureAuthenticated(true);
       renderMe();
-      await refreshAll();
+      await loadSection(state.activeSection, true);
     } catch (error) {
       if (error) showMessage(error.message || String(error), true);
     }

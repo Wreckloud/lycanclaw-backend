@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.lycanclaw.backend.admin.auth.dto.AdminAuthMeDto;
 import com.lycanclaw.backend.admin.auth.dto.AdminAuthSessionDto;
 import com.lycanclaw.backend.common.security.AdminAuthPrincipal;
-import com.lycanclaw.backend.common.security.AdminTokenAuthService;
 import com.lycanclaw.backend.waline.service.WalineGatewayClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -12,7 +11,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,7 +29,6 @@ public class AdminAuthService {
 
     private final WalineGatewayClient walineGatewayClient;
     private final AdminSessionService adminSessionService;
-    private final AdminTokenAuthService adminTokenAuthService;
 
     @Value("${lycan.security.admin-require-waline-administrator:true}")
     private boolean requireWalineAdministrator;
@@ -41,12 +38,10 @@ public class AdminAuthService {
 
     public AdminAuthService(
             WalineGatewayClient walineGatewayClient,
-            AdminSessionService adminSessionService,
-            AdminTokenAuthService adminTokenAuthService
+            AdminSessionService adminSessionService
     ) {
         this.walineGatewayClient = walineGatewayClient;
         this.adminSessionService = adminSessionService;
-        this.adminTokenAuthService = adminTokenAuthService;
     }
 
     /**
@@ -94,18 +89,10 @@ public class AdminAuthService {
     }
 
     /**
-     * 查询当前管理员身份。
-     */
-    public Optional<AdminAuthMeDto> currentAdmin(String adminToken) {
-        return adminTokenAuthService.authenticate(adminToken)
-                .map(this::toMeDto);
-    }
-
-    /**
      * 注销后端会话（静态 token 不会被移除）。
      */
     public void logout(String adminToken) {
-        adminTokenAuthService.revokeSession(adminToken);
+        adminSessionService.revoke(adminToken);
     }
 
     /**
@@ -137,10 +124,7 @@ public class AdminAuthService {
         if (identityCandidates.isEmpty()) {
             throw new IllegalArgumentException("当前 Waline 账号缺少可校验的 QQ 身份");
         }
-        if (identityCandidates.stream().noneMatch(whitelist::contains)) {
-            throw new IllegalArgumentException("当前 Waline 账号不在管理员 QQ 白名单中");
-        }
-        return "";
+        throw new IllegalArgumentException("当前 Waline 账号不在管理员 QQ 白名单中");
     }
 
     private Set<String> parseWhitelist(String rawValue) {

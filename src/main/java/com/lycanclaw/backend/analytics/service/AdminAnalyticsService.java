@@ -5,12 +5,12 @@ import com.lycanclaw.backend.analytics.dto.AnalyticsArticleDetailDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsArticleMetricDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsArticlePageDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsNamedMetricDto;
+import com.lycanclaw.backend.analytics.dto.AnalyticsPageMetricDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsRecentVisitDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsTagMetricDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsTrendPointDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsVisitorActivityDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsVisitorProfileDto;
-import com.lycanclaw.backend.analytics.dto.EncouragementEventDto;
 import com.lycanclaw.backend.analytics.dto.EncouragementSummaryDto;
 import com.lycanclaw.backend.analytics.dto.EncouragementVisitorMetricDto;
 import com.lycanclaw.backend.analytics.dto.MusicAnalyticsSummaryDto;
@@ -35,7 +35,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -57,7 +57,10 @@ import java.util.stream.Collectors;
 public class AdminAnalyticsService {
 
     private static final int DEFAULT_DAYS = 30;
+    private static final int MIN_DAYS = 1;
     private static final int MAX_DAYS = 365;
+    private static final int MAX_PAGE_SIZE = 50;
+    private static final int MAX_VISITOR_ID_LENGTH = 96;
     private static final int COMPLETION_PERCENT = 90;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
 
@@ -100,42 +103,21 @@ public class AdminAnalyticsService {
      * 构建后台首页摘要，默认统计最近 30 天。
      */
     public AdminAnalyticsSummaryDto summary() {
-        return summary(DEFAULT_DAYS);
-    }
-
-    /**
-     * 按指定天数构建访问、主题和催更摘要。
-     */
-    public AdminAnalyticsSummaryDto summary(int days) {
-        int safeDays = normalizeDays(days);
+        int safeDays = DEFAULT_DAYS;
         OffsetDateTime since = since(safeDays);
         List<AnalyticsVisitEntity> visits = visitRepository.findByStartedAtAfter(since);
         List<EncouragementEventEntity> encouragements = encouragementRepository.findByCreatedAtAfter(since);
-        List<AnalyticsArticleMetricDto> articles = buildArticleMetrics(visits, encouragements);
+        List<AnalyticsArticleMetricDto> articles = buildArticleMetrics(visits);
         return new AdminAnalyticsSummaryDto(
                 safeDays,
                 visits.size(),
                 countUniqueVisitors(visits),
                 averageDurationSeconds(visits),
-                encouragementRepository.sumAllDelta(),
                 buildTrend(safeDays, since, visits, encouragements),
                 articles.stream().limit(8).toList(),
-                articles.stream()
-                        .sorted(Comparator.comparingDouble(AnalyticsArticleMetricDto::averageDurationSeconds).reversed())
-                        .limit(8)
-                        .toList(),
+                buildPageMetrics(visits).stream().limit(10).toList(),
                 buildTagMetrics(visits).stream().limit(10).toList(),
                 encouragementSummary(encouragements)
-        );
-    }
-
-    /**
-     * 返回兼容旧管理端使用的文章指标列表。
-     */
-    public List<AnalyticsArticleMetricDto> articleMetrics(int days) {
-        return buildArticleMetrics(
-                visitRepository.findByStartedAtAfter(since(normalizeDays(days))),
-                encouragementRepository.findByCreatedAtAfter(since(normalizeDays(days)))
         );
     }
 
@@ -152,16 +134,13 @@ public class AdminAnalyticsService {
         int safeDays = normalizeDays(days);
         OffsetDateTime since = since(safeDays);
         List<AnalyticsVisitEntity> visits = visitRepository.findByStartedAtAfter(since);
-        List<AnalyticsArticleMetricDto> filtered = buildArticleMetrics(
-                visits,
-                encouragementRepository.findByCreatedAtAfter(since)
-        ).stream()
+        List<AnalyticsArticleMetricDto> filtered = buildArticleMetrics(visits).stream()
                 .filter(item -> matchesKeyword(item, keyword))
                 .sorted(articleComparator(sort))
                 .toList();
-        int safePageSize = Math.max(1, Math.min(pageSize, 50));
+        int safePageSize = normalizePageSize(pageSize);
         int totalPages = Math.max(1, (int) Math.ceil(filtered.size() / (double) safePageSize));
-        int safePage = Math.max(1, Math.min(page, totalPages));
+        int safePage = Math.min(normalizePage(page), totalPages);
         int from = Math.min(filtered.size(), (safePage - 1) * safePageSize);
         int to = Math.min(filtered.size(), from + safePageSize);
         return new AnalyticsArticlePageDto(
@@ -180,37 +159,19 @@ public class AdminAnalyticsService {
     public AnalyticsArticleDetailDto articleDetail(int days, String path) {
         int safeDays = normalizeDays(days);
         String normalizedPath = pathPolicy.normalizePath(path);
+        if (!pathPolicy.isArticle(normalizedPath)) {
+            throw new IllegalArgumentException("path 必须是文章路径");
+        }
         OffsetDateTime since = since(safeDays);
-        List<AnalyticsVisitEntity> visits = visitRepository.findByStartedAtAfter(since).stream()
-                .filter(visit -> normalizedPath.equals(pathPolicy.normalizePath(visit.getPath())))
-                .toList();
-        List<EncouragementEventEntity> encouragements = encouragementRepository.findByCreatedAtAfter(since).stream()
-                .filter(event -> normalizedPath.equals(pathPolicy.normalizePath(event.getPath())))
-                .toList();
-        AnalyticsArticleMetricDto metric = buildArticleMetrics(visits, encouragements).stream()
+        List<AnalyticsVisitEntity> visits = visitRepository.findByPathAndStartedAtAfter(normalizedPath, since);
+        AnalyticsArticleMetricDto metric = buildArticleMetrics(visits).stream()
                 .findFirst()
                 .orElseGet(() -> emptyArticleMetric(normalizedPath));
         return new AnalyticsArticleDetailDto(
                 metric,
-                buildTrend(safeDays, since, visits, encouragements),
-                namedDistribution(visits, visit -> referrerLabel(visit.getReferrer()), false),
+                buildTrend(safeDays, since, visits, List.of()),
+                referrerDistribution(visits),
                 buildArticleVisitors(visits)
-        );
-    }
-
-    /**
-     * 返回按文章标签聚合后的主题关注数据。
-     */
-    public List<AnalyticsTagMetricDto> tagMetrics(int days) {
-        return buildTagMetrics(visitRepository.findByStartedAtAfter(since(normalizeDays(days))));
-    }
-
-    /**
-     * 返回催更统计与访客排行榜。
-     */
-    public EncouragementSummaryDto encouragementSummary(int days) {
-        return encouragementSummary(
-                encouragementRepository.findByCreatedAtAfter(since(normalizeDays(days)))
         );
     }
 
@@ -218,21 +179,14 @@ public class AdminAnalyticsService {
      * 返回指定匿名访客的统一画像。
      */
     public AnalyticsVisitorProfileDto visitorProfile(int days, String visitorId) {
-        if (visitorId == null || visitorId.isBlank()) {
-            throw new IllegalArgumentException("visitorId 不能为空");
-        }
         int safeDays = normalizeDays(days);
-        String normalizedVisitorId = visitorId.trim();
+        String normalizedVisitorId = normalizeVisitorId(visitorId);
         OffsetDateTime since = since(safeDays);
-        List<AnalyticsVisitEntity> visits = visitRepository.findByStartedAtAfter(since).stream()
-                .filter(visit -> normalizedVisitorId.equals(visit.getVisitorId()))
-                .toList();
-        List<EncouragementEventEntity> encouragements = encouragementRepository.findByCreatedAtAfter(since).stream()
-                .filter(event -> normalizedVisitorId.equals(event.getVisitorId()))
-                .toList();
-        List<MusicListenSessionEntity> listens = musicRepository.findByStartedAtAfter(since).stream()
-                .filter(listen -> normalizedVisitorId.equals(listen.getVisitorId()))
-                .toList();
+        List<AnalyticsVisitEntity> visits = visitRepository.findByVisitorIdAndStartedAtAfter(normalizedVisitorId, since);
+        List<EncouragementEventEntity> encouragements =
+                encouragementRepository.findByVisitorIdAndCreatedAtAfter(normalizedVisitorId, since);
+        List<MusicListenSessionEntity> listens =
+                musicRepository.findByVisitorIdAndStartedAtAfter(normalizedVisitorId, since);
         AnalyticsVisitorIdentityEntity identity = identityRepository.findByVisitorId(normalizedVisitorId).orElse(null);
         String ip = latestIp(visits, encouragements, listens);
         String device = visits.stream()
@@ -242,7 +196,7 @@ public class AdminAnalyticsService {
 
         return new AnalyticsVisitorProfileDto(
                 normalizedVisitorId,
-                visitorIdentityService.displayName(identity),
+                visitorIdentityService.displayName(normalizedVisitorId, identity),
                 identity == null ? "" : identity.getAvatar(),
                 identity == null ? "" : identity.getProvider(),
                 ip,
@@ -252,28 +206,33 @@ public class AdminAnalyticsService {
                 visits.stream().mapToLong(AnalyticsVisitEntity::getDurationMs).sum() / 1000L,
                 encouragements.stream().mapToLong(EncouragementEventEntity::getDelta).sum(),
                 listens.stream().mapToLong(MusicListenSessionEntity::getListenedMs).sum() / 1000L,
-                buildArticleMetrics(visits, encouragements).stream().limit(8).toList(),
-                namedDistribution(visits, visit -> referrerLabel(visit.getReferrer()), false),
-                namedDistribution(listens, MusicListenSessionEntity::getSongName, true)
+                buildArticleMetrics(visits).stream().limit(8).toList(),
+                referrerDistribution(visits),
+                buildVisitorTopSongs(listens)
         );
     }
 
     /**
-     * 返回音乐播放次数、听众、时长、完成率和热门来源。
+     * 返回音乐播放次数、听众、完成率、热门歌曲和最近收听记录。
      */
     public MusicAnalyticsSummaryDto musicAnalytics(int days) {
         int safeDays = normalizeDays(days);
         List<MusicListenSessionEntity> sessions = musicRepository.findByStartedAtAfter(since(safeDays));
-        Map<String, AnalyticsVisitorIdentityEntity> identities = identityMap();
         long completed = sessions.stream().filter(this::isMusicCompleted).count();
-        List<MusicListenRecordDto> recent = sessions.stream()
+        List<MusicListenSessionEntity> recentSessions = sessions.stream()
                 .sorted(Comparator.comparing(MusicListenSessionEntity::getUpdatedAt).reversed())
                 .limit(20)
+                .toList();
+        // 最近收听只展示 20 条，身份查询也限制在展示范围内。
+        Map<String, AnalyticsVisitorIdentityEntity> identities = identityMap(
+                recentSessions.stream().map(MusicListenSessionEntity::getVisitorId).toList()
+        );
+        List<MusicListenRecordDto> recent = recentSessions.stream()
                 .map(item -> {
                     AnalyticsVisitorIdentityEntity identity = identities.get(item.getVisitorId());
                     return new MusicListenRecordDto(
                             item.getVisitorId(),
-                            visitorIdentityService.displayName(identity),
+                            visitorIdentityService.displayName(item.getVisitorId(), identity),
                             identity == null ? "" : identity.getAvatar(),
                             item.getSongId(),
                             item.getSongName(),
@@ -294,8 +253,6 @@ public class AdminAnalyticsService {
                 roundPercent(sessions.stream().mapToDouble(this::musicProgressPercent).average().orElse(0)),
                 percentage(completed, sessions.size()),
                 buildMusicSongMetrics(sessions),
-                namedDistribution(sessions, MusicListenSessionEntity::getPlaybackSource, false),
-                namedDistribution(sessions, MusicListenSessionEntity::getUrlSource, false),
                 recent
         );
     }
@@ -342,13 +299,9 @@ public class AdminAnalyticsService {
         return session.isCompleted() || musicProgressPercent(session) >= COMPLETION_PERCENT;
     }
 
-    private List<AnalyticsArticleMetricDto> buildArticleMetrics(
-            List<AnalyticsVisitEntity> visits,
-            List<EncouragementEventEntity> encouragements
-    ) {
+    private List<AnalyticsArticleMetricDto> buildArticleMetrics(List<AnalyticsVisitEntity> visits) {
         Map<String, ContentCatalogService.ContentItem> posts = contentCatalogService.loadArticleMap();
         Map<String, ArticleAccumulator> byPath = new LinkedHashMap<>();
-        long articleVisitCount = visits.stream().filter(visit -> "article".equalsIgnoreCase(visit.getPageType())).count();
         for (AnalyticsVisitEntity visit : visits) {
             if (!"article".equalsIgnoreCase(visit.getPageType())) {
                 continue;
@@ -358,30 +311,56 @@ public class AdminAnalyticsService {
             ArticleAccumulator accumulator = byPath.computeIfAbsent(path, key -> new ArticleAccumulator(path, title));
             accumulator.addVisit(visit, visitorKey(visit.getVisitorId(), visit.getIp()));
         }
-        for (EncouragementEventEntity event : encouragements) {
-            String path = pathPolicy.normalizePath(event.getPath());
-            ArticleAccumulator accumulator = byPath.get(path);
-            if (accumulator != null) {
-                accumulator.encouragements += event.getDelta();
-            }
-        }
-        long denominator = Math.max(1, articleVisitCount);
         Map<String, ArticleMetricEntity> metrics = articleMetricService.loadEntities(
-                new ArrayList<>(byPath.keySet())
+                List.copyOf(byPath.keySet())
         );
         return byPath.values().stream()
-                .map(item -> toArticleMetric(item, denominator, metrics.get(item.path)))
+                .map(item -> toArticleMetric(item, metrics.get(item.path)))
                 .sorted(Comparator.comparingLong(AnalyticsArticleMetricDto::visits).reversed())
+                .toList();
+    }
+
+    private List<AnalyticsPageMetricDto> buildPageMetrics(List<AnalyticsVisitEntity> visits) {
+        Map<String, PageAccumulator> byPath = new LinkedHashMap<>();
+        for (AnalyticsVisitEntity visit : visits) {
+            if ("article".equalsIgnoreCase(visit.getPageType())) {
+                continue;
+            }
+            String path = pathPolicy.normalizePath(visit.getPath());
+            PageAccumulator accumulator = byPath.computeIfAbsent(
+                    path,
+                    key -> new PageAccumulator(path, resolveTitle(path, visit.getTitle(), Map.of()))
+            );
+            accumulator.addVisit(visit, visitorKey(visit.getVisitorId(), visit.getIp()));
+        }
+        return byPath.values().stream()
+                .map(item -> new AnalyticsPageMetricDto(
+                        item.path,
+                        item.title,
+                        item.visits,
+                        item.visitors.size(),
+                        roundSeconds(item.totalDurationMs, item.visits)
+                ))
+                .sorted(Comparator.comparingLong(AnalyticsPageMetricDto::visits).reversed()
+                        .thenComparing(Comparator.comparingDouble(
+                                AnalyticsPageMetricDto::averageDurationSeconds
+                        ).reversed())
+                        .thenComparing(AnalyticsPageMetricDto::path))
                 .toList();
     }
 
     private List<AnalyticsRecentVisitDto> buildRecentArticleVisits(List<AnalyticsVisitEntity> visits) {
         Map<String, ContentCatalogService.ContentItem> posts = contentCatalogService.loadArticleMap();
-        Map<String, AnalyticsVisitorIdentityEntity> identities = identityMap();
-        return visits.stream()
+        List<AnalyticsVisitEntity> recentVisits = visits.stream()
                 .filter(visit -> "article".equalsIgnoreCase(visit.getPageType()))
                 .sorted(Comparator.comparing(AnalyticsVisitEntity::getStartedAt).reversed())
                 .limit(20)
+                .toList();
+        // 最近访问只展示 20 条，身份查询也限制在展示范围内。
+        Map<String, AnalyticsVisitorIdentityEntity> identities = identityMap(
+                recentVisits.stream().map(AnalyticsVisitEntity::getVisitorId).toList()
+        );
+        return recentVisits.stream()
                 .map(visit -> {
                     String path = pathPolicy.normalizePath(visit.getPath());
                     AnalyticsVisitorIdentityEntity identity = identities.get(visit.getVisitorId());
@@ -389,7 +368,7 @@ public class AdminAnalyticsService {
                             path,
                             resolveTitle(path, visit.getTitle(), posts),
                             visit.getVisitorId(),
-                            visitorIdentityService.displayName(identity),
+                            visitorIdentityService.displayName(visit.getVisitorId(), identity),
                             ipRegionService.resolve(visit.getIp()),
                             Math.max(0, visit.getDurationMs()) / 1000L,
                             Math.max(0, Math.min(visit.getMaxScrollPercent(), 100)),
@@ -426,12 +405,32 @@ public class AdminAnalyticsService {
                 .toList();
     }
 
+    private List<AnalyticsNamedMetricDto> buildVisitorTopSongs(List<MusicListenSessionEntity> listens) {
+        Map<String, List<MusicListenSessionEntity>> grouped = listens.stream()
+                .collect(Collectors.groupingBy(
+                        MusicListenSessionEntity::getSongId,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+        return grouped.values().stream()
+                .map(items -> {
+                    MusicListenSessionEntity sample = items.get(0);
+                    String name = sample.getArtist() == null || sample.getArtist().isBlank()
+                            ? sample.getSongName()
+                            : sample.getSongName() + " · " + sample.getArtist();
+                    long listenedSeconds = items.stream()
+                            .mapToLong(MusicListenSessionEntity::getListenedMs)
+                            .sum() / 1000L;
+                    return new AnalyticsNamedMetricDto(name, items.size(), listenedSeconds);
+                })
+                .sorted(Comparator.comparingLong(AnalyticsNamedMetricDto::value).reversed())
+                .limit(20)
+                .toList();
+    }
+
     private EncouragementSummaryDto encouragementSummary(List<EncouragementEventEntity> events) {
         OffsetDateTime todayStart = OffsetDateTime.now(zoneId).toLocalDate().atStartOfDay(zoneId).toOffsetDateTime();
-        OffsetDateTime weekStart = todayStart.minusDays(6);
         Map<String, VisitorAccumulator> visitors = new LinkedHashMap<>();
-        Map<String, ArticleAccumulator> pages = new LinkedHashMap<>();
-        Map<String, AnalyticsVisitorIdentityEntity> identities = identityMap();
         for (EncouragementEventEntity event : events) {
             String key = visitorKey(event.getVisitorId(), event.getIp());
             VisitorAccumulator visitor = visitors.computeIfAbsent(
@@ -443,35 +442,28 @@ public class AdminAnalyticsService {
             if (visitor.lastAt == null || event.getCreatedAt().isAfter(visitor.lastAt)) {
                 visitor.lastAt = event.getCreatedAt();
             }
-            String path = pathPolicy.normalizePath(event.getPath());
-            ArticleAccumulator page = pages.computeIfAbsent(
-                    path,
-                    ignored -> new ArticleAccumulator(path, event.getTitle())
-            );
-            page.encouragements += event.getDelta();
         }
+        List<VisitorAccumulator> topVisitors = visitors.values().stream()
+                .sorted(Comparator.comparingLong((VisitorAccumulator item) -> item.totalDelta).reversed())
+                .limit(20)
+                .toList();
+        // 催更榜只展示前 20 名，身份查询也限制在展示范围内。
+        Map<String, AnalyticsVisitorIdentityEntity> identities = identityMap(
+                topVisitors.stream().map(item -> item.visitorId).toList()
+        );
         return new EncouragementSummaryDto(
                 encouragementRepository.sumAllDelta(),
                 encouragementRepository.sumDeltaAfter(todayStart),
-                encouragementRepository.sumDeltaAfter(weekStart),
-                visitors.values().stream()
+                topVisitors.stream()
                         .map(item -> toVisitorMetric(item, identities.get(item.visitorId)))
-                        .sorted(Comparator.comparingLong(EncouragementVisitorMetricDto::totalDelta).reversed())
-                        .limit(20)
-                        .toList(),
-                pages.values().stream()
-                        .map(item -> toArticleMetric(item, 1, null))
-                        .sorted(Comparator.comparingLong(AnalyticsArticleMetricDto::encouragements).reversed())
-                        .limit(8)
-                        .toList(),
-                encouragementRepository.findTop20ByOrderByCreatedAtDesc().stream()
-                        .map(this::toEventDto)
                         .toList()
         );
     }
 
     private List<AnalyticsVisitorActivityDto> buildArticleVisitors(List<AnalyticsVisitEntity> visits) {
-        Map<String, AnalyticsVisitorIdentityEntity> identities = identityMap();
+        Map<String, AnalyticsVisitorIdentityEntity> identities = identityMap(
+                visits.stream().map(AnalyticsVisitEntity::getVisitorId).toList()
+        );
         Map<String, VisitorActivityAccumulator> grouped = new LinkedHashMap<>();
         for (AnalyticsVisitEntity visit : visits) {
             String key = visitorKey(visit.getVisitorId(), visit.getIp());
@@ -494,7 +486,7 @@ public class AdminAnalyticsService {
                     AnalyticsVisitorIdentityEntity identity = identities.get(item.visitorId);
                     return new AnalyticsVisitorActivityDto(
                             item.visitorId,
-                            visitorIdentityService.displayName(identity),
+                            visitorIdentityService.displayName(item.visitorId, identity),
                             identity == null ? "" : identity.getAvatar(),
                             item.ip,
                             ipRegionService.resolve(item.ip),
@@ -541,20 +533,13 @@ public class AdminAnalyticsService {
                 .toList();
     }
 
-    private <T> List<AnalyticsNamedMetricDto> namedDistribution(
-            List<T> items,
-            Function<T, String> nameResolver,
-            boolean sumDuration
-    ) {
+    private List<AnalyticsNamedMetricDto> referrerDistribution(List<AnalyticsVisitEntity> visits) {
         Map<String, long[]> grouped = new HashMap<>();
-        for (T item : items) {
-            String name = nameResolver.apply(item);
+        for (AnalyticsVisitEntity visit : visits) {
+            String name = referrerLabel(visit.getReferrer());
             String safeName = name == null || name.isBlank() ? "直接访问" : name;
             long[] values = grouped.computeIfAbsent(safeName, ignored -> new long[2]);
             values[0]++;
-            if (sumDuration && item instanceof MusicListenSessionEntity music) {
-                values[1] += music.getListenedMs() / 1000L;
-            }
         }
         return grouped.entrySet().stream()
                 .map(entry -> new AnalyticsNamedMetricDto(entry.getKey(), entry.getValue()[0], entry.getValue()[1]))
@@ -565,7 +550,6 @@ public class AdminAnalyticsService {
 
     private AnalyticsArticleMetricDto toArticleMetric(
             ArticleAccumulator item,
-            long totalArticleVisits,
             ArticleMetricEntity metric
     ) {
         long repeatVisitors = item.visitorVisits.values().stream().filter(count -> count > 1).count();
@@ -577,17 +561,17 @@ public class AdminAnalyticsService {
                 item.visitorVisits.size(),
                 roundSeconds(item.totalDurationMs, item.visits),
                 item.totalDurationMs / 1000L,
-                percentage(item.visits, totalArticleVisits),
                 percentage(repeatVisitors, item.visitorVisits.size()),
                 averagePercent(item.totalScrollPercent, item.visits),
                 percentage(item.completedVisits, item.visits),
-                item.encouragements,
                 comments
         );
     }
 
     private AnalyticsArticleMetricDto emptyArticleMetric(String path) {
         String title = resolveTitle(path, "", contentCatalogService.loadArticleMap());
+        ArticleMetricEntity metric = articleMetricService.loadEntities(List.of(path)).get(path);
+        int comments = metric == null ? 0 : Math.max(0, metric.getCommentCount());
         return new AnalyticsArticleMetricDto(
                 path,
                 title,
@@ -598,9 +582,7 @@ public class AdminAnalyticsService {
                 0,
                 0,
                 0,
-                0,
-                0,
-                0
+                comments
         );
     }
 
@@ -611,23 +593,12 @@ public class AdminAnalyticsService {
         return new EncouragementVisitorMetricDto(
                 item.visitorId,
                 item.ip,
-                visitorIdentityService.displayName(identity),
+                visitorIdentityService.displayName(item.visitorId, identity),
                 identity == null ? "" : identity.getAvatar(),
                 ipRegionService.resolve(item.ip),
                 item.settlements,
                 item.totalDelta,
                 formatOffset(item.lastAt)
-        );
-    }
-
-    private EncouragementEventDto toEventDto(EncouragementEventEntity event) {
-        return new EncouragementEventDto(
-                event.getVisitorId(),
-                event.getIp(),
-                event.getDelta(),
-                pathPolicy.normalizePath(event.getPath()),
-                event.getTitle(),
-                formatOffset(event.getCreatedAt())
         );
     }
 
@@ -648,8 +619,15 @@ public class AdminAnalyticsService {
         return filename.endsWith(".html") ? filename.substring(0, filename.length() - 5) : filename;
     }
 
-    private Map<String, AnalyticsVisitorIdentityEntity> identityMap() {
-        return identityRepository.findAll().stream().collect(Collectors.toMap(
+    private Map<String, AnalyticsVisitorIdentityEntity> identityMap(Collection<String> visitorIds) {
+        List<String> normalizedIds = visitorIds.stream()
+                .filter(value -> value != null && !value.isBlank() && !"anonymous".equalsIgnoreCase(value))
+                .distinct()
+                .toList();
+        if (normalizedIds.isEmpty()) {
+            return Map.of();
+        }
+        return identityRepository.findByVisitorIdIn(normalizedIds).stream().collect(Collectors.toMap(
                 AnalyticsVisitorIdentityEntity::getVisitorId,
                 Function.identity(),
                 (left, right) -> right
@@ -668,10 +646,11 @@ public class AdminAnalyticsService {
     private Comparator<AnalyticsArticleMetricDto> articleComparator(String sort) {
         String value = sort == null ? "visits" : sort.trim().toLowerCase(Locale.ROOT);
         return switch (value) {
+            case "visits", "" -> Comparator.comparingLong(AnalyticsArticleMetricDto::visits).reversed();
             case "duration" -> Comparator.comparingLong(AnalyticsArticleMetricDto::totalDurationSeconds).reversed();
             case "completion" -> Comparator.comparingDouble(AnalyticsArticleMetricDto::completionRate).reversed();
             case "scroll" -> Comparator.comparingDouble(AnalyticsArticleMetricDto::averageScrollPercent).reversed();
-            default -> Comparator.comparingLong(AnalyticsArticleMetricDto::visits).reversed();
+            default -> throw new IllegalArgumentException("sort 仅支持 visits、duration、completion、scroll");
         };
     }
 
@@ -754,7 +733,35 @@ public class AdminAnalyticsService {
     }
 
     private int normalizeDays(int days) {
-        return days <= 0 ? DEFAULT_DAYS : Math.min(days, MAX_DAYS);
+        if (days < MIN_DAYS || days > MAX_DAYS) {
+            throw new IllegalArgumentException("days 必须在 1 到 365 之间");
+        }
+        return days;
+    }
+
+    private int normalizePage(int page) {
+        if (page < 1) {
+            throw new IllegalArgumentException("page 必须大于等于 1");
+        }
+        return page;
+    }
+
+    private int normalizePageSize(int pageSize) {
+        if (pageSize < 1 || pageSize > MAX_PAGE_SIZE) {
+            throw new IllegalArgumentException("pageSize 必须在 1 到 50 之间");
+        }
+        return pageSize;
+    }
+
+    private String normalizeVisitorId(String visitorId) {
+        if (visitorId == null || visitorId.isBlank()) {
+            throw new IllegalArgumentException("visitorId 不能为空");
+        }
+        String normalized = visitorId.trim();
+        if (normalized.length() > MAX_VISITOR_ID_LENGTH) {
+            throw new IllegalArgumentException("visitorId 长度不能超过 96");
+        }
+        return normalized;
     }
 
     private OffsetDateTime since(int days) {
@@ -782,7 +789,6 @@ public class AdminAnalyticsService {
         private long totalDurationMs;
         private long totalScrollPercent;
         private long completedVisits;
-        private long encouragements;
         private final Map<String, Long> visitorVisits = new HashMap<>();
 
         private ArticleAccumulator(String path, String title) {
@@ -810,6 +816,25 @@ public class AdminAnalyticsService {
 
         private TagAccumulator(String tag) {
             this.tag = tag;
+        }
+    }
+
+    private static final class PageAccumulator {
+        private final String path;
+        private final String title;
+        private long visits;
+        private long totalDurationMs;
+        private final Set<String> visitors = new HashSet<>();
+
+        private PageAccumulator(String path, String title) {
+            this.path = path;
+            this.title = title;
+        }
+
+        private void addVisit(AnalyticsVisitEntity visit, String visitorKey) {
+            visits++;
+            totalDurationMs += Math.max(0, visit.getDurationMs());
+            visitors.add(visitorKey);
         }
     }
 

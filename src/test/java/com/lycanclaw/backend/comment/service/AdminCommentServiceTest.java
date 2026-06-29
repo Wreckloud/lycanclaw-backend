@@ -7,7 +7,9 @@ import com.lycanclaw.backend.analytics.service.AnalyticsPathPolicy;
 import com.lycanclaw.backend.analytics.service.IpRegionService;
 import com.lycanclaw.backend.comment.dto.AdminCommentItemDto;
 import com.lycanclaw.backend.comment.dto.AdminCommentListDto;
+import com.lycanclaw.backend.comment.dto.AdminCommentReplyRequest;
 import com.lycanclaw.backend.comment.dto.AdminCommentUpdateRequest;
+import com.lycanclaw.backend.common.security.AdminAuthPrincipal;
 import com.lycanclaw.backend.content.service.ContentCatalogService;
 import com.lycanclaw.backend.waline.service.WalineGatewayClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +21,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,6 +44,15 @@ class AdminCommentServiceTest {
     @BeforeEach
     void setUp() {
         when(adminSessionService.findWalineToken("admin")).thenReturn(Optional.of("waline-token"));
+        when(adminSessionService.verify("admin")).thenReturn(Optional.of(new AdminAuthPrincipal(
+                "session",
+                "admin-user",
+                "Wreckloud",
+                "owner@example.com",
+                "123456",
+                "administrator",
+                ""
+        )));
         when(contentCatalogService.loadArticleMap()).thenReturn(Map.of(
                 "/thoughts/测试.html",
                 new ContentCatalogService.ContentItem(
@@ -136,5 +148,32 @@ class AdminCommentServiceTest {
         service.delete("admin", "comment-1");
 
         verify(walineGatewayClient).deleteAdminComment("waline-token", "comment-1");
+    }
+
+    @Test
+    void repliesWithCurrentAdministratorIdentity() throws Exception {
+        JsonNode response = objectMapper.readTree("""
+                {
+                  "objectId": "reply-1",
+                  "nick": "Wreckloud",
+                  "mail": "owner@example.com",
+                  "orig": "管理员回复",
+                  "url": "/thoughts/测试.html",
+                  "status": "approved"
+                }
+                """);
+        when(walineGatewayClient.createAdminComment(eq("waline-token"), any(JsonNode.class)))
+                .thenReturn(response);
+
+        service.reply(
+                "admin",
+                "comment-1",
+                new AdminCommentReplyRequest("管理员回复", "/thoughts/测试.html", "comment-1")
+        );
+
+        var bodyCaptor = forClass(JsonNode.class);
+        verify(walineGatewayClient).createAdminComment(eq("waline-token"), bodyCaptor.capture());
+        assertThat(bodyCaptor.getValue().path("nick").asText()).isEqualTo("Wreckloud");
+        assertThat(bodyCaptor.getValue().path("mail").asText()).isEqualTo("owner@example.com");
     }
 }

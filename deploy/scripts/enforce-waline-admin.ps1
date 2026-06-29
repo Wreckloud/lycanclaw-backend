@@ -17,9 +17,9 @@ Get-Content -LiteralPath $envFile | ForEach-Object {
   $envMap[$line.Substring(0, $index).Trim()] = $line.Substring($index + 1).Trim()
 }
 
-$owner = $envMap['WALINE_OWNER_EMAIL']
+$owner = $envMap['WALINE_AUTHOR_EMAIL']
 if (-not $owner) {
-  throw '请先在 .env 设置 WALINE_OWNER_EMAIL'
+  throw '请先在 .env 设置 WALINE_AUTHOR_EMAIL'
 }
 
 $ownerHex = [Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes($owner))

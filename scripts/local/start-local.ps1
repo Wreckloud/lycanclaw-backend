@@ -112,11 +112,18 @@ $pnpm = Resolve-CommandPath -Name 'pnpm.cmd'
 $maven = Resolve-CommandPath -Name 'mvn.cmd'
 $walineDirectory = Join-Path $backendRoot 'dev-services\waline'
 $walineEnv = Read-DotEnv -Path (Join-Path $walineDirectory '.env.local')
+$backendEnv = Read-DotEnv -Path (Join-Path $backendRoot '.env.local')
 
 $previousEnvironment = @{}
 $backendEnvironment = @{
     LYCAN_CONTENT_KNOWLEDGE_STATS_JSON_PATH = (Join-Path $workspaceRoot 'frontend\docs\public\knowledge-stats.json').Replace('\', '/')
     LYCAN_CONTENT_POSTS_JSON_PATH = (Join-Path $workspaceRoot 'frontend\docs\public\posts.json').Replace('\', '/')
+}
+
+foreach ($entry in $backendEnv.GetEnumerator()) {
+    if (-not [string]::IsNullOrWhiteSpace($entry.Value)) {
+        $backendEnvironment[$entry.Key] = $entry.Value
+    }
 }
 
 if (-not [string]::IsNullOrWhiteSpace($walineEnv['MYSQL_PASSWORD']) -and

@@ -91,7 +91,7 @@ public class AdminWalineController {
         return ApiResponse.ok(adminWalineService.exportDatabase(adminToken));
     }
 
-    @Operation(summary = "导入 Waline 数据")
+    @Operation(summary = "向空数据库初始化导入 Waline 数据")
     @PostMapping("/import")
     public ApiResponse<WalineImportResultDto> importDatabase(
             @RequestHeader(AdminAuthConstants.ADMIN_TOKEN_HEADER) String adminToken,
