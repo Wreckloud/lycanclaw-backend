@@ -40,7 +40,7 @@ class GameRoomServiceTest {
     }
 
     @Test
-    void joiningSecondPlayerStartsGameAndRejectsThirdPlayer() {
+    void joiningSecondPlayerWaitsForBothReadyAndRejectsThirdPlayer() {
         CreateGameRoomResponse room = service.createRoom("蓝方");
         service.join(session("x"), room.roomId(), room.playerToken(), "蓝方");
         String redToken = "red-token";
@@ -48,10 +48,23 @@ class GameRoomServiceTest {
         service.join(session("o"), room.roomId(), redToken, "红方");
         GameRoomSnapshot snapshot = service.snapshotForPlayer(room.roomId(), room.playerToken()).orElseThrow();
 
+        assertThat(snapshot.roomStatus()).isEqualTo(GameRoomStatus.WAITING);
+        assertThat(snapshot.state().isStarted()).isFalse();
+        assertThat(snapshot.players()).hasSize(2);
+
+        service.markReady(room.roomId(), room.playerToken());
+        snapshot = service.snapshotForPlayer(room.roomId(), room.playerToken()).orElseThrow();
+
+        assertThat(snapshot.roomStatus()).isEqualTo(GameRoomStatus.WAITING);
+        assertThat(snapshot.players()).filteredOn("ready", true).hasSize(1);
+
+        service.markReady(room.roomId(), redToken);
+        snapshot = service.snapshotForPlayer(room.roomId(), room.playerToken()).orElseThrow();
+
         assertThat(snapshot.roomStatus()).isEqualTo(GameRoomStatus.PLAYING);
         assertThat(snapshot.state().isStarted()).isTrue();
         assertThat(snapshot.state().currentPlayer()).isEqualTo(X);
-        assertThat(snapshot.players()).hasSize(2);
+        assertThat(snapshot.players()).filteredOn("ready", true).isEmpty();
         assertThatThrownBy(() -> service.join(session("third"), room.roomId(), "third-token", "第三人"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("房间已满");
@@ -93,10 +106,27 @@ class GameRoomServiceTest {
                 .hasMessageContaining("不能继续聊天");
     }
 
+    @Test
+    void finishedRoomCanStartAgainWhenBothPlayersReady() {
+        CreateGameRoomResponse room = startedRoom();
+        service.resign(room.roomId(), room.playerToken());
+
+        service.markReady(room.roomId(), room.playerToken());
+        service.markReady(room.roomId(), "red-token");
+        GameRoomSnapshot snapshot = service.snapshotForPlayer(room.roomId(), room.playerToken()).orElseThrow();
+
+        assertThat(snapshot.roomStatus()).isEqualTo(GameRoomStatus.PLAYING);
+        assertThat(snapshot.state().winner()).isZero();
+        assertThat(snapshot.state().moveHistory()).isEmpty();
+        assertThat(snapshot.state().isStarted()).isTrue();
+    }
+
     private CreateGameRoomResponse startedRoom() {
         CreateGameRoomResponse room = service.createRoom("蓝方");
         service.join(session("x"), room.roomId(), room.playerToken(), "蓝方");
         service.join(session("o"), room.roomId(), "red-token", "红方");
+        service.markReady(room.roomId(), room.playerToken());
+        service.markReady(room.roomId(), "red-token");
         return room;
     }
 

@@ -80,14 +80,39 @@ public class GameRoomService {
         synchronized (room) {
             Instant now = Instant.now();
             GamePlayer player = resolveJoiningPlayer(room, playerToken, nickname, now);
+            boolean wasDisconnected = !player.connected();
             reconnectPlayer(session, player, now);
+            if (wasDisconnected) {
+                appendSystemMessage(room, player.nickname() + " 加入了游戏");
+            }
             session.getAttributes().put("gameRoomId", room.roomId());
             session.getAttributes().put("gamePlayerToken", player.token());
             room.touch(now);
+            messages = snapshotMessages(room);
+        }
+        sendAll(messages);
+    }
 
-            if (room.status() == GameRoomStatus.WAITING && room.players().size() == 2) {
+    public void markReady(String roomId, String playerToken) {
+        GameRoom room = findRoom(roomId);
+        List<OutboundMessage> messages;
+        synchronized (room) {
+            GamePlayer player = requirePlayer(room, playerToken);
+            if (room.status() != GameRoomStatus.WAITING && room.status() != GameRoomStatus.FINISHED) {
+                throw new IllegalArgumentException("当前房间不能准备");
+            }
+            if (room.players().size() < 2) {
+                throw new IllegalArgumentException("等待对手加入");
+            }
+
+            if (!player.ready()) {
+                player.ready(true);
+                appendSystemMessage(room, player.nickname() + " 已准备");
+            }
+            if (isAllReady(room)) {
                 startRoom(room);
             }
+            room.touch(Instant.now());
             messages = snapshotMessages(room);
         }
         sendAll(messages);
@@ -113,6 +138,7 @@ public class GameRoomService {
             appendMoveMessages(room, player, move);
             if (room.state().winner() != EMPTY) {
                 room.status(GameRoomStatus.FINISHED);
+                resetReady(room);
                 appendSystemMessage(room, getPlayerName(room, room.state().winner()) + " 赢得本局。");
             }
             room.touch(Instant.now());
@@ -148,6 +174,7 @@ public class GameRoomService {
 
             gameRulesService.resign(room.state(), loser.side());
             room.status(GameRoomStatus.FINISHED);
+            resetReady(room);
             appendSystemMessage(room, getPlayerName(room, loser.side()) + " 投降\n" + getPlayerName(room, room.state().winner()) + " 赢得本局。");
             room.touch(Instant.now());
             messages = snapshotMessages(room);
@@ -170,8 +197,10 @@ public class GameRoomService {
             room.findPlayerByToken(playerTokenValue).ifPresent(player -> {
                 if (session.getId().equals(player.session() == null ? null : player.session().getId())) {
                     player.connected(false);
+                    player.ready(false);
                     player.session(null);
                     player.touch(Instant.now());
+                    appendSystemMessage(room, player.nickname() + " 离开了游戏");
                 }
             });
             room.touch(Instant.now());
@@ -220,7 +249,6 @@ public class GameRoomService {
 
         GamePlayer player = new GamePlayer(O, cleanToken, cleanNickname, now);
         room.players().add(player);
-        appendSystemMessage(room, cleanNickname + " 加入了游戏");
         return player;
     }
 
@@ -235,6 +263,8 @@ public class GameRoomService {
     }
 
     private void startRoom(GameRoom room) {
+        room.state().reset();
+        resetReady(room);
         room.status(GameRoomStatus.PLAYING);
         room.state().started(true);
         room.state().currentPlayer(X);
@@ -306,7 +336,7 @@ public class GameRoomService {
                 room.status(),
                 selfSide,
                 room.sortedPlayers().stream()
-                        .map(player -> new GamePlayerSnapshot(player.side(), player.nickname(), player.connected()))
+                        .map(player -> new GamePlayerSnapshot(player.side(), player.nickname(), player.connected(), player.ready()))
                         .toList(),
                 new GameStateSnapshot(
                         state.board().clone(),
@@ -354,6 +384,14 @@ public class GameRoomService {
         return room.findPlayerBySide(player)
                 .map(GamePlayer::nickname)
                 .orElseGet(() -> player == X ? "蓝方 X" : "红方 O");
+    }
+
+    private boolean isAllReady(GameRoom room) {
+        return room.players().size() == 2 && room.players().stream().allMatch(GamePlayer::ready);
+    }
+
+    private void resetReady(GameRoom room) {
+        room.players().forEach(player -> player.ready(false));
     }
 
     private String normalizeRoomId(String roomId) {

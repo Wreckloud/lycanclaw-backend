@@ -17,6 +17,7 @@ public class GamePlayer {
     private String nickname;
     private WebSocketSession session;
     private boolean connected;
+    private boolean ready;
     private Instant lastSeenAt;
 
     public GamePlayer(int side, String token, String nickname, Instant now) {
@@ -56,6 +57,14 @@ public class GamePlayer {
 
     public void connected(boolean connected) {
         this.connected = connected;
+    }
+
+    public boolean ready() {
+        return ready;
+    }
+
+    public void ready(boolean ready) {
+        this.ready = ready;
     }
 
     public Instant lastSeenAt() {

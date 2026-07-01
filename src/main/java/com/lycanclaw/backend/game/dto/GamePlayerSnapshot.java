@@ -9,6 +9,7 @@ package com.lycanclaw.backend.game.dto;
 public record GamePlayerSnapshot(
         int side,
         String nickname,
-        boolean connected
+        boolean connected,
+        boolean ready
 ) {
 }

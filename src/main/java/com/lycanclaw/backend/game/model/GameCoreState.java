@@ -30,11 +30,25 @@ public class GameCoreState {
     private final List<GameRuleEvent> lastRuleEvents = new ArrayList<>();
 
     public GameCoreState() {
+        reset();
+    }
+
+    public void reset() {
         Arrays.fill(board, EMPTY);
         Arrays.fill(smallBoardStatus, EMPTY);
+        Arrays.fill(smallBoardResolved, false);
+        smallBoardWinningLines.clear();
         for (int i = 0; i < 9; i++) {
             smallBoardWinningLines.add(null);
         }
+        currentPlayer = X;
+        nextBoard = null;
+        winner = EMPTY;
+        bigBoardWinningLine = null;
+        started = false;
+        moveHistory.clear();
+        lastTurnMoves.clear();
+        lastRuleEvents.clear();
     }
 
     public int[] board() {
