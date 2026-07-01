@@ -9,7 +9,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Web 安全拦截配置。
- * 用于注册管理鉴权和公开接口限流拦截器。
+ * 用于注册管理鉴权、公开音乐接口限流和匿名写接口限流拦截器。
  * @author Wreckloud
  * @since 2026-05-15
  */
@@ -33,7 +33,7 @@ public class WebSecurityConfig implements WebMvcConfigurer {
     /**
      * 注册拦截器：
      * - 管理员 API 需要管理员令牌；
-     * - 公开音乐接口应用限流规则。
+     * - 公开音乐接口和匿名写接口应用限流规则。
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -57,8 +57,8 @@ public class WebSecurityConfig implements WebMvcConfigurer {
                         "/api/analytics/visit/**",
                         "/api/analytics/identity/**",
                         "/api/encouragement/**",
-                        "/api/music/analytics/**"
+                        "/api/music/analytics/**",
+                        "/api/game/rooms"
                 );
-
     }
 }

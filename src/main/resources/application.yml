@@ -80,6 +80,9 @@ lycan:
     admin-auth-log-enabled: true
     # 是否信任代理头（反向代理后可开启，按 X-Forwarded-For 识别真实 IP）
     trust-forwarded-headers: false
+  game:
+    # 在线对战 WebSocket 单 IP 消息限流（每分钟）
+    message-rate-limit-per-minute: ${LYCAN_GAME_MESSAGE_RATE_LIMIT_PER_MINUTE:120}
   analytics:
     ip-region:
       # ip2region IPv4 XDB 文件路径；留空时仅展示原始 IP
