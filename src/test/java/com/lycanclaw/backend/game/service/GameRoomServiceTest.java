@@ -40,47 +40,77 @@ class GameRoomServiceTest {
     }
 
     @Test
-    void joiningSecondPlayerWaitsForBothReadyAndRejectsThirdPlayer() {
-        CreateGameRoomResponse room = service.createRoom("蓝方");
-        service.join(session("x"), room.roomId(), room.playerToken(), "蓝方");
-        String redToken = "red-token";
-
-        service.join(session("o"), room.roomId(), redToken, "红方");
-        GameRoomSnapshot snapshot = service.snapshotForPlayer(room.roomId(), room.playerToken()).orElseThrow();
+    void allowsFourMembersAndRejectsFifthMember() {
+        RoomFixture room = waitingRoomWithMembers(4);
+        GameRoomSnapshot snapshot = service.snapshotForPlayer(room.roomId(), room.token(0)).orElseThrow();
 
         assertThat(snapshot.roomStatus()).isEqualTo(GameRoomStatus.WAITING);
-        assertThat(snapshot.state().isStarted()).isFalse();
-        assertThat(snapshot.players()).hasSize(2);
-
-        service.markReady(room.roomId(), room.playerToken());
-        snapshot = service.snapshotForPlayer(room.roomId(), room.playerToken()).orElseThrow();
-
-        assertThat(snapshot.roomStatus()).isEqualTo(GameRoomStatus.WAITING);
-        assertThat(snapshot.players()).filteredOn("ready", true).hasSize(1);
-
-        service.markReady(room.roomId(), redToken);
-        snapshot = service.snapshotForPlayer(room.roomId(), room.playerToken()).orElseThrow();
-
-        assertThat(snapshot.roomStatus()).isEqualTo(GameRoomStatus.PLAYING);
-        assertThat(snapshot.state().isStarted()).isTrue();
-        assertThat(snapshot.state().currentPlayer()).isEqualTo(X);
-        assertThat(snapshot.players()).filteredOn("ready", true).isEmpty();
-        assertThatThrownBy(() -> service.join(session("third"), room.roomId(), "third-token", "第三人"))
+        assertThat(snapshot.players()).hasSize(4);
+        assertThat(service.listRooms()).singleElement()
+                .satisfies(item -> {
+                    assertThat(item.playerCount()).isEqualTo(4);
+                    assertThat(item.joinable()).isFalse();
+                });
+        assertThatThrownBy(() -> service.join(session("fifth"), room.roomId(), "token-5", "五号"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("房间已满");
     }
 
     @Test
-    void rejectsNonCurrentPlayerMoveAndAcceptsCurrentPlayerMove() {
-        CreateGameRoomResponse room = startedRoom();
-        String redToken = "red-token";
+    void firstTwoReadyMembersStartGameAndOthersSpectate() {
+        RoomFixture room = waitingRoomWithMembers(4);
 
-        assertThatThrownBy(() -> service.playMove(room.roomId(), redToken, 0, 0))
+        service.markReady(room.roomId(), room.token(0));
+        GameRoomSnapshot waiting = service.snapshotForPlayer(room.roomId(), room.token(0)).orElseThrow();
+        assertThat(waiting.roomStatus()).isEqualTo(GameRoomStatus.WAITING);
+        assertThat(waiting.players()).filteredOn("ready", true).hasSize(1);
+
+        service.markReady(room.roomId(), room.token(1));
+        GameRoomSnapshot started = service.snapshotForPlayer(room.roomId(), room.token(0)).orElseThrow();
+
+        assertThat(started.roomStatus()).isEqualTo(GameRoomStatus.PLAYING);
+        assertThat(started.state().isStarted()).isTrue();
+        assertThat(started.players()).filteredOn("side", X).hasSize(1);
+        assertThat(started.players()).filteredOn("side", O).hasSize(1);
+        assertThat(started.players()).filteredOn("spectator", true).hasSize(2);
+        assertThat(started.messages()).anySatisfy(message -> {
+            assertThat(message.eventType()).isEqualTo("GAME_STARTED");
+            assertThat(message.eventData()).containsEntry("firstPlayer", X);
+            assertThat(message.text()).isEmpty();
+        });
+        assertThatThrownBy(() -> service.playMove(room.roomId(), room.token(2), 0, 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("观战者不能落子");
+        assertThatThrownBy(() -> service.resign(room.roomId(), room.token(2)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("观战者不能投降");
+    }
+
+    @Test
+    void readyCanBeCancelledBeforeGameStarts() {
+        RoomFixture room = waitingRoomWithMembers(2);
+
+        service.markReady(room.roomId(), room.token(0));
+        service.markReady(room.roomId(), room.token(0));
+        GameRoomSnapshot snapshot = service.snapshotForPlayer(room.roomId(), room.token(0)).orElseThrow();
+
+        assertThat(snapshot.roomStatus()).isEqualTo(GameRoomStatus.WAITING);
+        assertThat(snapshot.players()).filteredOn("ready", true).isEmpty();
+        assertThat(snapshot.messages()).anySatisfy(message -> assertThat(message.eventType()).isEqualTo("PLAYER_UNREADY"));
+    }
+
+    @Test
+    void rejectsNonCurrentPlayerMoveAndAcceptsCurrentPlayerMove() {
+        RoomFixture room = startedRoom();
+        String xToken = tokenForSide(room, X);
+        String oToken = tokenForSide(room, O);
+
+        assertThatThrownBy(() -> service.playMove(room.roomId(), oToken, 0, 0))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("还没轮到你");
 
-        service.playMove(room.roomId(), room.playerToken(), 0, 0);
-        GameRoomSnapshot snapshot = service.snapshotForPlayer(room.roomId(), room.playerToken()).orElseThrow();
+        service.playMove(room.roomId(), xToken, 0, 0);
+        GameRoomSnapshot snapshot = service.snapshotForPlayer(room.roomId(), xToken).orElseThrow();
 
         assertThat(snapshot.state().board()[0]).isEqualTo(X);
         assertThat(snapshot.state().currentPlayer()).isEqualTo(O);
@@ -88,46 +118,93 @@ class GameRoomServiceTest {
     }
 
     @Test
-    void limitsChatAndFinishesByResign() {
-        CreateGameRoomResponse room = startedRoom();
+    void limitsChatAndAllowsChatAfterFinish() {
+        RoomFixture room = startedRoom();
+        String xToken = tokenForSide(room, X);
 
-        assertThatThrownBy(() -> service.sendChat(room.roomId(), room.playerToken(), "x".repeat(201)))
+        assertThatThrownBy(() -> service.sendChat(room.roomId(), xToken, "x".repeat(201)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("聊天内容不能超过");
 
-        service.sendChat(room.roomId(), room.playerToken(), "你好");
-        service.resign(room.roomId(), room.playerToken());
-        GameRoomSnapshot snapshot = service.snapshotForPlayer(room.roomId(), room.playerToken()).orElseThrow();
+        service.sendChat(room.roomId(), xToken, "你好");
+        service.resign(room.roomId(), xToken);
+        service.sendChat(room.roomId(), xToken, "还能聊");
+        GameRoomSnapshot snapshot = service.snapshotForPlayer(room.roomId(), xToken).orElseThrow();
 
         assertThat(snapshot.roomStatus()).isEqualTo(GameRoomStatus.FINISHED);
         assertThat(snapshot.state().winner()).isEqualTo(O);
-        assertThatThrownBy(() -> service.sendChat(room.roomId(), room.playerToken(), "还能聊吗"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("不能继续聊天");
+        assertThat(snapshot.messages()).anySatisfy(message -> {
+            assertThat(message.eventType()).isEqualTo("CHAT_SENT");
+            assertThat(message.eventData()).containsEntry("text", "还能聊");
+        });
     }
 
     @Test
-    void finishedRoomCanStartAgainWhenBothPlayersReady() {
-        CreateGameRoomResponse room = startedRoom();
-        service.resign(room.roomId(), room.playerToken());
+    void finishedRoomCanStartAgainWhenAnyTwoMembersReady() {
+        RoomFixture room = startedRoom();
+        String xToken = tokenForSide(room, X);
+        service.resign(room.roomId(), xToken);
 
-        service.markReady(room.roomId(), room.playerToken());
-        service.markReady(room.roomId(), "red-token");
-        GameRoomSnapshot snapshot = service.snapshotForPlayer(room.roomId(), room.playerToken()).orElseThrow();
+        service.markReady(room.roomId(), room.token(2));
+        service.markReady(room.roomId(), room.token(3));
+        GameRoomSnapshot snapshot = service.snapshotForPlayer(room.roomId(), room.token(2)).orElseThrow();
 
         assertThat(snapshot.roomStatus()).isEqualTo(GameRoomStatus.PLAYING);
         assertThat(snapshot.state().winner()).isZero();
         assertThat(snapshot.state().moveHistory()).isEmpty();
         assertThat(snapshot.state().isStarted()).isTrue();
+        assertThat(snapshot.players()).filteredOn("spectator", false).hasSize(2);
     }
 
-    private CreateGameRoomResponse startedRoom() {
-        CreateGameRoomResponse room = service.createRoom("蓝方");
-        service.join(session("x"), room.roomId(), room.playerToken(), "蓝方");
-        service.join(session("o"), room.roomId(), "red-token", "红方");
-        service.markReady(room.roomId(), room.playerToken());
-        service.markReady(room.roomId(), "red-token");
+    @Test
+    void activePlayerDisconnectsAndLosesByForfeit() {
+        RoomFixture room = startedRoom();
+        int xIndex = indexForSide(room, X);
+        String oToken = tokenForSide(room, O);
+
+        service.disconnect(room.session(xIndex));
+        GameRoomSnapshot finishedSnapshot = service.snapshotForPlayer(room.roomId(), oToken).orElseThrow();
+
+        assertThat(finishedSnapshot.roomStatus()).isEqualTo(GameRoomStatus.FINISHED);
+        assertThat(finishedSnapshot.state().winner()).isEqualTo(O);
+        assertThat(finishedSnapshot.messages()).anySatisfy(message -> assertThat(message.eventType()).isEqualTo("LEAVE_WIN"));
+    }
+
+    private RoomFixture startedRoom() {
+        RoomFixture room = waitingRoomWithMembers(4);
+        service.markReady(room.roomId(), room.token(0));
+        service.markReady(room.roomId(), room.token(1));
         return room;
+    }
+
+    private RoomFixture waitingRoomWithMembers(int count) {
+        CreateGameRoomResponse room = service.createRoom("一号");
+        String[] tokens = {room.playerToken(), "token-2", "token-3", "token-4"};
+        String[] names = {"一号", "二号", "三号", "四号"};
+        WebSocketSession[] sessions = new WebSocketSession[tokens.length];
+        for (int index = 0; index < count; index++) {
+            sessions[index] = session("session-" + index);
+            service.join(sessions[index], room.roomId(), tokens[index], names[index]);
+        }
+        return new RoomFixture(room.roomId(), tokens, sessions);
+    }
+
+    private String tokenForSide(RoomFixture room, int side) {
+        return room.token(indexForSide(room, side));
+    }
+
+    private int indexForSide(RoomFixture room, int side) {
+        for (String token : room.tokens()) {
+            GameRoomSnapshot snapshot = service.snapshotForPlayer(room.roomId(), token).orElseThrow();
+            if (snapshot.selfSide() != null && snapshot.selfSide() == side) {
+                for (int index = 0; index < room.tokens().length; index++) {
+                    if (room.token(index).equals(token)) {
+                        return index;
+                    }
+                }
+            }
+        }
+        throw new AssertionError("missing side " + side);
     }
 
     private WebSocketSession session(String id) {
@@ -141,5 +218,16 @@ class GameRoomServiceTest {
             throw new IllegalStateException("mock setup failed");
         }
         return session;
+    }
+
+    private record RoomFixture(String roomId, String[] tokens, WebSocketSession[] sessions) {
+
+        String token(int index) {
+            return tokens[index];
+        }
+
+        WebSocketSession session(int index) {
+            return sessions[index];
+        }
     }
 }

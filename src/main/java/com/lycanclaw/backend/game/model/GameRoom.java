@@ -66,13 +66,15 @@ public class GameRoom {
 
     public Optional<GamePlayer> findPlayerBySide(int side) {
         return players.stream()
-                .filter(player -> player.side() == side)
+                .filter(player -> player.side() != null && player.side() == side)
                 .findFirst();
     }
 
     public List<GamePlayer> sortedPlayers() {
         return players.stream()
-                .sorted(Comparator.comparingInt(GamePlayer::side))
+                .sorted(Comparator
+                        .comparing((GamePlayer player) -> player.side() == null ? 99 : player.side())
+                        .thenComparing(GamePlayer::lastSeenAt))
                 .toList();
     }
 }

@@ -12,23 +12,27 @@ import java.time.Instant;
  */
 public class GamePlayer {
 
-    private final int side;
     private final String token;
     private String nickname;
+    private Integer side;
     private WebSocketSession session;
     private boolean connected;
     private boolean ready;
     private Instant lastSeenAt;
+    private Instant readyAt;
 
-    public GamePlayer(int side, String token, String nickname, Instant now) {
-        this.side = side;
+    public GamePlayer(String token, String nickname, Instant now) {
         this.token = token;
         this.nickname = nickname;
         this.lastSeenAt = now;
     }
 
-    public int side() {
+    public Integer side() {
         return side;
+    }
+
+    public void side(Integer side) {
+        this.side = side;
     }
 
     public String token() {
@@ -67,6 +71,18 @@ public class GamePlayer {
         this.ready = ready;
     }
 
+    public Instant readyAt() {
+        return readyAt;
+    }
+
+    public void readyAt(Instant readyAt) {
+        this.readyAt = readyAt;
+    }
+
+    public boolean spectator() {
+        return side == null;
+    }
+
     public Instant lastSeenAt() {
         return lastSeenAt;
     }
@@ -74,4 +90,5 @@ public class GamePlayer {
     public void touch(Instant now) {
         this.lastSeenAt = now;
     }
+
 }

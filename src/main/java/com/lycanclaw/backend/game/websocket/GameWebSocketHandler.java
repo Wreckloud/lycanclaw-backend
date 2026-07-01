@@ -80,6 +80,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             case "chat" -> gameRoomService.sendChat(message.roomId(), message.playerToken(), message.text());
             case "resign" -> gameRoomService.resign(message.roomId(), message.playerToken());
             case "ready" -> gameRoomService.markReady(message.roomId(), message.playerToken());
+            case "leave" -> gameRoomService.leave(session, message.roomId(), message.playerToken());
             default -> throw new IllegalArgumentException("未知在线对战消息类型");
         }
     }

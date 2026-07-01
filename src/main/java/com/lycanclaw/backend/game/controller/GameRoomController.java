@@ -3,12 +3,16 @@ package com.lycanclaw.backend.game.controller;
 import com.lycanclaw.backend.common.api.ApiResponse;
 import com.lycanclaw.backend.game.dto.CreateGameRoomRequest;
 import com.lycanclaw.backend.game.dto.CreateGameRoomResponse;
+import com.lycanclaw.backend.game.dto.GameRoomListItem;
 import com.lycanclaw.backend.game.service.GameRoomService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * 在线对战房间接口。
@@ -33,5 +37,11 @@ public class GameRoomController {
             throw new IllegalArgumentException("请求体不能为空");
         }
         return ApiResponse.ok(gameRoomService.createRoom(request.nickname()));
+    }
+
+    @GetMapping("/api/game/rooms")
+    @Operation(summary = "查询在线对战房间", description = "返回当前内存中的可见在线房间")
+    public ApiResponse<List<GameRoomListItem>> listRooms() {
+        return ApiResponse.ok(gameRoomService.listRooms());
     }
 }

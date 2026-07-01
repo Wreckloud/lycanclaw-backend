@@ -102,16 +102,6 @@ public class GameRulesService {
         state.nextBoard(null);
     }
 
-    public String formatBigBoardIndex(int boardIndex) {
-        return (boardIndex + 1) + "号";
-    }
-
-    public String formatSmallCellPosition(int smallIndex) {
-        int row = smallIndex / 3 + 1;
-        int column = smallIndex % 3 + 1;
-        return "(" + row + "," + column + ")";
-    }
-
     public int opponent(int player) {
         return player == X ? O : X;
     }
