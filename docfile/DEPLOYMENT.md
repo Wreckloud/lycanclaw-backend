@@ -149,7 +149,14 @@ chmod 600 .env
 nano .env
 ```
 
-至少更换所有 `change-me-*` 值、`BACKEND_ADMIN_QQ_WHITELIST`、`WALINE_AUTHOR_EMAIL` 和 SMTP 配置。`WALINE_AUTHOR_EMAIL` 同时用于作者通知和管理员维护脚本。然后：
+至少更换所有 `change-me-*` 值，并填写这些必需项：
+
+- `MUSIC_RANKING_OWNER_UID`：网易云公开歌单/排行所属用户 ID，后端启动时会强制校验。
+- `BACKEND_ADMIN_QQ_WHITELIST`：允许进入后台的 Waline QQ 身份。
+- `WALINE_AUTHOR_EMAIL`：作者通知邮箱，也用于管理员维护脚本识别唯一 Waline 管理员。
+- SMTP 相关配置：需要邮件通知时填写；暂时不用邮件时可先保留占位，但后台会显示通知不可用。
+
+`BACKEND_ADMIN_TOKEN` 是应急静态管理员令牌；日常使用 Waline 登录后台，可以留空。然后：
 
 ```bash
 cd /opt/lycanclaw/backend/deploy/scripts
@@ -208,7 +215,7 @@ sudo systemctl enable --now lycanclaw-backup.timer
 systemctl list-timers lycanclaw-backup.timer
 ```
 
-备份保留14天，不包含 `.env`。手动备份和恢复：
+当前备份范围是共享 MySQL 数据库，包含 Waline 评论、计数、用户、后台统计、推荐规则和文章指标快照；不包含 `.env`。前端 `posts.json`、`knowledge-stats.json` 和静态产物可由 GitHub Actions 重新发布生成。备份保留14天。手动备份和恢复：
 
 ```bash
 cd /opt/lycanclaw/backend/deploy/scripts
@@ -227,9 +234,10 @@ scp -r 用户名@服务器IP:/opt/lycanclaw/backend/deploy/backups/<时间戳> D
 ```bash
 curl -I https://wreckloud.com/
 curl https://wreckloud.com/api/recommendations
+curl https://wreckloud.com/api/game/rooms
 curl https://wreckloud.com/waline/article?path=%2F
 curl https://wreckloud.com/actuator/health  # 应为 404，健康端点不对公网开放
 docker compose -f /opt/lycanclaw/backend/deploy/docker-compose.yml --env-file /opt/lycanclaw/backend/deploy/.env ps
 ```
 
-同时检查管理端登录、评论、音乐、推荐、阅读量、Netlify备用站和一次备份恢复演练。
+最后手动检查管理端登录、评论、音乐、推荐、阅读量、在线对战房间、Netlify备用站和一次备份恢复演练。
