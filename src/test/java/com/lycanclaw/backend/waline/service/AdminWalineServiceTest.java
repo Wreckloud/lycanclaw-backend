@@ -26,12 +26,13 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
  * Waline 管理服务测试。
- * 验证用户维护和空库初始化导入的完整业务边界。
+ * 验证用户维护和 Waline 覆盖导入的完整业务边界。
  * @author Wreckloud
  * @since 2026-06-24
  */
@@ -96,71 +97,40 @@ class AdminWalineServiceTest {
     @Test
     void importsValidatedSnapshotInFixedOrderAndTriggersMetricSync() {
         JsonNode payload = snapshot(false);
-        when(walineGatewayClient.exportDatabase("waline-token")).thenReturn(envelope(snapshot(true)));
 
         var result = service.importDatabase("admin", payload);
 
         InOrder order = inOrder(walineGatewayClient);
+        order.verify(walineGatewayClient).clearDatabaseTable("waline-token", "Comment");
+        order.verify(walineGatewayClient).clearDatabaseTable("waline-token", "Counter");
+        order.verify(walineGatewayClient).clearDatabaseTable("waline-token", "Users");
         order.verify(walineGatewayClient).importDatabaseRow(eq("waline-token"), eq("Users"), any(JsonNode.class));
         order.verify(walineGatewayClient).importDatabaseRow(eq("waline-token"), eq("Comment"), any(JsonNode.class));
         order.verify(walineGatewayClient).importDatabaseRow(eq("waline-token"), eq("Counter"), any(JsonNode.class));
         assertThat(result.importedTables()).isEqualTo(3);
         assertThat(result.importedRows()).isEqualTo(3);
+        verify(jdbcTemplate).execute("ALTER TABLE `wl_Comment` AUTO_INCREMENT = 1");
+        verify(jdbcTemplate).execute("ALTER TABLE `wl_Counter` AUTO_INCREMENT = 1");
+        verify(jdbcTemplate).execute("ALTER TABLE `wl_Users` AUTO_INCREMENT = 1");
         verify(jdbcTemplate).update(any(String.class), eq("owner@example.com"), eq("123456,UID_OWNER"));
         verify(articleMetricSyncService).triggerAsyncSync("waline-import");
     }
 
     @Test
-    void allowsImportWhenOnlyBootstrapAdminUserExists() {
+    void replacesExistingWalineDataBeforeImportingSnapshot() {
         JsonNode payload = snapshot(false);
-        JsonNode current = snapshot(true);
-        ((ArrayNode) current.path("data").path("Users")).addObject()
-                .put("display_name", "Wreckloud")
-                .put("type", "administrator")
-                .put("qq", "UID_OWNER");
-        when(walineGatewayClient.exportDatabase("waline-token")).thenReturn(envelope(current));
 
         service.importDatabase("admin", payload);
 
         InOrder order = inOrder(walineGatewayClient);
+        order.verify(walineGatewayClient).clearDatabaseTable("waline-token", "Comment");
+        order.verify(walineGatewayClient).clearDatabaseTable("waline-token", "Counter");
         order.verify(walineGatewayClient).clearDatabaseTable("waline-token", "Users");
         order.verify(walineGatewayClient).importDatabaseRow(eq("waline-token"), eq("Users"), any(JsonNode.class));
-        verify(jdbcTemplate).execute("ALTER TABLE `wl_Users` AUTO_INCREMENT = 1");
-        verify(jdbcTemplate).update(any(String.class), eq("owner@example.com"), eq("123456,UID_OWNER"));
-    }
-
-    @Test
-    void rejectsImportWhenCurrentDatabaseIsNotEmpty() {
-        JsonNode current = snapshot(true);
-        ((ArrayNode) current.path("data").path("Comment")).addObject().put("objectId", "existing");
-        when(walineGatewayClient.exportDatabase("waline-token")).thenReturn(envelope(current));
-
-        assertThatThrownBy(() -> service.importDatabase("admin", snapshot(false)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("数据库非空");
-
-        verify(walineGatewayClient, never()).importDatabaseRow(any(), any(), any());
-    }
-
-    @Test
-    void rejectsImportWhenCurrentDatabaseAlreadyHasRealUsers() {
-        JsonNode current = snapshot(true);
-        ((ArrayNode) current.path("data").path("Users")).addObject()
-                .put("email", "visitor@example.com")
-                .put("display_name", "访客")
-                .put("type", "guest");
-        when(walineGatewayClient.exportDatabase("waline-token")).thenReturn(envelope(current));
-
-        assertThatThrownBy(() -> service.importDatabase("admin", snapshot(false)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("已有用户数据");
-
-        verify(walineGatewayClient, never()).importDatabaseRow(any(), any(), any());
     }
 
     @Test
     void cleansAllTablesWhenImportFails() {
-        when(walineGatewayClient.exportDatabase("waline-token")).thenReturn(envelope(snapshot(true)));
         doThrow(new IllegalStateException("upstream failed"))
                 .when(walineGatewayClient)
                 .importDatabaseRow(eq("waline-token"), eq("Comment"), any(JsonNode.class));
@@ -169,12 +139,12 @@ class AdminWalineServiceTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("已清理本次写入");
 
-        verify(walineGatewayClient).clearDatabaseTable("waline-token", "Comment");
-        verify(walineGatewayClient).clearDatabaseTable("waline-token", "Counter");
-        verify(walineGatewayClient).clearDatabaseTable("waline-token", "Users");
-        verify(jdbcTemplate).execute("ALTER TABLE `wl_Comment` AUTO_INCREMENT = 1");
-        verify(jdbcTemplate).execute("ALTER TABLE `wl_Counter` AUTO_INCREMENT = 1");
-        verify(jdbcTemplate).execute("ALTER TABLE `wl_Users` AUTO_INCREMENT = 1");
+        verify(walineGatewayClient, times(2)).clearDatabaseTable("waline-token", "Comment");
+        verify(walineGatewayClient, times(2)).clearDatabaseTable("waline-token", "Counter");
+        verify(walineGatewayClient, times(2)).clearDatabaseTable("waline-token", "Users");
+        verify(jdbcTemplate, times(2)).execute("ALTER TABLE `wl_Comment` AUTO_INCREMENT = 1");
+        verify(jdbcTemplate, times(2)).execute("ALTER TABLE `wl_Counter` AUTO_INCREMENT = 1");
+        verify(jdbcTemplate, times(2)).execute("ALTER TABLE `wl_Users` AUTO_INCREMENT = 1");
     }
 
     @Test
@@ -206,10 +176,4 @@ class AdminWalineServiceTest {
         return snapshot;
     }
 
-    private ObjectNode envelope(JsonNode snapshot) {
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put("errno", 0);
-        response.set("data", snapshot);
-        return response;
-    }
 }

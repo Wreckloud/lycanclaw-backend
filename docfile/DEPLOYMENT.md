@@ -215,7 +215,7 @@ cd /opt/lycanclaw/backend/deploy/scripts
 bash enforce-waline-admin.sh
 ```
 
-进入 `https://wreckloud.com/admin/`，使用“初始化导入 JSON”上传标准 Waline version 1 备份。该接口只接受空评论库；如果库里只有为了登录后台创建的临时管理员用户，会先清理该用户再导入真实备份。导入前会完整校验，失败时清理本次写入，成功后立即同步文章指标。
+进入 `https://wreckloud.com/admin/`，使用“覆盖导入 JSON”上传标准 Waline version 1 备份。该接口会先完整校验文件，再清空 Waline 的 `Users`、`Comment`、`Counter` 三张表并导入真实备份；失败时会清理本次写入，成功后立即恢复管理员身份并同步文章指标。执行前建议先点“导出 Waline 数据”保留一份当前快照。
 
 确认真实评论、计数和管理员身份后再开放评论入口。评论允许游客提交，只要求称谓；邮箱和个人网站均为选填，登录仅用于增强身份和管理后台。
 
