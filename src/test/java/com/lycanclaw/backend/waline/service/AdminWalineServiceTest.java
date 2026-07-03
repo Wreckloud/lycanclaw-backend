@@ -2,41 +2,27 @@ package com.lycanclaw.backend.waline.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lycanclaw.backend.admin.auth.service.AdminSessionService;
 import com.lycanclaw.backend.common.security.AdminAuthPrincipal;
-import com.lycanclaw.backend.stats.service.ArticleMetricSyncService;
 import com.lycanclaw.backend.waline.dto.AdminWalineUserListDto;
 import com.lycanclaw.backend.waline.dto.AdminWalineUserUpdateRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.transaction.support.SimpleTransactionStatus;
-import org.springframework.transaction.support.TransactionCallback;
-import org.springframework.transaction.support.TransactionOperations;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.startsWith;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
  * Waline 管理服务测试。
- * 验证用户维护和 Waline 覆盖导入的完整业务边界。
+ * 验证用户维护和 Waline 导出的完整业务边界。
  * @author Wreckloud
  * @since 2026-06-24
  */
@@ -45,14 +31,6 @@ class AdminWalineServiceTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final AdminSessionService adminSessionService = mock(AdminSessionService.class);
     private final WalineGatewayClient walineGatewayClient = mock(WalineGatewayClient.class);
-    private final JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
-    private final TransactionOperations transactionOperations = new TransactionOperations() {
-        @Override
-        public <T> T execute(TransactionCallback<T> action) {
-            return action.doInTransaction(new SimpleTransactionStatus());
-        }
-    };
-    private final ArticleMetricSyncService articleMetricSyncService = mock(ArticleMetricSyncService.class);
     private AdminWalineService service;
 
     @BeforeEach
@@ -65,13 +43,8 @@ class AdminWalineServiceTest {
         service = new AdminWalineService(
                 adminSessionService,
                 walineGatewayClient,
-                objectMapper,
-                jdbcTemplate,
-                transactionOperations,
-                articleMetricSyncService
+                objectMapper
         );
-        ReflectionTestUtils.setField(service, "authorEmail", "owner@example.com");
-        ReflectionTestUtils.setField(service, "adminQqWhitelist", "123456,UID_OWNER");
     }
 
     @Test
@@ -106,80 +79,18 @@ class AdminWalineServiceTest {
     }
 
     @Test
-    void importsValidatedSnapshotInFixedOrderAndTriggersMetricSync() {
-        JsonNode payload = snapshot(false);
-
-        var result = service.importDatabase("admin", payload);
-
-        InOrder order = inOrder(jdbcTemplate);
-        order.verify(jdbcTemplate).update("DELETE FROM `wl_Comment`");
-        order.verify(jdbcTemplate).update("DELETE FROM `wl_Counter`");
-        order.verify(jdbcTemplate).update("DELETE FROM `wl_Users`");
-        order.verify(jdbcTemplate).update(startsWith("INSERT INTO `wl_Users`"), any(Object[].class));
-        order.verify(jdbcTemplate).update(startsWith("INSERT INTO `wl_Comment`"), any(Object[].class));
-        order.verify(jdbcTemplate).update(startsWith("INSERT INTO `wl_Counter`"), any(Object[].class));
-        assertThat(result.importedTables()).isEqualTo(3);
-        assertThat(result.importedRows()).isEqualTo(3);
-        verify(jdbcTemplate).update(contains("UPDATE wl_Users"), eq("owner@example.com"), eq("123456,UID_OWNER"));
-        verify(articleMetricSyncService).triggerAsyncSync("waline-import");
-        verify(walineGatewayClient, never()).clearDatabaseTable(any(), any());
-        verify(walineGatewayClient, never()).importDatabaseRow(any(), any(), any());
-    }
-
-    @Test
-    void replacesExistingWalineDataBeforeImportingSnapshot() {
-        JsonNode payload = snapshot(false);
-
-        service.importDatabase("admin", payload);
-
-        InOrder order = inOrder(jdbcTemplate);
-        order.verify(jdbcTemplate).update("DELETE FROM `wl_Comment`");
-        order.verify(jdbcTemplate).update("DELETE FROM `wl_Counter`");
-        order.verify(jdbcTemplate).update("DELETE FROM `wl_Users`");
-        order.verify(jdbcTemplate).update(startsWith("INSERT INTO `wl_Users`"), any(Object[].class));
-    }
-
-    @Test
-    void rollsBackTransactionWhenImportFails() {
-        doThrow(new IllegalStateException("upstream failed"))
-                .when(jdbcTemplate)
-                .update(startsWith("INSERT INTO `wl_Comment`"), any(Object[].class));
-
-        assertThatThrownBy(() -> service.importDatabase("admin", snapshot(false)))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("已回滚当前数据库事务");
-
-        verify(walineGatewayClient, never()).clearDatabaseTable(any(), any());
-        verify(articleMetricSyncService, never()).triggerAsyncSync(any());
-    }
-
-    @Test
-    void rejectsMalformedSnapshotBeforeReadingCurrentDatabase() {
-        ObjectNode malformed = objectMapper.createObjectNode();
-        malformed.put("type", "waline");
-        malformed.put("version", 1);
-
-        assertThatThrownBy(() -> service.importDatabase("admin", malformed))
-                .isInstanceOf(IllegalArgumentException.class);
-
-        verify(walineGatewayClient, never()).exportDatabase(any());
-    }
-
-    private ObjectNode snapshot(boolean empty) {
+    void exportsWalineSnapshotPayload() {
         ObjectNode snapshot = objectMapper.createObjectNode();
         snapshot.put("type", "waline");
         snapshot.put("version", 1);
-        snapshot.putArray("tables").add("Comment").add("Counter").add("Users");
-        ObjectNode data = snapshot.putObject("data");
-        ArrayNode users = data.putArray("Users");
-        ArrayNode comments = data.putArray("Comment");
-        ArrayNode counters = data.putArray("Counter");
-        if (!empty) {
-            users.addObject().put("display_name", "Wreckloud");
-            comments.addObject().put("nick", "访客").put("comment", "测试");
-            counters.addObject().put("url", "/thoughts/test.html").put("time", 1);
-        }
-        return snapshot;
+        snapshot.putObject("data");
+        ObjectNode response = objectMapper.createObjectNode();
+        response.set("data", snapshot);
+        when(walineGatewayClient.exportDatabase("waline-token")).thenReturn(response);
+
+        JsonNode result = service.exportDatabase("admin");
+
+        assertThat(result).isSameAs(snapshot);
     }
 
 }

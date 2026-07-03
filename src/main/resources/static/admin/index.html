@@ -242,9 +242,9 @@
         </div>
       </section>
       <section class="section" id="section-comments">
-        <div class="section-head"><div><h2>评论</h2><p>评论审核、数据导入导出与 Waline 用户管理。</p></div></div>
+        <div class="section-head"><div><h2>评论</h2><p>评论审核、数据导出与 Waline 用户管理。</p></div></div>
         <div class="grid two"><div class="card"><div class="card-title"><h3>Waline 状态</h3><button class="btn link" id="toggleMailConfigBtn">邮件配置</button></div><div id="walineSummary" class="kv"></div><div id="mailNotificationStatus" class="kv" style="margin-top:10px;"></div><div class="inline-config" id="mailConfigPanel"><div class="field-hint" style="margin-bottom:8px;">使用 Waline 原生邮件能力：评论者填写邮箱后，收到回复时会收到通知；你配置作者邮箱后，新评论会提醒到你。</div><div class="config-code"><code>WALINE_AUTHOR_EMAIL=你的邮箱</code><code>WALINE_SMTP_SERVICE=QQ</code><code>WALINE_SMTP_USER=你的 QQ 邮箱</code><code>WALINE_SMTP_PASS=QQ 邮箱授权码</code><code>WALINE_SMTP_SECURE=true</code><code>WALINE_SENDER_NAME=LycanClaw</code><code>WALINE_SENDER_EMAIL=你的邮箱</code><code>WALINE_MAIL_SUBJECT=你在 LycanClaw 的评论有了新回复</code><code>WALINE_MAIL_TEMPLATE=</code><code>WALINE_MAIL_SUBJECT_ADMIN=LycanClaw 有新评论</code><code>WALINE_MAIL_TEMPLATE_ADMIN=</code></div><div class="field-hint" style="margin-top:8px;">模板留空时使用 Waline 默认模板。密码使用邮箱授权码，不是登录密码。 <a class="article-link" href="https://waline.js.org/reference/server/env.html" target="_blank" rel="noopener">查看 Waline 文档</a></div></div></div><div class="card"><div class="card-title"><h3>最新评论</h3><small>最多 5 条</small></div><div class="list" id="recentComments"></div></div></div>
-        <div class="card" style="margin-top:12px;"><div class="card-title"><h3>Waline 数据</h3><small>评论导入导出</small></div><div class="import-box"><div class="actions"><button class="btn" id="exportWalineBtn">导出 Waline 数据</button><label class="btn" for="importWalineInput">覆盖导入 JSON</label><input id="importWalineInput" type="file" accept="application/json,.json" hidden /></div><div class="field-hint" id="walineImportNotice">会先完整校验标准 Waline 备份，再清空 Users、Comment、Counter 三张表并导入；仅适合首次上线或手动恢复数据。</div></div></div>
+        <div class="card" style="margin-top:12px;"><div class="card-title"><h3>Waline 数据</h3><small>官方后台维护</small></div><div class="import-box"><div class="actions"><button class="btn" id="exportWalineBtn">导出 Waline 数据</button><a class="btn" href="/waline/ui/" target="_blank" rel="noopener">打开 Waline 官方后台</a></div><div class="field-hint">评论导入交给 Waline 官方后台处理；本站后台只保留导出和日常评论管理。</div></div></div>
         <div class="card" style="margin-top:12px;">
           <div class="card-title"><h3>评论管理</h3><small id="commentCountSummary">-</small></div>
           <div class="filter-row">
@@ -1227,16 +1227,6 @@
     URL.revokeObjectURL(url);
     showMessage('Waline 数据已导出');
   }
-  async function importWalineData(file) {
-    if (!file) return;
-    if (!window.confirm('覆盖导入会先清空当前 Waline 评论、计数和用户数据。请确认文件来自可信来源，继续导入？')) return;
-    const text = await file.text();
-    const payload = JSON.parse(text);
-    const result = await api('/api/admin/waline/import', { method: 'POST', body: JSON.stringify(payload) });
-    $('#walineImportNotice').textContent = `导入完成：${result.importedTables || 0} 张表，${result.importedRows || 0} 条记录。`;
-    await Promise.all([refreshComments(), refreshManagedComments(), refreshUsers(), refreshOps()]);
-    showMessage('Waline 数据导入完成');
-  }
   function renderComments() {
     renderWalineSummary();
     renderRecentComments();
@@ -1321,10 +1311,6 @@
       button.addEventListener('click', () => batchManagedComments(button.dataset.commentBatch).catch((error) => showMessage(error.message || String(error), true)));
     });
     $('#exportWalineBtn').addEventListener('click', () => exportWalineData().catch((error) => showMessage(error.message || String(error), true)));
-    $('#importWalineInput').addEventListener('change', (event) => {
-      importWalineData(event.target.files?.[0]).catch((error) => showMessage(error.message || String(error), true));
-      event.target.value = '';
-    });
     $('#searchUsersBtn').addEventListener('click', () => refreshUsers(1).catch((error) => showMessage(error.message || String(error), true)));
     $('#userKeywordInput').addEventListener('keydown', (event) => {
       if (event.key === 'Enter') refreshUsers(1).catch((error) => showMessage(error.message || String(error), true));

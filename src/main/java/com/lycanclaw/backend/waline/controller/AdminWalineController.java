@@ -6,14 +6,12 @@ import com.lycanclaw.backend.common.security.AdminAuthConstants;
 import com.lycanclaw.backend.waline.dto.AdminWalineUserDto;
 import com.lycanclaw.backend.waline.dto.AdminWalineUserListDto;
 import com.lycanclaw.backend.waline.dto.AdminWalineUserUpdateRequest;
-import com.lycanclaw.backend.waline.dto.WalineImportResultDto;
 import com.lycanclaw.backend.waline.service.AdminWalineService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -25,7 +23,7 @@ import java.util.Map;
 
 /**
  * 管理端 Waline 接口控制器。
- * 提供 Waline 用户管理和数据导入导出能力。
+ * 提供 Waline 用户管理和数据导出能力。
  * @author Wreckloud
  * @since 2026-06-17
  */
@@ -91,12 +89,4 @@ public class AdminWalineController {
         return ApiResponse.ok(adminWalineService.exportDatabase(adminToken));
     }
 
-    @Operation(summary = "覆盖导入 Waline 数据")
-    @PostMapping("/import")
-    public ApiResponse<WalineImportResultDto> importDatabase(
-            @RequestHeader(AdminAuthConstants.ADMIN_TOKEN_HEADER) String adminToken,
-            @RequestBody JsonNode payload
-    ) {
-        return ApiResponse.ok(adminWalineService.importDatabase(adminToken, payload));
-    }
 }
