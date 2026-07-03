@@ -142,6 +142,21 @@ sudo systemctl reload nginx
 
 确认生效的 Nginx 配置里 `/waline/` 代理到后端 `127.0.0.1:8080`，不要代理到 Waline 容器端口。Waline 统一由后端同源代理转发，以保留评论昵称校验、OAuth 界面过滤和阅读量写入拦截。
 
+在线对战依赖 WebSocket，正式配置中必须存在独立的 `location = /api/game/ws`，并包含 `Upgrade` 与 `Connection "upgrade"` 代理头。后端更新后如果线上提示在线对战不可用，先检查宿主机 Nginx 是否仍在使用旧配置：
+
+```bash
+sudo nginx -T | grep -nA12 'location = /api/game/ws'
+sudo nginx -T | grep -nA8 'location /waline/'
+```
+
+如果看不到这两个配置块，重新应用仓库里的正式 Nginx 配置：
+
+```bash
+sudo cp /opt/lycanclaw/backend/deploy/nginx/lycanclaw.conf /etc/nginx/sites-available/lycanclaw
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
 ## 6. 启动后端
 
 ```bash
@@ -206,6 +221,14 @@ curl --fail http://127.0.0.1:8080/actuator/health
 
 普通文章更新不执行这些命令，也不重启后端。
 
+如果这次后端更新包含 `deploy/nginx` 下的配置变化，还需要同步宿主机 Nginx：
+
+```bash
+sudo cp /opt/lycanclaw/backend/deploy/nginx/lycanclaw.conf /etc/nginx/sites-available/lycanclaw
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
 ## 10. 自动备份与恢复
 
 安装每日 03:30 备份任务：
@@ -239,8 +262,16 @@ curl https://wreckloud.com/api/recommendations
 curl https://wreckloud.com/api/game/rooms
 curl https://wreckloud.com/waline/article?path=%2F
 curl https://wreckloud.com/actuator/health  # 应为 404，健康端点不对公网开放
+curl -i --http1.1 \
+  -H 'Connection: Upgrade' \
+  -H 'Upgrade: websocket' \
+  -H 'Sec-WebSocket-Version: 13' \
+  -H 'Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==' \
+  https://wreckloud.com/api/game/ws
 docker compose -f /opt/lycanclaw/backend/deploy/docker-compose.yml --env-file /opt/lycanclaw/backend/deploy/.env ps
 ```
+
+WebSocket 检查应返回 `101 Switching Protocols`。如果返回 `400 Can "Upgrade" only to "WebSocket".`，说明请求已经到达后端，但宿主机 Nginx 没有把 WebSocket Upgrade 头正确转发，重新应用正式 Nginx 配置。
 
 如果 `/api/comments/recent` 返回 Waline 403，优先检查 `SECURE_DOMAINS` 是否使用不带协议的域名，例如 `wreckloud.com,www.wreckloud.com,lycanclaw.netlify.app`，并确认后端容器包含 `LYCAN_WALINE_PUBLIC_URL=https://wreckloud.com`。不要长期关闭 `SECURE_DOMAINS`。
 
