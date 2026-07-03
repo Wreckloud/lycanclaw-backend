@@ -9,7 +9,7 @@ services:
     image: mysql:8.4
     container_name: lycan-mysql
     restart: unless-stopped
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
+    command: --mysql-native-password=ON --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${WALINE_DB_NAME}

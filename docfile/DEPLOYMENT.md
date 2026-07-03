@@ -183,6 +183,17 @@ curl --fail http://127.0.0.1:8080/actuator/health
 
 前端尚未第一次发布时，后端会提示共享 JSON 暂缺，但仍可启动。前端 `master` 首次 Actions成功后会自动补齐。
 
+Waline 1.41.1 使用的 MySQL 客户端不支持 MySQL 8.4 默认的 `caching_sha2_password` 认证。首次部署或看到 `ER_NOT_SUPPORTED_AUTH_MODE` 时，执行一次认证协议修复：
+
+```bash
+cd /opt/lycanclaw/backend/deploy
+docker compose --env-file .env up -d --force-recreate mysql
+cd scripts
+bash fix-waline-mysql-auth.sh
+cd ..
+docker compose --env-file .env up -d --force-recreate waline backend
+```
+
 ## 7. 前端首次发布
 
 前端开发分支验证完成后合并到 `master` 并推送。GitHub Actions会：
@@ -274,5 +285,7 @@ docker compose -f /opt/lycanclaw/backend/deploy/docker-compose.yml --env-file /o
 WebSocket 检查应返回 `101 Switching Protocols`。如果返回 `400 Can "Upgrade" only to "WebSocket".`，说明请求已经到达后端，但宿主机 Nginx 没有把 WebSocket Upgrade 头正确转发，重新应用正式 Nginx 配置。
 
 如果 `/api/comments/recent` 返回 Waline 403，优先检查 `SECURE_DOMAINS` 是否使用不带协议的域名，例如 `wreckloud.com,www.wreckloud.com,lycanclaw.netlify.app`，并确认后端容器包含 `LYCAN_WALINE_PUBLIC_URL=https://wreckloud.com`。不要长期关闭 `SECURE_DOMAINS`。
+
+如果 `/waline/api/comment` 返回 `ER_NOT_SUPPORTED_AUTH_MODE`，说明 Waline 能访问 MySQL，但数据库用户仍是 MySQL 8.4 默认认证协议。执行 `deploy/scripts/fix-waline-mysql-auth.sh` 后重建 Waline 容器。
 
 最后手动检查管理端登录、评论、音乐、推荐、阅读量、在线对战房间、Netlify备用站和一次备份恢复演练。
