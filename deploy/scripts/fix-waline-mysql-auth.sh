@@ -28,8 +28,16 @@ USER_HEX="$(printf '%s' "${WALINE_DB_USER}" | od -An -tx1 | tr -d ' \n')"
 PASSWORD_HEX="$(printf '%s' "${WALINE_DB_PASSWORD}" | od -An -tx1 | tr -d ' \n')"
 COMPOSE_ARGS=(-f "${COMPOSE_FILE}" --env-file "${ENV_FILE}")
 
+for _ in {1..30}; do
+  if docker compose "${COMPOSE_ARGS[@]}" exec -T mysql sh -c \
+    'mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD" --silent'; then
+    break
+  fi
+  sleep 2
+done
+
 cat <<SQL | docker compose "${COMPOSE_ARGS[@]}" exec -T mysql sh -c \
-  'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD"'
+  'exec mysql -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD"'
 SET @waline_user = CONVERT(0x${USER_HEX} USING utf8mb4);
 SET @waline_password = CONVERT(0x${PASSWORD_HEX} USING utf8mb4);
 SET @statement = CONCAT(
