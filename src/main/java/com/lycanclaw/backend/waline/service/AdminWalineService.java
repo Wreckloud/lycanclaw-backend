@@ -12,6 +12,7 @@ import com.lycanclaw.backend.waline.dto.WalineImportResultDto;
 import com.lycanclaw.backend.stats.service.ArticleMetricSyncService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -46,6 +47,12 @@ public class AdminWalineService {
     private final ObjectMapper objectMapper;
     private final JdbcTemplate jdbcTemplate;
     private final ArticleMetricSyncService articleMetricSyncService;
+
+    @Value("${lycan.waline.notification.author-email:}")
+    private String authorEmail;
+
+    @Value("${lycan.security.admin-qq-whitelist:}")
+    private String adminQqWhitelist;
 
     public AdminWalineService(
             AdminSessionService adminSessionService,
@@ -154,19 +161,26 @@ public class AdminWalineService {
     }
 
     /**
-     * 向空数据库初始化导入 Waline JSON 快照。
+     * 向空评论库初始化导入 Waline JSON 快照。
      */
     public WalineImportResultDto importDatabase(String adminToken, JsonNode payload) {
         ValidatedImport validated = validateImport(payload);
         String walineToken = requireWalineToken(adminToken);
-        ensureWalineDatabaseEmpty(walineGatewayClient.exportDatabase(walineToken));
+        boolean shouldClearBootstrapUsers = ensureWalineDatabaseReadyForInitialImport(
+                walineGatewayClient.exportDatabase(walineToken)
+        );
 
         try {
+            // 后台登录会预先生成 Waline 用户，真实初始化导入前先移除这类临时身份。
+            if (shouldClearBootstrapUsers) {
+                clearTableAndResetAutoIncrement(walineToken, "Users");
+            }
             for (String table : IMPORT_TABLES) {
                 for (JsonNode row : validated.data().path(table)) {
                     walineGatewayClient.importDatabaseRow(walineToken, table, row);
                 }
             }
+            refreshImportedAdministrators();
         } catch (RuntimeException importException) {
             try {
                 cleanupFailedImport(walineToken);
@@ -216,18 +230,64 @@ public class AdminWalineService {
         return new ValidatedImport(data, rows);
     }
 
-    private void ensureWalineDatabaseEmpty(JsonNode response) {
+    private boolean ensureWalineDatabaseReadyForInitialImport(JsonNode response) {
         JsonNode snapshot = walineSnapshot(response);
         JsonNode data = snapshot.path("data");
-        for (String table : IMPORT_TABLES) {
-            JsonNode rows = data.path(table);
-            if (!rows.isArray()) {
-                throw new IllegalStateException("Waline 导出结果缺少 " + table + " 表");
-            }
-            if (!rows.isEmpty()) {
-                throw new IllegalArgumentException("当前 Waline 数据库非空，仅允许初始化空库");
+        JsonNode comments = requireRows(data, "Comment");
+        JsonNode counters = requireRows(data, "Counter");
+        JsonNode users = requireRows(data, "Users");
+
+        if (!comments.isEmpty() || !counters.isEmpty()) {
+            throw new IllegalArgumentException("当前 Waline 数据库非空，仅允许初始化空库");
+        }
+
+        if (users.isEmpty()) {
+            return false;
+        }
+        if (onlyBootstrapAdminUsers(users)) {
+            return true;
+        }
+        throw new IllegalArgumentException("当前 Waline 数据库已有用户数据，仅允许初始化空评论库");
+    }
+
+    private JsonNode requireRows(JsonNode data, String table) {
+        JsonNode rows = data.path(table);
+        if (!rows.isArray()) {
+            throw new IllegalStateException("Waline 导出结果缺少 " + table + " 表");
+        }
+        return rows;
+    }
+
+    private boolean onlyBootstrapAdminUsers(JsonNode users) {
+        for (JsonNode user : users) {
+            if (!isBootstrapAdminUser(user)) {
+                return false;
             }
         }
+        return true;
+    }
+
+    private boolean isBootstrapAdminUser(JsonNode user) {
+        return "administrator".equalsIgnoreCase(text(user, "type"))
+                && text(user, "email").isBlank()
+                && text(user, "github").isBlank();
+    }
+
+    private void refreshImportedAdministrators() {
+        String normalizedAuthorEmail = authorEmail == null ? "" : authorEmail.trim();
+        String normalizedQqWhitelist = adminQqWhitelist == null ? "" : adminQqWhitelist.replace(" ", "").trim();
+        if (normalizedAuthorEmail.isBlank() && normalizedQqWhitelist.isBlank()) {
+            return;
+        }
+        String emailMatcher = normalizedAuthorEmail.isBlank() ? "__lycan_no_author_email__" : normalizedAuthorEmail;
+        jdbcTemplate.update("""
+                UPDATE wl_Users
+                SET type = CASE
+                  WHEN email = ? THEN 'administrator'
+                  WHEN qq IS NOT NULL AND FIND_IN_SET(qq, ?) > 0 THEN 'administrator'
+                  ELSE 'user'
+                END
+                """, emailMatcher, normalizedQqWhitelist);
     }
 
     private JsonNode walineSnapshot(JsonNode response) {
@@ -243,11 +303,13 @@ public class AdminWalineService {
 
     private void cleanupFailedImport(String walineToken) {
         for (String table : CLEANUP_TABLES) {
-            walineGatewayClient.clearDatabaseTable(walineToken, table);
+            clearTableAndResetAutoIncrement(walineToken, table);
         }
-        for (String table : CLEANUP_TABLES) {
-            jdbcTemplate.execute("ALTER TABLE `" + PHYSICAL_TABLES.get(table) + "` AUTO_INCREMENT = 1");
-        }
+    }
+
+    private void clearTableAndResetAutoIncrement(String walineToken, String table) {
+        walineGatewayClient.clearDatabaseTable(walineToken, table);
+        jdbcTemplate.execute("ALTER TABLE `" + PHYSICAL_TABLES.get(table) + "` AUTO_INCREMENT = 1");
     }
 
     private boolean containsText(JsonNode array, String expected) {

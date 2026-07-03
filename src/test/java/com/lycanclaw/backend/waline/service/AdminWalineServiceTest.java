@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
@@ -57,6 +58,8 @@ class AdminWalineServiceTest {
                 jdbcTemplate,
                 articleMetricSyncService
         );
+        ReflectionTestUtils.setField(service, "authorEmail", "owner@example.com");
+        ReflectionTestUtils.setField(service, "adminQqWhitelist", "123456,UID_OWNER");
     }
 
     @Test
@@ -103,7 +106,27 @@ class AdminWalineServiceTest {
         order.verify(walineGatewayClient).importDatabaseRow(eq("waline-token"), eq("Counter"), any(JsonNode.class));
         assertThat(result.importedTables()).isEqualTo(3);
         assertThat(result.importedRows()).isEqualTo(3);
+        verify(jdbcTemplate).update(any(String.class), eq("owner@example.com"), eq("123456,UID_OWNER"));
         verify(articleMetricSyncService).triggerAsyncSync("waline-import");
+    }
+
+    @Test
+    void allowsImportWhenOnlyBootstrapAdminUserExists() {
+        JsonNode payload = snapshot(false);
+        JsonNode current = snapshot(true);
+        ((ArrayNode) current.path("data").path("Users")).addObject()
+                .put("display_name", "Wreckloud")
+                .put("type", "administrator")
+                .put("qq", "UID_OWNER");
+        when(walineGatewayClient.exportDatabase("waline-token")).thenReturn(envelope(current));
+
+        service.importDatabase("admin", payload);
+
+        InOrder order = inOrder(walineGatewayClient);
+        order.verify(walineGatewayClient).clearDatabaseTable("waline-token", "Users");
+        order.verify(walineGatewayClient).importDatabaseRow(eq("waline-token"), eq("Users"), any(JsonNode.class));
+        verify(jdbcTemplate).execute("ALTER TABLE `wl_Users` AUTO_INCREMENT = 1");
+        verify(jdbcTemplate).update(any(String.class), eq("owner@example.com"), eq("123456,UID_OWNER"));
     }
 
     @Test
@@ -115,6 +138,22 @@ class AdminWalineServiceTest {
         assertThatThrownBy(() -> service.importDatabase("admin", snapshot(false)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("数据库非空");
+
+        verify(walineGatewayClient, never()).importDatabaseRow(any(), any(), any());
+    }
+
+    @Test
+    void rejectsImportWhenCurrentDatabaseAlreadyHasRealUsers() {
+        JsonNode current = snapshot(true);
+        ((ArrayNode) current.path("data").path("Users")).addObject()
+                .put("email", "visitor@example.com")
+                .put("display_name", "访客")
+                .put("type", "guest");
+        when(walineGatewayClient.exportDatabase("waline-token")).thenReturn(envelope(current));
+
+        assertThatThrownBy(() -> service.importDatabase("admin", snapshot(false)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("已有用户数据");
 
         verify(walineGatewayClient, never()).importDatabaseRow(any(), any(), any());
     }
