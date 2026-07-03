@@ -169,7 +169,7 @@ nano .env
 至少更换所有 `change-me-*` 值，并填写这些必需项：
 
 - `MUSIC_RANKING_OWNER_UID`：网易云公开歌单/排行所属用户 ID，后端启动时会强制校验。
-- `BACKEND_ADMIN_QQ_WHITELIST`：允许进入后台的 Waline QQ 身份。
+- `BACKEND_ADMIN_QQ_WHITELIST`：允许进入后台的 Waline QQ 身份。QQ OAuth 可能不会暴露真实 QQ 号，而是在 `wl_Users.qq` 写入 `UID_...` 标识；此时把这个 `UID_...` 填入白名单，或与真实 QQ 号一起用英文逗号分隔。
 - `WALINE_AUTHOR_EMAIL`：作者通知邮箱，也用于管理员维护脚本识别唯一 Waline 管理员。
 - SMTP 相关配置：需要邮件通知时填写；暂时不用邮件时可先保留占位，但后台会显示通知不可用。
 
