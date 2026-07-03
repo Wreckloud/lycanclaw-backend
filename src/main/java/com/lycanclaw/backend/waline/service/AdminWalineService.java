@@ -15,11 +15,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionOperations;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Waline 管理服务。
@@ -35,6 +38,7 @@ public class AdminWalineService {
     private static final int MAX_IMPORT_ROWS = 10000;
     private static final List<String> IMPORT_TABLES = List.of("Users", "Comment", "Counter");
     private static final List<String> CLEANUP_TABLES = List.of("Comment", "Counter", "Users");
+    private static final Pattern WALINE_COLUMN_PATTERN = Pattern.compile("[A-Za-z0-9_]+");
     private static final Map<String, String> PHYSICAL_TABLES = Map.of(
             "Users", "wl_Users",
             "Comment", "wl_Comment",
@@ -46,6 +50,7 @@ public class AdminWalineService {
     private final WalineGatewayClient walineGatewayClient;
     private final ObjectMapper objectMapper;
     private final JdbcTemplate jdbcTemplate;
+    private final TransactionOperations transactionOperations;
     private final ArticleMetricSyncService articleMetricSyncService;
 
     @Value("${lycan.waline.notification.author-email:}")
@@ -59,12 +64,14 @@ public class AdminWalineService {
             WalineGatewayClient walineGatewayClient,
             ObjectMapper objectMapper,
             JdbcTemplate jdbcTemplate,
+            TransactionOperations transactionOperations,
             ArticleMetricSyncService articleMetricSyncService
     ) {
         this.adminSessionService = adminSessionService;
         this.walineGatewayClient = walineGatewayClient;
         this.objectMapper = objectMapper;
         this.jdbcTemplate = jdbcTemplate;
+        this.transactionOperations = transactionOperations;
         this.articleMetricSyncService = articleMetricSyncService;
     }
 
@@ -165,24 +172,12 @@ public class AdminWalineService {
      */
     public WalineImportResultDto importDatabase(String adminToken, JsonNode payload) {
         ValidatedImport validated = validateImport(payload);
-        String walineToken = requireWalineToken(adminToken);
+        requireSessionPrincipal(adminToken);
 
         try {
-            clearExistingWalineData(walineToken);
-            for (String table : IMPORT_TABLES) {
-                for (JsonNode row : validated.data().path(table)) {
-                    walineGatewayClient.importDatabaseRow(walineToken, table, row);
-                }
-            }
-            refreshImportedAdministrators();
+            transactionOperations.executeWithoutResult(status -> replaceWalineSnapshot(validated));
         } catch (RuntimeException importException) {
-            try {
-                cleanupFailedImport(walineToken);
-            } catch (RuntimeException cleanupException) {
-                importException.addSuppressed(cleanupException);
-                throw new IllegalStateException("Waline 覆盖导入失败，且自动清理未完成，请先检查数据库", importException);
-            }
-            throw new IllegalStateException("Waline 覆盖导入失败，已清理本次写入，可重新导入", importException);
+            throw new IllegalStateException("Waline 覆盖导入失败，已回滚当前数据库事务，可修正文件后重试", importException);
         }
 
         try {
@@ -215,6 +210,7 @@ public class AdminWalineService {
                 if (row == null || !row.isObject()) {
                     throw new IllegalArgumentException(table + " 表包含无效记录");
                 }
+                validateImportRow(table, row);
                 rows++;
                 if (rows > MAX_IMPORT_ROWS) {
                     throw new IllegalArgumentException("单次导入最多支持 " + MAX_IMPORT_ROWS + " 条记录");
@@ -222,6 +218,70 @@ public class AdminWalineService {
             }
         }
         return new ValidatedImport(data, rows);
+    }
+
+    private void validateImportRow(String table, JsonNode row) {
+        Iterator<String> fields = row.fieldNames();
+        if (!fields.hasNext()) {
+            throw new IllegalArgumentException(table + " 表包含空记录");
+        }
+        while (fields.hasNext()) {
+            String field = fields.next();
+            if (!WALINE_COLUMN_PATTERN.matcher(field).matches()) {
+                throw new IllegalArgumentException(table + " 表包含无效字段: " + field);
+            }
+        }
+    }
+
+    private void replaceWalineSnapshot(ValidatedImport validated) {
+        for (String table : CLEANUP_TABLES) {
+            clearWalineTable(table);
+        }
+        for (String table : IMPORT_TABLES) {
+            for (JsonNode row : validated.data().path(table)) {
+                insertWalineRow(table, row);
+            }
+        }
+        refreshImportedAdministrators();
+    }
+
+    private void clearWalineTable(String table) {
+        jdbcTemplate.update("DELETE FROM `" + physicalTable(table) + "`");
+    }
+
+    private void insertWalineRow(String table, JsonNode row) {
+        List<String> columns = new ArrayList<>();
+        List<Object> values = new ArrayList<>();
+        row.fields().forEachRemaining(entry -> {
+            columns.add("`" + entry.getKey() + "`");
+            values.add(toJdbcValue(entry.getValue()));
+        });
+        String placeholders = String.join(", ", values.stream().map(value -> "?").toList());
+        String sql = "INSERT INTO `" + physicalTable(table) + "` ("
+                + String.join(", ", columns)
+                + ") VALUES ("
+                + placeholders
+                + ")";
+        jdbcTemplate.update(sql, values.toArray());
+    }
+
+    private Object toJdbcValue(JsonNode value) {
+        if (value == null || value.isNull() || value.isMissingNode()) {
+            return null;
+        }
+        if (value.isBoolean()) {
+            return value.asBoolean();
+        }
+        if (value.isIntegralNumber()) {
+            return value.longValue();
+        }
+        if (value.isFloatingPointNumber()) {
+            return value.doubleValue();
+        }
+        if (value.isTextual()) {
+            return value.asText();
+        }
+        return value.toString();
     }
 
     private void refreshImportedAdministrators() {
@@ -241,12 +301,6 @@ public class AdminWalineService {
                 """, emailMatcher, normalizedQqWhitelist);
     }
 
-    private void clearExistingWalineData(String walineToken) {
-        for (String table : CLEANUP_TABLES) {
-            clearTableAndResetAutoIncrement(walineToken, table);
-        }
-    }
-
     private JsonNode walineSnapshot(JsonNode response) {
         JsonNode snapshot = response == null ? null : response.path("data");
         if (snapshot == null
@@ -258,15 +312,12 @@ public class AdminWalineService {
         return snapshot;
     }
 
-    private void cleanupFailedImport(String walineToken) {
-        for (String table : CLEANUP_TABLES) {
-            clearTableAndResetAutoIncrement(walineToken, table);
+    private String physicalTable(String table) {
+        String physicalTable = PHYSICAL_TABLES.get(table);
+        if (physicalTable == null) {
+            throw new IllegalArgumentException("不支持的 Waline 表: " + table);
         }
-    }
-
-    private void clearTableAndResetAutoIncrement(String walineToken, String table) {
-        walineGatewayClient.clearDatabaseTable(walineToken, table);
-        jdbcTemplate.execute("ALTER TABLE `" + PHYSICAL_TABLES.get(table) + "` AUTO_INCREMENT = 1");
+        return physicalTable;
     }
 
     private boolean containsText(JsonNode array, String expected) {

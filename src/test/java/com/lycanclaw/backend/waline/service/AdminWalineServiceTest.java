@@ -15,18 +15,22 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.support.SimpleTransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionOperations;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +46,12 @@ class AdminWalineServiceTest {
     private final AdminSessionService adminSessionService = mock(AdminSessionService.class);
     private final WalineGatewayClient walineGatewayClient = mock(WalineGatewayClient.class);
     private final JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+    private final TransactionOperations transactionOperations = new TransactionOperations() {
+        @Override
+        public <T> T execute(TransactionCallback<T> action) {
+            return action.doInTransaction(new SimpleTransactionStatus());
+        }
+    };
     private final ArticleMetricSyncService articleMetricSyncService = mock(ArticleMetricSyncService.class);
     private AdminWalineService service;
 
@@ -57,6 +67,7 @@ class AdminWalineServiceTest {
                 walineGatewayClient,
                 objectMapper,
                 jdbcTemplate,
+                transactionOperations,
                 articleMetricSyncService
         );
         ReflectionTestUtils.setField(service, "authorEmail", "owner@example.com");
@@ -100,20 +111,19 @@ class AdminWalineServiceTest {
 
         var result = service.importDatabase("admin", payload);
 
-        InOrder order = inOrder(walineGatewayClient);
-        order.verify(walineGatewayClient).clearDatabaseTable("waline-token", "Comment");
-        order.verify(walineGatewayClient).clearDatabaseTable("waline-token", "Counter");
-        order.verify(walineGatewayClient).clearDatabaseTable("waline-token", "Users");
-        order.verify(walineGatewayClient).importDatabaseRow(eq("waline-token"), eq("Users"), any(JsonNode.class));
-        order.verify(walineGatewayClient).importDatabaseRow(eq("waline-token"), eq("Comment"), any(JsonNode.class));
-        order.verify(walineGatewayClient).importDatabaseRow(eq("waline-token"), eq("Counter"), any(JsonNode.class));
+        InOrder order = inOrder(jdbcTemplate);
+        order.verify(jdbcTemplate).update("DELETE FROM `wl_Comment`");
+        order.verify(jdbcTemplate).update("DELETE FROM `wl_Counter`");
+        order.verify(jdbcTemplate).update("DELETE FROM `wl_Users`");
+        order.verify(jdbcTemplate).update(startsWith("INSERT INTO `wl_Users`"), any(Object[].class));
+        order.verify(jdbcTemplate).update(startsWith("INSERT INTO `wl_Comment`"), any(Object[].class));
+        order.verify(jdbcTemplate).update(startsWith("INSERT INTO `wl_Counter`"), any(Object[].class));
         assertThat(result.importedTables()).isEqualTo(3);
         assertThat(result.importedRows()).isEqualTo(3);
-        verify(jdbcTemplate).execute("ALTER TABLE `wl_Comment` AUTO_INCREMENT = 1");
-        verify(jdbcTemplate).execute("ALTER TABLE `wl_Counter` AUTO_INCREMENT = 1");
-        verify(jdbcTemplate).execute("ALTER TABLE `wl_Users` AUTO_INCREMENT = 1");
-        verify(jdbcTemplate).update(any(String.class), eq("owner@example.com"), eq("123456,UID_OWNER"));
+        verify(jdbcTemplate).update(contains("UPDATE wl_Users"), eq("owner@example.com"), eq("123456,UID_OWNER"));
         verify(articleMetricSyncService).triggerAsyncSync("waline-import");
+        verify(walineGatewayClient, never()).clearDatabaseTable(any(), any());
+        verify(walineGatewayClient, never()).importDatabaseRow(any(), any(), any());
     }
 
     @Test
@@ -122,29 +132,25 @@ class AdminWalineServiceTest {
 
         service.importDatabase("admin", payload);
 
-        InOrder order = inOrder(walineGatewayClient);
-        order.verify(walineGatewayClient).clearDatabaseTable("waline-token", "Comment");
-        order.verify(walineGatewayClient).clearDatabaseTable("waline-token", "Counter");
-        order.verify(walineGatewayClient).clearDatabaseTable("waline-token", "Users");
-        order.verify(walineGatewayClient).importDatabaseRow(eq("waline-token"), eq("Users"), any(JsonNode.class));
+        InOrder order = inOrder(jdbcTemplate);
+        order.verify(jdbcTemplate).update("DELETE FROM `wl_Comment`");
+        order.verify(jdbcTemplate).update("DELETE FROM `wl_Counter`");
+        order.verify(jdbcTemplate).update("DELETE FROM `wl_Users`");
+        order.verify(jdbcTemplate).update(startsWith("INSERT INTO `wl_Users`"), any(Object[].class));
     }
 
     @Test
-    void cleansAllTablesWhenImportFails() {
+    void rollsBackTransactionWhenImportFails() {
         doThrow(new IllegalStateException("upstream failed"))
-                .when(walineGatewayClient)
-                .importDatabaseRow(eq("waline-token"), eq("Comment"), any(JsonNode.class));
+                .when(jdbcTemplate)
+                .update(startsWith("INSERT INTO `wl_Comment`"), any(Object[].class));
 
         assertThatThrownBy(() -> service.importDatabase("admin", snapshot(false)))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("已清理本次写入");
+                .hasMessageContaining("已回滚当前数据库事务");
 
-        verify(walineGatewayClient, times(2)).clearDatabaseTable("waline-token", "Comment");
-        verify(walineGatewayClient, times(2)).clearDatabaseTable("waline-token", "Counter");
-        verify(walineGatewayClient, times(2)).clearDatabaseTable("waline-token", "Users");
-        verify(jdbcTemplate, times(2)).execute("ALTER TABLE `wl_Comment` AUTO_INCREMENT = 1");
-        verify(jdbcTemplate, times(2)).execute("ALTER TABLE `wl_Counter` AUTO_INCREMENT = 1");
-        verify(jdbcTemplate, times(2)).execute("ALTER TABLE `wl_Users` AUTO_INCREMENT = 1");
+        verify(walineGatewayClient, never()).clearDatabaseTable(any(), any());
+        verify(articleMetricSyncService, never()).triggerAsyncSync(any());
     }
 
     @Test
