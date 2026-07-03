@@ -44,7 +44,7 @@ services:
       SITE_NAME: ${SITE_NAME}
       SITE_URL: https://${DOMAIN}
       SERVER_URL: https://${DOMAIN}/waline
-      SECURE_DOMAINS: https://${DOMAIN},https://www.${DOMAIN},https://lycanclaw.netlify.app
+      SECURE_DOMAINS: ${DOMAIN},www.${DOMAIN},lycanclaw.netlify.app
       LOGIN: enable
       COMMENT_AUDIT: ${WALINE_COMMENT_AUDIT}
       IPQPS: 60
@@ -110,6 +110,7 @@ services:
       LYCAN_RECOMMENDATION_PAGEVIEW_WEIGHT: ${RECOMMENDATION_PAGEVIEW_WEIGHT:-1.0}
       LYCAN_RECOMMENDATION_COMMENT_WEIGHT: ${RECOMMENDATION_COMMENT_WEIGHT:-24.0}
       LYCAN_WALINE_BASE_URL: http://waline:8360
+      LYCAN_WALINE_PUBLIC_URL: https://${DOMAIN}
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRINGDOC_API_DOCS_ENABLED: "false"
       SPRINGDOC_SWAGGER_UI_ENABLED: "false"

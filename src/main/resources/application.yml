@@ -121,6 +121,8 @@ lycan:
   waline:
     # Waline 服务地址（用于评论/阅读统计聚合）
     base-url: http://127.0.0.1:8360
+    # 服务端访问 Waline 时携带的可信站点来源
+    public-url: ${LYCAN_WALINE_PUBLIC_URL:http://localhost:5173}
     notification:
       # 以下配置只用于管理端展示通知状态，实际发送仍由 Waline 环境变量负责
       smtp-host: ${WALINE_SMTP_HOST:}

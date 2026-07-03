@@ -29,6 +29,8 @@ import java.time.Duration;
 @Component
 public class WalineGatewayClient {
 
+    private static final String USER_AGENT = "LycanClawBackend/1.0";
+
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final WalineProperties properties;
@@ -244,11 +246,11 @@ public class WalineGatewayClient {
 
     private JsonNode postJson(String path, JsonNode jsonBody) {
         URI uri = buildUri(path, new LinkedMultiValueMap<>());
-        HttpRequest request = HttpRequest.newBuilder(uri)
+        HttpRequest request = withWalineSourceHeaders(HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofSeconds(12))
                 .header("Accept", "application/json")
                 .header("Content-Type", "application/json")
-                .header("User-Agent", "LycanClawBackend/1.0")
+                .header("User-Agent", USER_AGENT))
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody.toString(), StandardCharsets.UTF_8))
                 .build();
         return send(request);
@@ -272,7 +274,8 @@ public class WalineGatewayClient {
                 .timeout(Duration.ofSeconds(12))
                 .header("Accept", "application/json")
                 .header("Authorization", "Bearer " + walineToken.trim())
-                .header("User-Agent", "LycanClawBackend/1.0");
+                .header("User-Agent", USER_AGENT);
+        requestBuilder = withWalineSourceHeaders(requestBuilder);
         if (body != null) {
             requestBuilder.header("Content-Type", "application/json");
         }
@@ -297,7 +300,8 @@ public class WalineGatewayClient {
                 .timeout(Duration.ofSeconds(12))
                 .header("Accept", "application/json")
                 .header("Authorization", "Bearer " + walineToken.trim())
-                .header("User-Agent", "LycanClawBackend/1.0");
+                .header("User-Agent", USER_AGENT);
+        requestBuilder = withWalineSourceHeaders(requestBuilder);
         if (body != null) {
             requestBuilder.header("Content-Type", "application/json");
         }
@@ -324,10 +328,10 @@ public class WalineGatewayClient {
     }
 
     private HttpRequest.Builder buildGetRequest(URI uri) {
-        return HttpRequest.newBuilder(uri)
+        return withWalineSourceHeaders(HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofSeconds(12))
                 .header("Accept", "application/json")
-                .header("User-Agent", "LycanClawBackend/1.0")
+                .header("User-Agent", USER_AGENT))
                 .GET();
     }
 
@@ -349,6 +353,23 @@ public class WalineGatewayClient {
             return baseUrl.substring(0, baseUrl.length() - 1);
         }
         return baseUrl;
+    }
+
+    private HttpRequest.Builder withWalineSourceHeaders(HttpRequest.Builder builder) {
+        String publicUrl = normalizePublicUrl(properties.getPublicUrl());
+        if (publicUrl.isBlank()) {
+            return builder;
+        }
+        return builder
+                .header("Origin", publicUrl)
+                .header("Referer", publicUrl + "/");
+    }
+
+    private String normalizePublicUrl(String publicUrl) {
+        if (publicUrl == null || publicUrl.isBlank()) {
+            return "";
+        }
+        return publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl;
     }
 
     private String normalizePath(String path) {

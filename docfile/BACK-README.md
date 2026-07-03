@@ -108,6 +108,7 @@ Copy-Item dev-services\waline\.env.example dev-services\waline\.env.local
 - `LYCAN_MUSIC_RANKING_OWNER_UID`：随机流和听歌榜来源用户 UID。
 - `LYCAN_MUSIC_PREFERRED_LEVEL`：默认目标音质。
 - `LYCAN_WALINE_BASE_URL`：Waline 服务地址。
+- `LYCAN_WALINE_PUBLIC_URL`：后端请求 Waline 时携带的可信站点来源。
 - `LYCAN_GAME_MESSAGE_RATE_LIMIT_PER_MINUTE`：在线对战 WebSocket 单 IP 消息限流。
 - `LYCAN_IP2REGION_V4_XDB_PATH`、`LYCAN_IP2REGION_V6_XDB_PATH`：可选 IP 地区数据库。
 

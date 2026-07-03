@@ -140,6 +140,8 @@ sudo systemctl reload nginx
 
 正式配置统一跳转到 `https://wreckloud.com`，并且覆盖客户端伪造的 `X-Forwarded-For`。
 
+确认生效的 Nginx 配置里 `/waline/` 代理到后端 `127.0.0.1:8080`，不要代理到 Waline 容器端口。Waline 统一由后端同源代理转发，以保留评论昵称校验、OAuth 界面过滤和阅读量写入拦截。
+
 ## 6. 启动后端
 
 ```bash
@@ -239,5 +241,7 @@ curl https://wreckloud.com/waline/article?path=%2F
 curl https://wreckloud.com/actuator/health  # 应为 404，健康端点不对公网开放
 docker compose -f /opt/lycanclaw/backend/deploy/docker-compose.yml --env-file /opt/lycanclaw/backend/deploy/.env ps
 ```
+
+如果 `/api/comments/recent` 返回 Waline 403，优先检查 `SECURE_DOMAINS` 是否使用不带协议的域名，例如 `wreckloud.com,www.wreckloud.com,lycanclaw.netlify.app`，并确认后端容器包含 `LYCAN_WALINE_PUBLIC_URL=https://wreckloud.com`。不要长期关闭 `SECURE_DOMAINS`。
 
 最后手动检查管理端登录、评论、音乐、推荐、阅读量、在线对战房间、Netlify备用站和一次备份恢复演练。

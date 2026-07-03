@@ -734,6 +734,7 @@ public class WalineProxyController {
                 request.getHeaders(name).asIterator().forEachRemaining(value -> builder.header(name, value));
             }
         });
+        appendProxySourceHeaders(builder, request);
 
         HttpRequest.BodyPublisher publisher = body.length == 0
                 ? HttpRequest.BodyPublishers.noBody()
@@ -945,13 +946,27 @@ public class WalineProxyController {
     }
 
     private String externalProxyBase(HttpServletRequest request) {
+        return externalSiteOrigin(request) + PROXY_PREFIX;
+    }
+
+    private String externalSiteOrigin(HttpServletRequest request) {
         String contextPath = request.getContextPath() == null ? "" : request.getContextPath();
         String scheme = request.getScheme();
         String host = request.getServerName();
         int port = request.getServerPort();
         boolean defaultPort = ("http".equalsIgnoreCase(scheme) && port == 80)
                 || ("https".equalsIgnoreCase(scheme) && port == 443);
-        return scheme + "://" + host + (defaultPort ? "" : ":" + port) + contextPath + PROXY_PREFIX;
+        return scheme + "://" + host + (defaultPort ? "" : ":" + port) + contextPath;
+    }
+
+    private void appendProxySourceHeaders(HttpRequest.Builder builder, HttpServletRequest request) {
+        String origin = externalSiteOrigin(request);
+        if (request.getHeader(HttpHeaders.ORIGIN) == null) {
+            builder.header(HttpHeaders.ORIGIN, origin);
+        }
+        if (request.getHeader(HttpHeaders.REFERER) == null) {
+            builder.header(HttpHeaders.REFERER, origin + "/");
+        }
     }
 
     private String urlEncode(String value) {
