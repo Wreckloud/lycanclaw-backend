@@ -1,6 +1,7 @@
 package com.lycanclaw.backend.waline.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lycanclaw.backend.common.security.ClientIpResolver;
 import com.lycanclaw.backend.waline.config.WalineProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,9 @@ class WalineProxyControllerTest {
     void setUp() {
         WalineProperties properties = new WalineProperties();
         properties.setBaseUrl("http://127.0.0.1:8360");
-        controller = new WalineProxyController(properties, new ObjectMapper());
+        ClientIpResolver clientIpResolver = new ClientIpResolver();
+        ReflectionTestUtils.setField(clientIpResolver, "trustForwardedHeaders", true);
+        controller = new WalineProxyController(properties, clientIpResolver, new ObjectMapper());
     }
 
     @Test
@@ -61,6 +64,30 @@ class WalineProxyControllerTest {
         String filtered = ReflectionTestUtils.invokeMethod(controller, "filterOauthServices", html);
 
         assertThat(filtered).contains("github", "qq").doesNotContain("google");
+    }
+
+    @Test
+    void rebuildsClientIpHeadersForWaline() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/waline/api/comment");
+        request.addHeader("X-Forwarded-For", "203.0.113.10");
+        request.addHeader("X-Real-IP", "10.0.0.2");
+        request.addHeader("X-Forwarded-Host", "evil.example");
+        request.addHeader("Host", "wreckloud.com");
+        request.setScheme("https");
+        request.setServerName("wreckloud.com");
+        request.setServerPort(443);
+
+        java.net.http.HttpRequest proxyRequest = ReflectionTestUtils.invokeMethod(
+                controller,
+                "buildProxyRequest",
+                request,
+                new byte[0]
+        );
+
+        assertThat(proxyRequest.headers().firstValue("X-Real-IP")).contains("203.0.113.10");
+        assertThat(proxyRequest.headers().firstValue("X-Forwarded-For")).contains("203.0.113.10");
+        assertThat(proxyRequest.headers().firstValue("REMOTE-HOST")).contains("203.0.113.10");
+        assertThat(proxyRequest.headers().firstValue("X-Forwarded-Host")).contains("wreckloud.com");
     }
 
     private MockHttpServletRequest post(String path, String body) {

@@ -3,6 +3,7 @@ package com.lycanclaw.backend.waline.controller;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lycanclaw.backend.common.security.ClientIpResolver;
 import com.lycanclaw.backend.waline.config.WalineProperties;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -52,7 +53,13 @@ public class WalineProxyController {
             "connection",
             "transfer-encoding",
             "content-length",
-            "accept-encoding"
+            "accept-encoding",
+            "forwarded",
+            "x-forwarded-for",
+            "x-forwarded-host",
+            "x-forwarded-proto",
+            "x-real-ip",
+            "remote-host"
     );
     private static final List<String> SKIPPED_RESPONSE_HEADERS = List.of(
             "connection",
@@ -65,11 +72,17 @@ public class WalineProxyController {
             "access-control-max-age"
     );
     private final WalineProperties properties;
+    private final ClientIpResolver clientIpResolver;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public WalineProxyController(WalineProperties properties, ObjectMapper objectMapper) {
+    public WalineProxyController(
+            WalineProperties properties,
+            ClientIpResolver clientIpResolver,
+            ObjectMapper objectMapper
+    ) {
         this.properties = properties;
+        this.clientIpResolver = clientIpResolver;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(8))
                 .build();
@@ -312,12 +325,35 @@ public class WalineProxyController {
 
     private void appendProxySourceHeaders(HttpRequest.Builder builder, HttpServletRequest request) {
         String origin = externalSiteOrigin(request);
+        String clientIp = clientIpResolver.resolve(request);
+        builder.header("X-Real-IP", clientIp);
+        builder.header("X-Forwarded-For", clientIp);
+        builder.header("X-Forwarded-Host", forwardedHost(request));
+        builder.header("X-Forwarded-Proto", forwardedProto(request));
+        // Waline 官方 Nginx 示例会透传 REMOTE-HOST，补齐后避免它只记录后端容器内网 IP。
+        builder.header("REMOTE-HOST", clientIp);
         if (request.getHeader(HttpHeaders.ORIGIN) == null) {
             builder.header(HttpHeaders.ORIGIN, origin);
         }
         if (request.getHeader(HttpHeaders.REFERER) == null) {
             builder.header(HttpHeaders.REFERER, origin + "/");
         }
+    }
+
+    private String forwardedHost(HttpServletRequest request) {
+        String host = request.getHeader(HttpHeaders.HOST);
+        if (host != null && !host.isBlank()) {
+            return host.trim();
+        }
+        int port = request.getServerPort();
+        boolean defaultPort = ("http".equalsIgnoreCase(request.getScheme()) && port == 80)
+                || ("https".equalsIgnoreCase(request.getScheme()) && port == 443);
+        return request.getServerName() + (defaultPort ? "" : ":" + port);
+    }
+
+    private String forwardedProto(HttpServletRequest request) {
+        String proto = request.getHeader("X-Forwarded-Proto");
+        return proto == null || proto.isBlank() ? request.getScheme() : proto.split(",")[0].trim();
     }
 
     private String urlEncode(String value) {
