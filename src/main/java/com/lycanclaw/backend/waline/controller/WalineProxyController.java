@@ -4,12 +4,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lycanclaw.backend.common.security.ClientIpResolver;
+import com.lycanclaw.backend.common.security.InMemorySlidingWindowRateLimiter;
 import com.lycanclaw.backend.waline.config.WalineProperties;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -73,16 +75,22 @@ public class WalineProxyController {
     );
     private final WalineProperties properties;
     private final ClientIpResolver clientIpResolver;
+    private final InMemorySlidingWindowRateLimiter rateLimiter;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
+
+    @Value("${lycan.security.comment-rate-limit-per-minute:1}")
+    private int commentRateLimitPerMinute;
 
     public WalineProxyController(
             WalineProperties properties,
             ClientIpResolver clientIpResolver,
+            InMemorySlidingWindowRateLimiter rateLimiter,
             ObjectMapper objectMapper
     ) {
         this.properties = properties;
         this.clientIpResolver = clientIpResolver;
+        this.rateLimiter = rateLimiter;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(8))
                 .build();
@@ -205,6 +213,10 @@ public class WalineProxyController {
             JsonNode payload = objectMapper.readTree(body);
             if (payload == null || !payload.isObject() || payload.path("nick").asText("").isBlank()) {
                 return textResponse(HttpStatus.BAD_REQUEST, "评论称谓不能为空");
+            }
+            String clientIp = clientIpResolver.resolve(request);
+            if (!rateLimiter.allow("waline-comment:" + clientIp, commentRateLimitPerMinute)) {
+                return textResponse(HttpStatus.TOO_MANY_REQUESTS, "评论过于频繁，请稍后再试");
             }
             return null;
         } catch (IOException ex) {

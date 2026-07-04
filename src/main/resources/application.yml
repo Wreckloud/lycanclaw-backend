@@ -74,6 +74,8 @@ lycan:
     music-rate-limit-per-minute: 30
     # 匿名写接口限流（每分钟）
     public-write-rate-limit-per-minute: 60
+    # 公开评论提交限流（每分钟）
+    comment-rate-limit-per-minute: ${LYCAN_SECURITY_COMMENT_RATE_LIMIT_PER_MINUTE:1}
     # 会员登录 cookie 请求上游播放 URL 的全局限流（每分钟）
     music-login-url-global-limit-per-minute: 60
     # 管理鉴权失败日志开关（记录 IP / URI / method / 拒绝原因）

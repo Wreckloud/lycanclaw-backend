@@ -2,10 +2,12 @@ package com.lycanclaw.backend.waline.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lycanclaw.backend.common.security.ClientIpResolver;
+import com.lycanclaw.backend.common.security.InMemorySlidingWindowRateLimiter;
 import com.lycanclaw.backend.waline.config.WalineProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -29,7 +31,13 @@ class WalineProxyControllerTest {
         properties.setBaseUrl("http://127.0.0.1:8360");
         ClientIpResolver clientIpResolver = new ClientIpResolver();
         ReflectionTestUtils.setField(clientIpResolver, "trustForwardedHeaders", true);
-        controller = new WalineProxyController(properties, clientIpResolver, new ObjectMapper());
+        controller = new WalineProxyController(
+                properties,
+                clientIpResolver,
+                new InMemorySlidingWindowRateLimiter(),
+                new ObjectMapper()
+        );
+        ReflectionTestUtils.setField(controller, "commentRateLimitPerMinute", 1);
     }
 
     @Test
@@ -88,6 +96,31 @@ class WalineProxyControllerTest {
         assertThat(proxyRequest.headers().firstValue("X-Forwarded-For")).contains("203.0.113.10");
         assertThat(proxyRequest.headers().firstValue("REMOTE-HOST")).contains("203.0.113.10");
         assertThat(proxyRequest.headers().firstValue("X-Forwarded-Host")).contains("wreckloud.com");
+    }
+
+    @Test
+    void rateLimitsPublicCommentByClientIp() {
+        MockHttpServletRequest first = post("/waline/api/comment", "{\"nick\":\"test\",\"comment\":\"hello\"}");
+        first.addHeader("X-Forwarded-For", "203.0.113.10");
+        MockHttpServletRequest second = post("/waline/api/comment", "{\"nick\":\"test\",\"comment\":\"again\"}");
+        second.addHeader("X-Forwarded-For", "203.0.113.10");
+
+        ResponseEntity<byte[]> firstResponse = ReflectionTestUtils.invokeMethod(
+                controller,
+                "rejectUnsafePublicWrite",
+                first,
+                first.getContentAsByteArray()
+        );
+        ResponseEntity<byte[]> secondResponse = ReflectionTestUtils.invokeMethod(
+                controller,
+                "rejectUnsafePublicWrite",
+                second,
+                second.getContentAsByteArray()
+        );
+
+        assertThat(firstResponse).isNull();
+        assertThat(secondResponse.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        assertThat(new String(secondResponse.getBody(), StandardCharsets.UTF_8)).contains("评论过于频繁");
     }
 
     private MockHttpServletRequest post(String path, String body) {
