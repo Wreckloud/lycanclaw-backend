@@ -240,15 +240,15 @@ public class GameRoomService {
 
         List<OutboundMessage> messages;
         synchronized (room) {
+            Instant now = Instant.now();
             room.findPlayerByToken(playerTokenValue).ifPresent(player -> {
                 if (session.getId().equals(player.session() == null ? null : player.session().getId())) {
-                    handlePlayerExit(room, player, Instant.now());
+                    markPlayerDisconnected(player, now);
                 }
             });
-            room.touch(Instant.now());
+            room.touch(now);
             messages = snapshotMessages(room);
         }
-        removeRoomIfEmpty(room);
         sendAll(messages);
     }
 
@@ -342,6 +342,13 @@ public class GameRoomService {
 
         room.players().remove(player);
         appendSystemEvent(room, EVENT_PLAYER_LEFT, eventData("nickname", player.nickname()));
+    }
+
+    private void markPlayerDisconnected(GamePlayer player, Instant now) {
+        // WebSocket 断开只表示临时离线；只有主动 leave 才退出房间或判负。
+        player.session(null);
+        player.connected(false);
+        player.touch(now);
     }
 
     private void finishRoomByPlayerLeave(GameRoom room, GamePlayer player, Instant now) {

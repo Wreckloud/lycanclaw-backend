@@ -157,12 +157,40 @@ class GameRoomServiceTest {
     }
 
     @Test
-    void activePlayerDisconnectsAndLosesByForfeit() {
+    void activePlayerDisconnectsAndCanReconnect() {
         RoomFixture room = startedRoom();
         int xIndex = indexForSide(room, X);
+        String xToken = room.token(xIndex);
         String oToken = tokenForSide(room, O);
 
         service.disconnect(room.session(xIndex));
+        GameRoomSnapshot disconnectedSnapshot = service.snapshotForPlayer(room.roomId(), oToken).orElseThrow();
+
+        assertThat(disconnectedSnapshot.roomStatus()).isEqualTo(GameRoomStatus.PLAYING);
+        assertThat(disconnectedSnapshot.state().winner()).isZero();
+        assertThat(disconnectedSnapshot.players())
+                .filteredOn("side", X)
+                .singleElement()
+                .satisfies(player -> assertThat(player.connected()).isFalse());
+
+        service.join(session("x-reconnect"), room.roomId(), xToken, "一号归来");
+        GameRoomSnapshot reconnectedSnapshot = service.snapshotForPlayer(room.roomId(), xToken).orElseThrow();
+
+        assertThat(reconnectedSnapshot.roomStatus()).isEqualTo(GameRoomStatus.PLAYING);
+        assertThat(reconnectedSnapshot.players())
+                .filteredOn("self", true)
+                .singleElement()
+                .satisfies(player -> assertThat(player.connected()).isTrue());
+    }
+
+    @Test
+    void activePlayerLeavesAndLosesByForfeit() {
+        RoomFixture room = startedRoom();
+        int xIndex = indexForSide(room, X);
+        String xToken = room.token(xIndex);
+        String oToken = tokenForSide(room, O);
+
+        service.leave(room.session(xIndex), room.roomId(), xToken);
         GameRoomSnapshot finishedSnapshot = service.snapshotForPlayer(room.roomId(), oToken).orElseThrow();
 
         assertThat(finishedSnapshot.roomStatus()).isEqualTo(GameRoomStatus.FINISHED);
