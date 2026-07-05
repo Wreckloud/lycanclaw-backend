@@ -7,6 +7,7 @@ package com.lycanclaw.backend.game.dto;
  * @since 2026-07-01
  */
 public record GamePlayerSnapshot(
+        int playerNumber,
         Integer side,
         String nickname,
         boolean connected,

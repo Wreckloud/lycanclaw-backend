@@ -13,6 +13,7 @@ import java.time.Instant;
 public class GamePlayer {
 
     private final String token;
+    private final int playerNumber;
     private String nickname;
     private Integer side;
     private WebSocketSession session;
@@ -21,8 +22,9 @@ public class GamePlayer {
     private Instant lastSeenAt;
     private Instant readyAt;
 
-    public GamePlayer(String token, String nickname, Instant now) {
+    public GamePlayer(String token, int playerNumber, String nickname, Instant now) {
         this.token = token;
+        this.playerNumber = playerNumber;
         this.nickname = nickname;
         this.lastSeenAt = now;
     }
@@ -37,6 +39,10 @@ public class GamePlayer {
 
     public String token() {
         return token;
+    }
+
+    public int playerNumber() {
+        return playerNumber;
     }
 
     public String nickname() {

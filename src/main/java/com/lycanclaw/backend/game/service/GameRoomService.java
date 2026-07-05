@@ -87,8 +87,10 @@ public class GameRoomService {
         String roomId = createUniqueRoomId();
         String playerToken = createPlayerToken();
         GameRoom room = new GameRoom(roomId, now);
-        room.players().add(new GamePlayer(playerToken, cleanNickname, now));
+        GamePlayer creator = new GamePlayer(playerToken, room.nextPlayerNumber(), cleanNickname, now);
+        room.players().add(creator);
         appendSystemEvent(room, EVENT_ROOM_CREATED, eventData(
+                "playerNumber", creator.playerNumber(),
                 "nickname", cleanNickname,
                 "roomId", roomId
         ));
@@ -113,7 +115,10 @@ public class GameRoomService {
             boolean shouldAnnounceJoin = wasDisconnected && player.lastSeenAt().isAfter(room.updatedAt());
             reconnectPlayer(session, player, now);
             if (shouldAnnounceJoin) {
-                appendSystemEvent(room, EVENT_PLAYER_JOINED, eventData("nickname", player.nickname()));
+                appendSystemEvent(room, EVENT_PLAYER_JOINED, eventData(
+                        "playerNumber", player.playerNumber(),
+                        "nickname", player.nickname()
+                ));
             }
             session.getAttributes().put("gameRoomId", room.roomId());
             session.getAttributes().put("gamePlayerToken", player.token());
@@ -149,11 +154,17 @@ public class GameRoomService {
             if (player.ready()) {
                 player.ready(false);
                 player.readyAt(null);
-                appendSystemEvent(room, EVENT_PLAYER_UNREADY, eventData("nickname", player.nickname()));
+                appendSystemEvent(room, EVENT_PLAYER_UNREADY, eventData(
+                        "playerNumber", player.playerNumber(),
+                        "nickname", player.nickname()
+                ));
             } else {
                 player.ready(true);
                 player.readyAt(Instant.now());
-                appendSystemEvent(room, EVENT_PLAYER_READY, eventData("nickname", player.nickname()));
+                appendSystemEvent(room, EVENT_PLAYER_READY, eventData(
+                        "playerNumber", player.playerNumber(),
+                        "nickname", player.nickname()
+                ));
             }
             if (readyPlayers(room).size() >= READY_TO_START_COUNT) {
                 startRoom(room);
@@ -182,7 +193,7 @@ public class GameRoomService {
                 throw new IllegalArgumentException("非法落子");
             }
 
-            appendMoveMessages(room, playerSide, move);
+            appendMoveMessages(room, player, playerSide, move);
             if (room.state().winner() != EMPTY) {
                 finishRoomByBoardResult(room);
             }
@@ -220,8 +231,11 @@ public class GameRoomService {
             resetReady(room);
             appendSystemEvent(room, EVENT_RESIGN_WIN, eventData(
                     "loser", loserSide,
-                    "winner", room.state().winner()
+                    "loserNumber", loser.playerNumber(),
+                    "winner", room.state().winner(),
+                    "winnerNumber", playerNumberForSide(room, room.state().winner())
             ));
+            resetPlayerSides(room);
             room.touch(Instant.now());
             messages = snapshotMessages(room);
         }
@@ -319,7 +333,7 @@ public class GameRoomService {
             throw new IllegalArgumentException("房间已满");
         }
 
-        GamePlayer player = new GamePlayer(cleanToken, cleanNickname, now);
+        GamePlayer player = new GamePlayer(cleanToken, room.nextPlayerNumber(), cleanNickname, now);
         room.players().add(player);
         return player;
     }
@@ -341,7 +355,10 @@ public class GameRoomService {
         }
 
         room.players().remove(player);
-        appendSystemEvent(room, EVENT_PLAYER_LEFT, eventData("nickname", player.nickname()));
+        appendSystemEvent(room, EVENT_PLAYER_LEFT, eventData(
+                "playerNumber", player.playerNumber(),
+                "nickname", player.nickname()
+        ));
     }
 
     private void markPlayerDisconnected(GamePlayer player, Instant now) {
@@ -357,9 +374,12 @@ public class GameRoomService {
         resetReady(room);
         appendSystemEvent(room, EVENT_LEAVE_WIN, eventData(
                 "loser", player.side(),
-                "winner", room.state().winner()
+                "loserNumber", player.playerNumber(),
+                "winner", room.state().winner(),
+                "winnerNumber", playerNumberForSide(room, room.state().winner())
         ));
         room.players().remove(player);
+        resetPlayerSides(room);
         room.touch(now);
     }
 
@@ -369,7 +389,7 @@ public class GameRoomService {
                 .toList();
         if (selectedPlayers.size() < READY_TO_START_COUNT) return;
 
-        room.players().forEach(player -> player.side(null));
+        resetPlayerSides(room);
         if (secureRandom.nextBoolean()) {
             selectedPlayers.get(0).side(X);
             selectedPlayers.get(1).side(O);
@@ -384,7 +404,10 @@ public class GameRoomService {
         room.state().started(true);
         room.state().currentPlayer(X);
         room.state().nextBoard(null);
-        appendSystemEvent(room, EVENT_GAME_STARTED, eventData("firstPlayer", X));
+        appendSystemEvent(room, EVENT_GAME_STARTED, eventData(
+                "firstPlayer", X,
+                "firstPlayerNumber", playerNumberForSide(room, X)
+        ));
     }
 
     private List<GamePlayer> readyPlayers(GameRoom room) {
@@ -399,22 +422,36 @@ public class GameRoomService {
         resetReady(room);
         if (room.state().winner() == DRAW) {
             appendSystemEvent(room, EVENT_GAME_DRAW, eventData());
+            resetPlayerSides(room);
             return;
         }
 
         appendSystemEvent(room, EVENT_LINE_WIN, eventData(
                 "winner", room.state().winner(),
+                "winnerNumber", playerNumberForSide(room, room.state().winner()),
                 "line", List.copyOf(room.state().bigBoardWinningLine())
         ));
+        resetPlayerSides(room);
     }
 
-    private void appendMoveMessages(GameRoom room, int playerSide, GameMove move) {
+    private void resetPlayerSides(GameRoom room) {
+        room.players().forEach(player -> player.side(null));
+    }
+
+    private Integer playerNumberForSide(GameRoom room, int side) {
+        return room.findPlayerBySide(side)
+                .map(GamePlayer::playerNumber)
+                .orElse(null);
+    }
+
+    private void appendMoveMessages(GameRoom room, GamePlayer player, int playerSide, GameMove move) {
         Optional<GameRuleEvent> directEvent = room.state().lastRuleEvents().stream()
                 .filter(event -> event.boardIndex() == move.bigIndex())
                 .findFirst();
 
         Map<String, Object> eventData = eventData(
                 "player", playerSide,
+                "playerNumber", player.playerNumber(),
                 "bigIndex", move.bigIndex(),
                 "smallIndex", move.smallIndex()
         );
@@ -437,9 +474,11 @@ public class GameRoomService {
 
         appendSystemEvent(room, EVENT_BOARD_SETTLEMENT, eventData(
                 "owner", event.owner(),
+                "ownerNumber", playerNumberForSide(room, event.owner()),
                 "boardIndex", event.boardIndex(),
                 "filledCount", event.filledCount(),
                 "nextPlayer", gameRulesService.opponent(event.owner()),
+                "nextPlayerNumber", playerNumberForSide(room, gameRulesService.opponent(event.owner())),
                 "chainCount", Math.max(room.state().lastRuleEvents().size() - 1, 0)
         ));
     }
@@ -448,12 +487,14 @@ public class GameRoomService {
         GameCoreState state = room.state();
         if (state.winner() != EMPTY) return;
         eventData.put("nextPlayer", state.currentPlayer());
+        eventData.put("nextPlayerNumber", playerNumberForSide(room, state.currentPlayer()));
         eventData.put("nextBoard", state.nextBoard());
     }
 
     private void appendChatMessage(GameRoom room, GamePlayer player, String text) {
         Integer side = player.side();
         appendEventMessage(room, "chat", null, side, player.nickname(), EVENT_CHAT_SENT, eventData(
+                "playerNumber", player.playerNumber(),
                 "nickname", player.nickname(),
                 "text", text
         ));
@@ -506,6 +547,7 @@ public class GameRoomService {
                 selfSide,
                 room.sortedPlayers().stream()
                         .map(player -> new GamePlayerSnapshot(
+                                player.playerNumber(),
                                 player.side(),
                                 player.nickname(),
                                 player.connected(),

@@ -20,6 +20,7 @@ public class GameRoom {
     private final List<GameLogMessage> messages = new ArrayList<>();
     private GameRoomStatus status = GameRoomStatus.WAITING;
     private Instant updatedAt;
+    private int nextPlayerNumber = 1;
 
     public GameRoom(String roomId, Instant now) {
         this.roomId = roomId;
@@ -70,11 +71,15 @@ public class GameRoom {
                 .findFirst();
     }
 
+    public int nextPlayerNumber() {
+        return nextPlayerNumber++;
+    }
+
     public List<GamePlayer> sortedPlayers() {
         return players.stream()
                 .sorted(Comparator
                         .comparing((GamePlayer player) -> player.side() == null ? 99 : player.side())
-                        .thenComparing(GamePlayer::lastSeenAt))
+                        .thenComparingInt(GamePlayer::playerNumber))
                 .toList();
     }
 }

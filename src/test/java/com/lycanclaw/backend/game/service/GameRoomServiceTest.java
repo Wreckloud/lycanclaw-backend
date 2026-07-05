@@ -46,6 +46,9 @@ class GameRoomServiceTest {
 
         assertThat(snapshot.roomStatus()).isEqualTo(GameRoomStatus.WAITING);
         assertThat(snapshot.players()).hasSize(4);
+        assertThat(snapshot.players())
+                .extracting("playerNumber")
+                .containsExactly(1, 2, 3, 4);
         assertThat(service.listRooms()).singleElement()
                 .satisfies(item -> {
                     assertThat(item.playerCount()).isEqualTo(4);
@@ -133,6 +136,7 @@ class GameRoomServiceTest {
 
         assertThat(snapshot.roomStatus()).isEqualTo(GameRoomStatus.FINISHED);
         assertThat(snapshot.state().winner()).isEqualTo(O);
+        assertThat(snapshot.players()).allSatisfy(player -> assertThat(player.side()).isNull());
         assertThat(snapshot.messages()).anySatisfy(message -> {
             assertThat(message.eventType()).isEqualTo("CHAT_SENT");
             assertThat(message.eventData()).containsEntry("text", "还能聊");
@@ -195,6 +199,7 @@ class GameRoomServiceTest {
 
         assertThat(finishedSnapshot.roomStatus()).isEqualTo(GameRoomStatus.FINISHED);
         assertThat(finishedSnapshot.state().winner()).isEqualTo(O);
+        assertThat(finishedSnapshot.players()).allSatisfy(player -> assertThat(player.side()).isNull());
         assertThat(finishedSnapshot.messages()).anySatisfy(message -> assertThat(message.eventType()).isEqualTo("LEAVE_WIN"));
     }
 
