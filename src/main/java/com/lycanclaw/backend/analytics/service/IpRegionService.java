@@ -43,6 +43,10 @@ public class IpRegionService {
         }
     }
 
+    public boolean isAvailable() {
+        return ip2Region != null;
+    }
+
     @PreDestroy
     public void close() {
         if (ip2Region != null) {

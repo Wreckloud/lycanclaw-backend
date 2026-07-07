@@ -188,6 +188,7 @@
     <nav class="nav" id="nav">
       <button class="nav-link active" data-section="overview">总览</button>
       <button class="nav-link" data-section="articles">文章</button>
+      <button class="nav-link" data-section="pages">页面</button>
       <button class="nav-link" data-section="music">音乐</button>
       <button class="nav-link" data-section="recommendation">推荐</button>
       <button class="nav-link" data-section="comments">评论</button>
@@ -204,7 +205,7 @@
         <div class="grid four" id="overviewMetrics"></div>
         <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>访问趋势</h3><small>最近 30 天</small></div><div class="chart" id="visitTrendChart"></div></div><div class="card"><div class="card-title"><h3>催更趋势</h3><small>最近 30 天</small></div><div class="chart" id="encourageTrendChart"></div></div></div>
         <div class="grid two" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>热门文章</h3><small><button class="btn link" data-open-section="articles">查看全部</button></small></div><div class="list" id="topArticleList"></div></div><div class="card"><div class="card-title"><h3>主题关注</h3><small>访问次数</small></div><div class="chart small" id="tagFocusChart"></div></div></div>
-        <div class="grid three" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>普通页面</h3><small>首页、列表与功能页</small></div><div class="list" id="topPageList"></div></div><div class="card"><div class="card-title"><h3>催更排行</h3><small>最近 30 天</small></div><div class="list" id="encouragementRanking"></div></div><div class="card"><div class="card-title"><h3>关键状态</h3><small id="overviewCheckedAt">-</small></div><div id="overviewServices" class="kv"></div><div id="overviewRecommendation" class="kv" style="margin-top:10px;"></div></div></div>
+        <div class="grid three" style="margin-top:14px;"><div class="card"><div class="card-title"><h3>数据质量</h3><small>最近 30 天</small></div><div id="dataQualitySummary" class="kv"></div></div><div class="card"><div class="card-title"><h3>催更排行</h3><small>最近 30 天</small></div><div class="list" id="encouragementRanking"></div></div><div class="card"><div class="card-title"><h3>关键状态</h3><small id="overviewCheckedAt">-</small></div><div id="overviewServices" class="kv"></div><div id="overviewRecommendation" class="kv" style="margin-top:10px;"></div></div></div>
       </section>
       <section class="section" id="section-articles">
         <div class="section-head"><div><h2>文章</h2><p>查看文章访问、停留、阅读进度和访客构成。</p></div></div>
@@ -224,6 +225,20 @@
         </div>
         <div class="card" style="margin-top:12px;"><div class="card-title"><h3>最近访客</h3><small>展开查看最近阅读记录</small></div><div class="list" id="articleRecentVisits"></div></div>
         <div class="card drawer" id="visitorProfileCard"><div class="card-title"><h3 id="visitorProfileTitle">访客画像</h3><button class="btn link" id="closeVisitorProfileBtn">关闭</button></div><div id="visitorProfileMetrics" class="grid four"></div><div class="grid three" style="margin-top:12px;"><div><div class="card-title"><h3>常看文章</h3></div><div class="list" id="visitorTopArticles"></div></div><div><div class="card-title"><h3>访问来源</h3></div><div class="list" id="visitorReferrers"></div></div><div><div class="card-title"><h3>常听歌曲</h3></div><div class="list" id="visitorTopSongs"></div></div></div></div>
+      </section>
+      <section class="section" id="section-pages">
+        <div class="section-head"><div><h2>页面</h2><p>查看首页、列表、关于、收藏、游戏等非文章页面访问。</p></div></div>
+        <div class="card">
+          <div class="filter-row four">
+            <div class="field"><label>页面搜索</label><input id="pageKeywordInput" placeholder="输入标题或路径" /></div>
+            <div class="field"><label>时间范围</label><select id="pageDaysFilter"><option value="7">近 7 天</option><option value="30" selected>近 30 天</option><option value="90">近 90 天</option><option value="365">近一年</option></select></div>
+            <div class="field"><label>排序</label><select id="pageSortFilter"><option value="visits">访问次数</option><option value="visitors">独立访客</option><option value="duration">平均停留</option><option value="recent">最近访问</option></select></div>
+            <button class="btn primary" id="searchPagesBtn">查询</button>
+          </div>
+          <div id="pageTable"></div>
+          <div class="pager"><button class="btn link" id="pagePrevBtn">上一页</button><span id="pagePageInfo">第 1 页</span><button class="btn link" id="pageNextBtn">下一页</button></div>
+        </div>
+        <div class="card" style="margin-top:12px;"><div class="card-title"><h3>异常路径</h3><small>404 与无法归类的路径</small></div><div class="list" id="abnormalPageList"></div></div>
       </section>
       <section class="section" id="section-music">
         <div class="section-head"><div><h2>音乐</h2><p>网易云扫码登录、账号状态与播放流配置。</p></div></div>
@@ -278,11 +293,12 @@
   const sections = {
     overview: ['总览', '访问趋势、热门文章、催更与关键服务状态。'],
     articles: ['文章', '文章访问、停留、阅读进度和访客构成。'],
+    pages: ['页面', '普通页面访问、停留和异常路径。'],
     music: ['音乐', '网易云扫码登录、账号状态与播放流配置。'],
     recommendation: ['推荐', '手动推荐优先，文章热度补齐。'],
     comments: ['评论', 'Waline 评论、用户和阅读统计状态。']
   };
-  const state = { me: null, activeSection: 'overview', loadedSections: new Set(), loadingSections: new Map(), console: null, ops: null, operationalConfig: null, musicStatus: null, musicAnalytics: null, musicTopPage: 1, musicRecentPage: 1, articles: null, articlePage: 1, manualUrls: [], excludedUrls: [], effectiveRecommendations: [], candidates: [], candidatePage: 1, candidateTotalPages: 1, recentComments: [], managedComments: null, commentNotification: null, commentPage: 1, commentManageError: '', walineUsers: null, userPage: 1, userManageError: '', qrKey: '', qrTimer: null, charts: {} };
+  const state = { me: null, activeSection: 'overview', loadedSections: new Set(), loadingSections: new Map(), console: null, ops: null, operationalConfig: null, musicStatus: null, musicAnalytics: null, musicTopPage: 1, musicRecentPage: 1, articles: null, articlePage: 1, pages: null, pagePage: 1, manualUrls: [], excludedUrls: [], effectiveRecommendations: [], candidates: [], candidatePage: 1, candidateTotalPages: 1, recentComments: [], managedComments: null, commentNotification: null, commentPage: 1, commentManageError: '', walineUsers: null, userPage: 1, userManageError: '', qrKey: '', qrTimer: null, charts: {} };
   const $ = (selector) => document.querySelector(selector);
   const asArray = (value) => Array.isArray(value) ? value : [];
 
@@ -391,7 +407,8 @@
     if (!value) return '-';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return String(value);
-    return date.toLocaleString('zh-CN', { hour12: false });
+    const pad = (number) => String(number).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
   }
   function relativeTime(value) {
     if (!value) return '-';
@@ -553,6 +570,18 @@
     state.articlePage = Number(state.articles.page || 1);
     renderArticleTable();
   }
+  async function refreshPages(page = state.pagePage) {
+    const query = new URLSearchParams({
+      days: $('#pageDaysFilter')?.value || '30',
+      keyword: $('#pageKeywordInput')?.value.trim() || '',
+      sort: $('#pageSortFilter')?.value || 'visits',
+      page: String(Math.max(1, page)),
+      pageSize: '12'
+    });
+    state.pages = await api(`/api/admin/analytics/pages?${query}`);
+    state.pagePage = Number(state.pages.page || 1);
+    renderPageTable();
+  }
   async function refreshMusicAnalytics() {
     state.musicAnalytics = await api('/api/admin/analytics/music?days=30');
     renderMusicAnalytics();
@@ -572,6 +601,8 @@
         await refreshConsole();
       } else if (target === 'articles') {
         await refreshArticles(state.articlePage);
+      } else if (target === 'pages') {
+        await refreshPages(state.pagePage);
       } else if (target === 'music') {
         if (!state.console) await refreshConsole();
         await Promise.all([refreshMusicStatus(), refreshMusicAnalytics()]);
@@ -609,18 +640,24 @@
     const ops = state.ops || dashboard.ops || {};
     const sync = ops.sync || {};
     const articleMetricSync = governance.articleMetricSyncStatus || sync.articleMetrics || {};
+    const dataQuality = analytics.dataQuality || {};
     $('#overviewMetrics').innerHTML = [
       metricCard(analytics.visits ?? 0, '近 30 天访问', `独立访客 ${analytics.uniqueVisitors ?? 0}`),
       metricCard(`${analytics.averageDurationSeconds ?? 0}s`, '平均停留', '只统计页面可见时间'),
       metricCard(analytics.encouragement?.total ?? 0, '总催更', `今日 ${analytics.encouragement?.today ?? 0}`),
-      metricCard(music.loggedIn ? '已登录' : '未登录', '网易云账号', music.nickname || music.message || '-')
+      metricCard(dataQuality.abnormalVisits ?? 0, '异常路径', `404 ${dataQuality.notFoundVisits ?? 0} 次`)
     ].join('');
     $('#overviewCheckedAt').textContent = `检查于 ${relativeTime(dashboard.checkedAt || state.console?.checkedAt || new Date())}`;
+    $('#dataQualitySummary').innerHTML = kvRows([
+      ['统计窗口', `${dataQuality.days ?? analytics.days ?? 30} 天`],
+      ['访问 / 访客', `${dataQuality.visits ?? analytics.visits ?? 0} / ${dataQuality.uniqueVisitors ?? analytics.uniqueVisitors ?? 0}`],
+      ['404 访问', dataQuality.notFoundVisits ?? 0],
+      ['IP 地区库', dataQuality.ipRegionAvailable ? '已配置' : '未配置，仅显示未知地区']
+    ]);
     $('#overviewServices').innerHTML = kvRows([['音乐登录', `${music.loggedIn ? '已登录' : '未登录'} ${music.nickname || ''}`.trim()], ['Waline', serviceText(ops.services?.waline)], ['NCM 上游', serviceText(ops.services?.ncmUpstream)]]);
     $('#overviewRecommendation').innerHTML = kvRows([['文章指标', articleMetricSyncText(articleMetricSync)], ['成功文章', articleMetricSync.successCount ?? 0], ['失败文章', articleMetricSync.failureCount ?? 0], ['完成时间', relativeTime(articleMetricSync.lastFinishedAt)]]);
     renderAnalyticsCharts(analytics);
     renderTopArticles(analytics.topArticles || []);
-    renderTopPages(analytics.topPages || []);
     renderEncouragementRanking(analytics.encouragement?.topVisitors || []);
   }
   function chartColors() {
@@ -690,19 +727,32 @@
     }
     $('#topArticleList').innerHTML = articles.slice(0, 6).map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.title || pathTitle(item.path))}</div><div class="list-meta">访问 ${item.visits ?? 0} · 平均停留 ${durationSecondsText(item.averageDurationSeconds)} · 阅读 ${percentText(item.averageScrollPercent)} · 评论 ${item.commentCount ?? 0}</div></div><button class="btn link" data-article-detail="${escapeHtml(item.path)}">详情</button></div>`).join('');
   }
-  function renderTopPages(pages) {
-    if (!pages.length) {
-      $('#topPageList').innerHTML = '<div class="empty">暂无普通页面访问。</div>';
+  function renderPageTable() {
+    const result = state.pages || {};
+    const items = asArray(result.items);
+    if (!items.length) {
+      $('#pageTable').innerHTML = '<div class="empty">暂无普通页面访问。</div>';
+    } else {
+      $('#pageTable').innerHTML = `<table class="data-table"><thead><tr><th>页面</th><th>访问</th><th>访客</th><th>平均停留</th><th>最近访问</th></tr></thead><tbody>${items.map((item) => `<tr><td><div class="article-title">${escapeHtml(item.title || pathTitle(item.path))}</div><div class="list-meta">${escapeHtml(item.path || '/')}</div></td><td>${item.visits || 0}</td><td>${item.uniqueVisitors || 0}</td><td>${durationSecondsText(item.averageDurationSeconds || 0)}</td><td>${formatDateTime(item.lastVisitedAt)}</td></tr>`).join('')}</tbody></table>`;
+    }
+    $('#pagePageInfo').textContent = `第 ${result.page || 1} / ${result.totalPages || 1} 页`;
+    $('#pagePrevBtn').disabled = Number(result.page || 1) <= 1;
+    $('#pageNextBtn').disabled = Number(result.page || 1) >= Number(result.totalPages || 1);
+    renderAbnormalPages(result.abnormalPages || []);
+  }
+  function renderAbnormalPages(items) {
+    if (!items.length) {
+      $('#abnormalPageList').innerHTML = '<div class="empty">暂无异常路径。</div>';
       return;
     }
-    $('#topPageList').innerHTML = pages.map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.title || pathTitle(item.path))}</div><div class="list-meta">访问 ${item.visits || 0} · 访客 ${item.uniqueVisitors || 0} · 平均停留 ${durationSecondsText(item.averageDurationSeconds)}</div></div></div>`).join('');
+    $('#abnormalPageList').innerHTML = items.map((item) => `<div class="list-item"><div><div class="list-title">${escapeHtml(item.title || pathTitle(item.path))}</div><div class="list-meta">${escapeHtml(item.path || '/')} · 访问 ${item.visits || 0} · 访客 ${item.uniqueVisitors || 0} · 最近 ${formatDateTime(item.lastVisitedAt)}</div></div></div>`).join('');
   }
   function renderEncouragementRanking(items) {
     if (!items.length) {
       $('#encouragementRanking').innerHTML = '<div class="empty">暂无催更记录。</div>';
       return;
     }
-    $('#encouragementRanking').innerHTML = items.slice(0, 8).map((item) => `<div class="list-item"><div><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button><div class="list-meta">${escapeHtml(item.region || item.ip || '未知地区')} · 结算 ${item.settlements || 0} 次 · 最近 ${relativeTime(item.lastAt)}</div></div><strong>${item.totalDelta || 0}</strong></div>`).join('');
+    $('#encouragementRanking').innerHTML = items.slice(0, 8).map((item) => `<div class="list-item"><div><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button><div class="list-meta">${escapeHtml(item.region || '未知地区')} · 结算 ${item.settlements || 0} 次 · 最近 ${relativeTime(item.lastAt)}</div></div><strong>${item.totalDelta || 0}</strong></div>`).join('');
   }
   function renderArticleTable() {
     const result = state.articles || {};
@@ -827,7 +877,8 @@
         <div><div class="card-title"><h3>访问趋势</h3><small>${escapeHtml(days)} 天</small></div><div class="chart small" id="articleDetailTrendChart"></div></div>
         <div><div class="card-title"><h3>访客来源</h3><small>按访问次数</small></div><div class="chart small" id="articleDetailReferrerChart"></div></div>
       </div>
-      <div class="article-detail-visitors"><div class="card-title"><h3>阅读访客</h3><small>累计停留与最深阅读位置</small></div><div class="list">${asArray(data.visitors).slice(0, 12).map((item) => `<div class="list-item"><div><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button><div class="list-meta">${escapeHtml(item.region || item.ip || '未知地区')} · ${item.visits || 0} 次 · 累计 ${durationSecondsText(item.totalDurationSeconds)} · 最深 ${percentText(item.maxScrollPercent)} · ${relativeTime(item.lastVisitedAt)}</div></div></div>`).join('') || '<div class="empty">暂无访客数据。</div>'}</div></div>
+      <div class="article-detail-visitors"><div class="card-title"><h3>最近阅读记录</h3><small>精确到秒</small></div><div class="list">${asArray(data.recentVisits).slice(0, 20).map((item) => `<div class="list-item"><div><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button><div class="list-meta">${escapeHtml(item.region || '未知地区')} · ${formatDateTime(item.visitedAt)} · 停留 ${durationSecondsText(item.durationSeconds)} · 阅读 ${percentText(item.maxScrollPercent)} · 来源 ${escapeHtml(item.referrer || '直接访问')}</div></div></div>`).join('') || '<div class="empty">暂无阅读记录。</div>'}</div></div>
+      <div class="article-detail-visitors"><div class="card-title"><h3>阅读访客</h3><small>累计停留与最深阅读位置</small></div><div class="list">${asArray(data.visitors).slice(0, 12).map((item) => `<div class="list-item"><div><button class="btn link" data-visitor-id="${escapeHtml(item.visitorId)}">${escapeHtml(item.nickname || '匿名访客')}</button><div class="list-meta">${escapeHtml(item.region || '未知地区')} · ${item.visits || 0} 次 · 累计 ${durationSecondsText(item.totalDurationSeconds)} · 最深 ${percentText(item.maxScrollPercent)} · 最近 ${formatDateTime(item.lastVisitedAt)}</div></div></div>`).join('') || '<div class="empty">暂无访客数据。</div>'}</div></div>
     `;
     const chart = getChart('articleDetailTrendChart');
     const trend = asArray(data.trend);
@@ -846,7 +897,7 @@
     setSection('articles', false);
     $('#visitorProfileTitle').textContent = data.nickname || '匿名访客';
     $('#visitorProfileMetrics').innerHTML = [
-      metricCard(data.visits || 0, '访问次数', data.region || data.ip || '未知地区'),
+      metricCard(data.visits || 0, '访问次数', data.region || '未知地区'),
       metricCard(durationSecondsText(data.totalDurationSeconds), '累计阅读', data.device || '未知设备'),
       metricCard(data.encouragements || 0, '催更点击', data.provider ? `已关联 ${data.provider}` : '匿名身份'),
       metricCard(durationSecondsText(data.listenedSeconds), '累计收听', data.visitorId || '')
@@ -1292,6 +1343,14 @@
     $('#articleSortFilter').addEventListener('change', () => refreshArticles(1).catch((e) => showMessage(e.message, true)));
     $('#articlePrevBtn').addEventListener('click', () => refreshArticles(state.articlePage - 1).catch((e) => showMessage(e.message, true)));
     $('#articleNextBtn').addEventListener('click', () => refreshArticles(state.articlePage + 1).catch((e) => showMessage(e.message, true)));
+    $('#searchPagesBtn').addEventListener('click', () => refreshPages(1).catch((e) => showMessage(e.message, true)));
+    $('#pageKeywordInput').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') refreshPages(1).catch((e) => showMessage(e.message, true));
+    });
+    $('#pageDaysFilter').addEventListener('change', () => refreshPages(1).catch((e) => showMessage(e.message, true)));
+    $('#pageSortFilter').addEventListener('change', () => refreshPages(1).catch((e) => showMessage(e.message, true)));
+    $('#pagePrevBtn').addEventListener('click', () => refreshPages(state.pagePage - 1).catch((e) => showMessage(e.message, true)));
+    $('#pageNextBtn').addEventListener('click', () => refreshPages(state.pagePage + 1).catch((e) => showMessage(e.message, true)));
     $('#closeVisitorProfileBtn').addEventListener('click', () => $('#visitorProfileCard').classList.remove('active'));
     $('#toggleMailConfigBtn').addEventListener('click', () => $('#mailConfigPanel').classList.toggle('active'));
     $('#searchCommentsBtn').addEventListener('click', () => refreshManagedComments(1));

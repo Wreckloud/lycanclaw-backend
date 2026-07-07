@@ -2,6 +2,7 @@ package com.lycanclaw.backend.analytics.controller;
 
 import com.lycanclaw.backend.analytics.dto.AnalyticsArticleDetailDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsArticlePageDto;
+import com.lycanclaw.backend.analytics.dto.AnalyticsPagePageDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsVisitorProfileDto;
 import com.lycanclaw.backend.analytics.dto.MusicAnalyticsSummaryDto;
 import com.lycanclaw.backend.analytics.service.AdminAnalyticsService;
@@ -42,6 +43,19 @@ public class AdminAnalyticsController {
             @Parameter(description = "每页条数") @RequestParam(defaultValue = "12") int pageSize
     ) {
         return ApiResponse.ok(adminAnalyticsService.articleMetrics(days, keyword, sort, page, pageSize));
+    }
+
+    @Operation(summary = "获取普通页面访问指标")
+    @GetMapping("/pages")
+    public ApiResponse<AnalyticsPagePageDto> pages(
+            @Parameter(description = "统计天数") @RequestParam(defaultValue = "30") int days,
+            @Parameter(description = "标题或路径关键词") @RequestParam(defaultValue = "") String keyword,
+            @Parameter(description = "排序：visits、visitors、duration、recent")
+            @RequestParam(defaultValue = "visits") String sort,
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") int page,
+            @Parameter(description = "每页条数") @RequestParam(defaultValue = "12") int pageSize
+    ) {
+        return ApiResponse.ok(adminAnalyticsService.pageMetrics(days, keyword, sort, page, pageSize));
     }
 
     @Operation(summary = "获取文章洞察详情")

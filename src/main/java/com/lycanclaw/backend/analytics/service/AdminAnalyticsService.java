@@ -4,8 +4,11 @@ import com.lycanclaw.backend.analytics.dto.AdminAnalyticsSummaryDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsArticleDetailDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsArticleMetricDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsArticlePageDto;
+import com.lycanclaw.backend.analytics.dto.AnalyticsArticleVisitDetailDto;
+import com.lycanclaw.backend.analytics.dto.AnalyticsDataQualityDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsNamedMetricDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsPageMetricDto;
+import com.lycanclaw.backend.analytics.dto.AnalyticsPagePageDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsRecentVisitDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsTagMetricDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsTrendPointDto;
@@ -35,6 +38,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -63,6 +67,7 @@ public class AdminAnalyticsService {
     private static final int MAX_VISITOR_ID_LENGTH = 96;
     private static final int COMPLETION_PERCENT = 90;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
+    private static final DateTimeFormatter OFFSET_SECOND_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
 
     private final AnalyticsVisitRepository visitRepository;
     private final EncouragementEventRepository encouragementRepository;
@@ -117,7 +122,40 @@ public class AdminAnalyticsService {
                 articles.stream().limit(8).toList(),
                 buildPageMetrics(visits).stream().limit(10).toList(),
                 buildTagMetrics(visits).stream().limit(10).toList(),
-                encouragementSummary(encouragements)
+                encouragementSummary(encouragements),
+                dataQuality(safeDays, visits)
+        );
+    }
+
+    /**
+     * 按关键词、排序和分页条件返回普通页面访问统计。
+     */
+    public AnalyticsPagePageDto pageMetrics(
+            int days,
+            String keyword,
+            String sort,
+            int page,
+            int pageSize
+    ) {
+        int safeDays = normalizeDays(days);
+        List<AnalyticsVisitEntity> visits = visitRepository.findByStartedAtAfter(since(safeDays));
+        List<AnalyticsPageMetricDto> filtered = buildPageMetrics(visits).stream()
+                .filter(item -> matchesPageKeyword(item, keyword))
+                .sorted(pageComparator(sort))
+                .toList();
+        int safePageSize = normalizePageSize(pageSize);
+        int totalPages = Math.max(1, (int) Math.ceil(filtered.size() / (double) safePageSize));
+        int safePage = Math.min(normalizePage(page), totalPages);
+        int from = Math.min(filtered.size(), (safePage - 1) * safePageSize);
+        int to = Math.min(filtered.size(), from + safePageSize);
+        return new AnalyticsPagePageDto(
+                safePage,
+                safePageSize,
+                filtered.size(),
+                totalPages,
+                safeDays,
+                filtered.subList(from, to),
+                buildAbnormalPageMetrics(visits).stream().limit(10).toList()
         );
     }
 
@@ -171,7 +209,8 @@ public class AdminAnalyticsService {
                 metric,
                 buildTrend(safeDays, since, visits, List.of()),
                 referrerDistribution(visits),
-                buildArticleVisitors(visits)
+                buildArticleVisitors(visits),
+                buildArticleRecentVisitDetails(visits)
         );
     }
 
@@ -200,7 +239,7 @@ public class AdminAnalyticsService {
                 identity == null ? "" : identity.getAvatar(),
                 identity == null ? "" : identity.getProvider(),
                 ip,
-                ipRegionService.resolve(ip),
+                regionLabel(ip),
                 device,
                 visits.size(),
                 visits.stream().mapToLong(AnalyticsVisitEntity::getDurationMs).sum() / 1000L,
@@ -323,10 +362,10 @@ public class AdminAnalyticsService {
     private List<AnalyticsPageMetricDto> buildPageMetrics(List<AnalyticsVisitEntity> visits) {
         Map<String, PageAccumulator> byPath = new LinkedHashMap<>();
         for (AnalyticsVisitEntity visit : visits) {
-            if ("article".equalsIgnoreCase(visit.getPageType())) {
+            if ("article".equalsIgnoreCase(visit.getPageType()) || isAbnormalPageVisit(visit)) {
                 continue;
             }
-            String path = pathPolicy.normalizePath(visit.getPath());
+            String path = canonicalPagePath(visit.getPath());
             PageAccumulator accumulator = byPath.computeIfAbsent(
                     path,
                     key -> new PageAccumulator(path, resolveTitle(path, visit.getTitle(), Map.of()))
@@ -334,17 +373,31 @@ public class AdminAnalyticsService {
             accumulator.addVisit(visit, visitorKey(visit.getVisitorId(), visit.getIp()));
         }
         return byPath.values().stream()
-                .map(item -> new AnalyticsPageMetricDto(
-                        item.path,
-                        item.title,
-                        item.visits,
-                        item.visitors.size(),
-                        roundSeconds(item.totalDurationMs, item.visits)
-                ))
+                .map(this::toPageMetric)
                 .sorted(Comparator.comparingLong(AnalyticsPageMetricDto::visits).reversed()
                         .thenComparing(Comparator.comparingDouble(
                                 AnalyticsPageMetricDto::averageDurationSeconds
                         ).reversed())
+                        .thenComparing(AnalyticsPageMetricDto::path))
+                .toList();
+    }
+
+    private List<AnalyticsPageMetricDto> buildAbnormalPageMetrics(List<AnalyticsVisitEntity> visits) {
+        Map<String, PageAccumulator> byPath = new LinkedHashMap<>();
+        for (AnalyticsVisitEntity visit : visits) {
+            if ("article".equalsIgnoreCase(visit.getPageType()) || !isAbnormalPageVisit(visit)) {
+                continue;
+            }
+            String path = canonicalPagePath(visit.getPath());
+            PageAccumulator accumulator = byPath.computeIfAbsent(
+                    path,
+                    key -> new PageAccumulator(path, resolveTitle(path, visit.getTitle(), Map.of()))
+            );
+            accumulator.addVisit(visit, visitorKey(visit.getVisitorId(), visit.getIp()));
+        }
+        return byPath.values().stream()
+                .map(this::toPageMetric)
+                .sorted(Comparator.comparingLong(AnalyticsPageMetricDto::visits).reversed()
                         .thenComparing(AnalyticsPageMetricDto::path))
                 .toList();
     }
@@ -369,7 +422,7 @@ public class AdminAnalyticsService {
                             resolveTitle(path, visit.getTitle(), posts),
                             visit.getVisitorId(),
                             visitorIdentityService.displayName(visit.getVisitorId(), identity),
-                            ipRegionService.resolve(visit.getIp()),
+                            regionLabel(visit.getIp()),
                             Math.max(0, visit.getDurationMs()) / 1000L,
                             Math.max(0, Math.min(visit.getMaxScrollPercent(), 100)),
                             formatOffset(visit.getStartedAt())
@@ -489,7 +542,7 @@ public class AdminAnalyticsService {
                             visitorIdentityService.displayName(item.visitorId, identity),
                             identity == null ? "" : identity.getAvatar(),
                             item.ip,
-                            ipRegionService.resolve(item.ip),
+                            regionLabel(item.ip),
                             item.visits,
                             item.totalDurationMs / 1000L,
                             item.maxScrollPercent,
@@ -498,6 +551,42 @@ public class AdminAnalyticsService {
                 })
                 .sorted(Comparator.comparingLong(AnalyticsVisitorActivityDto::totalDurationSeconds).reversed())
                 .toList();
+    }
+
+    private List<AnalyticsArticleVisitDetailDto> buildArticleRecentVisitDetails(List<AnalyticsVisitEntity> visits) {
+        List<AnalyticsVisitEntity> recentVisits = visits.stream()
+                .sorted(Comparator.comparing(AnalyticsVisitEntity::getStartedAt).reversed())
+                .limit(50)
+                .toList();
+        Map<String, AnalyticsVisitorIdentityEntity> identities = identityMap(
+                recentVisits.stream().map(AnalyticsVisitEntity::getVisitorId).toList()
+        );
+        return recentVisits.stream()
+                .map(visit -> {
+                    AnalyticsVisitorIdentityEntity identity = identities.get(visit.getVisitorId());
+                    return new AnalyticsArticleVisitDetailDto(
+                            visit.getVisitorId(),
+                            visitorIdentityService.displayName(visit.getVisitorId(), identity),
+                            identity == null ? "" : identity.getAvatar(),
+                            regionLabel(visit.getIp()),
+                            referrerLabel(visit.getReferrer()),
+                            Math.max(0, visit.getDurationMs()) / 1000L,
+                            Math.max(0, Math.min(visit.getMaxScrollPercent(), 100)),
+                            formatOffset(visit.getStartedAt())
+                    );
+                })
+                .toList();
+    }
+
+    private AnalyticsDataQualityDto dataQuality(int days, List<AnalyticsVisitEntity> visits) {
+        return new AnalyticsDataQualityDto(
+                days,
+                visits.size(),
+                countUniqueVisitors(visits),
+                visits.stream().filter(this::isNotFoundVisit).count(),
+                visits.stream().filter(this::isAbnormalPageVisit).count(),
+                ipRegionService.isAvailable()
+        );
     }
 
     private List<AnalyticsTrendPointDto> buildTrend(
@@ -568,6 +657,17 @@ public class AdminAnalyticsService {
         );
     }
 
+    private AnalyticsPageMetricDto toPageMetric(PageAccumulator item) {
+        return new AnalyticsPageMetricDto(
+                item.path,
+                item.title,
+                item.visits,
+                item.visitors.size(),
+                roundSeconds(item.totalDurationMs, item.visits),
+                formatOffset(item.lastAt)
+        );
+    }
+
     private AnalyticsArticleMetricDto emptyArticleMetric(String path) {
         String title = resolveTitle(path, "", contentCatalogService.loadArticleMap());
         ArticleMetricEntity metric = articleMetricService.loadEntities(List.of(path)).get(path);
@@ -595,7 +695,7 @@ public class AdminAnalyticsService {
                 item.ip,
                 visitorIdentityService.displayName(item.visitorId, identity),
                 identity == null ? "" : identity.getAvatar(),
-                ipRegionService.resolve(item.ip),
+                regionLabel(item.ip),
                 item.settlements,
                 item.totalDelta,
                 formatOffset(item.lastAt)
@@ -643,6 +743,15 @@ public class AdminAnalyticsService {
                 || item.path().toLowerCase(Locale.ROOT).contains(value);
     }
 
+    private boolean matchesPageKeyword(AnalyticsPageMetricDto item, String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return true;
+        }
+        String value = keyword.trim().toLowerCase(Locale.ROOT);
+        return item.title().toLowerCase(Locale.ROOT).contains(value)
+                || item.path().toLowerCase(Locale.ROOT).contains(value);
+    }
+
     private Comparator<AnalyticsArticleMetricDto> articleComparator(String sort) {
         String value = sort == null ? "visits" : sort.trim().toLowerCase(Locale.ROOT);
         return switch (value) {
@@ -652,6 +761,48 @@ public class AdminAnalyticsService {
             case "scroll" -> Comparator.comparingDouble(AnalyticsArticleMetricDto::averageScrollPercent).reversed();
             default -> throw new IllegalArgumentException("sort 仅支持 visits、duration、completion、scroll");
         };
+    }
+
+    private Comparator<AnalyticsPageMetricDto> pageComparator(String sort) {
+        String value = sort == null ? "visits" : sort.trim().toLowerCase(Locale.ROOT);
+        return switch (value) {
+            case "visits", "" -> Comparator.comparingLong(AnalyticsPageMetricDto::visits).reversed();
+            case "visitors" -> Comparator.comparingLong(AnalyticsPageMetricDto::uniqueVisitors).reversed();
+            case "duration" -> Comparator.comparingDouble(AnalyticsPageMetricDto::averageDurationSeconds).reversed();
+            case "recent" -> Comparator.comparing(AnalyticsPageMetricDto::lastVisitedAt).reversed();
+            default -> throw new IllegalArgumentException("sort 仅支持 visits、visitors、duration、recent");
+        };
+    }
+
+    private String canonicalPagePath(String path) {
+        String normalized = pathPolicy.normalizePath(path);
+        if ("/index.html".equals(normalized)) {
+            return "/";
+        }
+        if (normalized.endsWith("/index.html")) {
+            String canonical = normalized.substring(0, normalized.length() - "index.html".length());
+            return canonical.isBlank() ? "/" : canonical;
+        }
+        return normalized;
+    }
+
+    private boolean isAbnormalPageVisit(AnalyticsVisitEntity visit) {
+        if ("article".equalsIgnoreCase(visit.getPageType())) {
+            return false;
+        }
+        String path = canonicalPagePath(visit.getPath());
+        return isNotFoundVisit(visit) || path.contains("%");
+    }
+
+    private boolean isNotFoundVisit(AnalyticsVisitEntity visit) {
+        String title = visit.getTitle() == null ? "" : visit.getTitle().trim();
+        String path = canonicalPagePath(visit.getPath()).toLowerCase(Locale.ROOT);
+        return "404".equals(title) || "/404.html".equals(path) || path.endsWith("/404.html");
+    }
+
+    private String regionLabel(String ip) {
+        String region = ipRegionService.resolve(ip);
+        return region == null || region.isBlank() ? "未知地区" : region;
     }
 
     private String visitorKey(String visitorId, String ip) {
@@ -773,7 +924,9 @@ public class AdminAnalyticsService {
     }
 
     private String formatOffset(OffsetDateTime value) {
-        return value == null ? "" : value.atZoneSameInstant(zoneId).toOffsetDateTime().toString();
+        return value == null
+                ? ""
+                : value.atZoneSameInstant(zoneId).truncatedTo(ChronoUnit.SECONDS).toOffsetDateTime().format(OFFSET_SECOND_FORMATTER);
     }
 
     private static final class TrendAccumulator {
@@ -825,6 +978,7 @@ public class AdminAnalyticsService {
         private long visits;
         private long totalDurationMs;
         private final Set<String> visitors = new HashSet<>();
+        private OffsetDateTime lastAt;
 
         private PageAccumulator(String path, String title) {
             this.path = path;
@@ -835,6 +989,9 @@ public class AdminAnalyticsService {
             visits++;
             totalDurationMs += Math.max(0, visit.getDurationMs());
             visitors.add(visitorKey);
+            if (lastAt == null || visit.getStartedAt().isAfter(lastAt)) {
+                lastAt = visit.getStartedAt();
+            }
         }
     }
 

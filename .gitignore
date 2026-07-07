@@ -36,5 +36,8 @@ application-local.yml
 # deployment/runtime artifacts
 /deploy/.env
 /deploy/backups/
+/deploy/data/ip2region/*.xdb
+/deploy/data/ip2region/*.tmp
+/deploy/data/ip2region/*.tar.gz
 /runtime/
 waline*.json

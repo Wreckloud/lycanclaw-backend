@@ -15,6 +15,7 @@ public record AnalyticsArticleDetailDto(
         AnalyticsArticleMetricDto metric,
         List<AnalyticsTrendPointDto> trend,
         List<AnalyticsNamedMetricDto> referrers,
-        List<AnalyticsVisitorActivityDto> visitors
+        List<AnalyticsVisitorActivityDto> visitors,
+        List<AnalyticsArticleVisitDetailDto> recentVisits
 ) {
 }

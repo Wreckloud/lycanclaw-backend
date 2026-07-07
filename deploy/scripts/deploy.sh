@@ -24,6 +24,10 @@ for filename in posts.json knowledge-stats.json; do
   fi
 done
 
+if [[ ! -f "${DEPLOY_DIR}/data/ip2region/ip2region_v4.xdb" ]]; then
+  echo "提示：IP 地区库尚未安装，后台地区会显示为未知。可执行 bash ${SCRIPT_DIR}/install-ip2region.sh 安装。"
+fi
+
 COMPOSE_ARGS=(-f "${COMPOSE_FILE}" --env-file "${ENV_FILE}")
 
 if [[ "${1:-}" == "--build" ]]; then

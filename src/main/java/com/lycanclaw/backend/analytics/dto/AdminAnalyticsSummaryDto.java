@@ -29,6 +29,8 @@ public record AdminAnalyticsSummaryDto(
         @Schema(description = "标签关注")
         List<AnalyticsTagMetricDto> topTags,
         @Schema(description = "催更摘要")
-        EncouragementSummaryDto encouragement
+        EncouragementSummaryDto encouragement,
+        @Schema(description = "数据质量摘要")
+        AnalyticsDataQualityDto dataQuality
 ) {
 }

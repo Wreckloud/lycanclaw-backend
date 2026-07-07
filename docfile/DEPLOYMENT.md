@@ -172,16 +172,20 @@ nano .env
 - `BACKEND_ADMIN_QQ_WHITELIST`：允许进入后台的 Waline QQ 身份。QQ OAuth 可能不会暴露真实 QQ 号，而是在 `wl_Users.qq` 写入 `UID_...` 标识；此时把这个 `UID_...` 填入白名单，或与真实 QQ 号一起用英文逗号分隔。
 - `WALINE_AUTHOR_EMAIL`：作者通知邮箱，也用于管理员维护脚本识别唯一 Waline 管理员。
 - SMTP 相关配置：需要邮件通知时填写；暂时不用邮件时可先保留占位，但后台会显示通知不可用。
+- `LYCAN_IP2REGION_V4_XDB_PATH`、`LYCAN_IP2REGION_V6_XDB_PATH`：IP 地区库容器内路径。默认值配合下方脚本使用，不需要改成宿主机路径。
 
 `BACKEND_ADMIN_TOKEN` 是应急静态管理员令牌；日常使用 Waline 登录后台，可以留空。然后：
 
 ```bash
 cd /opt/lycanclaw/backend/deploy/scripts
+bash install-ip2region.sh --force-env
 bash deploy.sh --build
 curl --fail http://127.0.0.1:8080/actuator/health
 ```
 
 前端尚未第一次发布时，后端会提示共享 JSON 暂缺，但仍可启动。前端 `master` 首次 Actions成功后会自动补齐。
+
+`install-ip2region.sh` 会从 ip2region 官方仓库固定版本下载 `ip2region_v4.xdb` 与 `ip2region_v6.xdb`，保存到 `deploy/data/ip2region/`，并在 `.env` 缺少配置时自动追加默认容器路径。加上 `--force-env` 时会把这两个路径强制修正为默认容器路径。`.xdb` 文件是运行数据，不进入 Git。
 
 Waline 1.41.1 使用的 MySQL 客户端不支持 MySQL 8.4 默认的 `caching_sha2_password` 认证。首次部署或看到 `ER_NOT_SUPPORTED_AUTH_MODE` 时，执行一次认证协议修复：
 

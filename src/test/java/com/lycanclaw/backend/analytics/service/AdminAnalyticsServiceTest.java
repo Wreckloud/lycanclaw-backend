@@ -133,6 +133,60 @@ class AdminAnalyticsServiceTest {
     }
 
     @Test
+    void mergesHomeIndexPathForPageMetrics() {
+        AnalyticsVisitEntity home = visit("/", "visitor-1", 5_000, 0, 1);
+        home.setTitle("LycanClaw");
+        AnalyticsVisitEntity index = visit("/index.html", "visitor-2", 15_000, 0, 2);
+        index.setTitle("LycanClaw");
+        when(visitRepository.findByStartedAtAfter(any(OffsetDateTime.class)))
+                .thenReturn(List.of(home, index));
+
+        var result = service.pageMetrics(30, "", "visits", 1, 12);
+
+        assertThat(result.items()).hasSize(1);
+        assertThat(result.items().get(0).path()).isEqualTo("/");
+        assertThat(result.items().get(0).visits()).isEqualTo(2);
+        assertThat(result.items().get(0).uniqueVisitors()).isEqualTo(2);
+    }
+
+    @Test
+    void keepsSameTitlePagesSeparatedByPath() {
+        AnalyticsVisitEntity first = visit("/about.html", "visitor-1", 5_000, 0, 1);
+        first.setTitle("LycanClaw");
+        AnalyticsVisitEntity second = visit("/projects.html", "visitor-2", 5_000, 0, 2);
+        second.setTitle("LycanClaw");
+        when(visitRepository.findByStartedAtAfter(any(OffsetDateTime.class)))
+                .thenReturn(List.of(first, second));
+
+        var result = service.pageMetrics(30, "", "visits", 1, 12);
+
+        assertThat(result.items()).extracting(AnalyticsPageMetricDto::path)
+                .containsExactly("/about.html", "/projects.html");
+        assertThat(result.items()).extracting(AnalyticsPageMetricDto::title)
+                .containsExactly("LycanClaw", "LycanClaw");
+    }
+
+    @Test
+    void keepsNotFoundVisitsOutOfNormalPageMetrics() {
+        AnalyticsVisitEntity normal = visit("/about.html", "visitor-1", 5_000, 0, 1);
+        normal.setTitle("关于");
+        AnalyticsVisitEntity notFound = visit("/missing.html", "visitor-2", 0, 0, 2);
+        notFound.setTitle("404");
+        when(visitRepository.findByStartedAtAfter(any(OffsetDateTime.class)))
+                .thenReturn(List.of(normal, notFound));
+        when(encouragementRepository.findByCreatedAtAfter(any(OffsetDateTime.class))).thenReturn(List.of());
+
+        var result = service.pageMetrics(30, "", "visits", 1, 12);
+        AdminAnalyticsSummaryDto summary = service.summary();
+
+        assertThat(result.items()).extracting(AnalyticsPageMetricDto::path)
+                .containsExactly("/about.html");
+        assertThat(result.abnormalPages()).extracting(AnalyticsPageMetricDto::path)
+                .containsExactly("/missing.html");
+        assertThat(summary.dataQuality().notFoundVisits()).isEqualTo(1);
+    }
+
+    @Test
     void rejectsUnknownArticleSort() {
         when(visitRepository.findByStartedAtAfter(any(OffsetDateTime.class))).thenReturn(List.of());
 
@@ -206,6 +260,25 @@ class AdminAnalyticsServiceTest {
         assertThat(result.metric().visits()).isZero();
         assertThat(result.metric().commentCount()).isEqualTo(7);
         assertThat(result.metric().title()).isEqualTo("无访问文章");
+    }
+
+    @Test
+    void articleDetailIncludesSecondLevelRecentVisitRecords() {
+        String path = "/thoughts/detail.html";
+        AnalyticsVisitEntity visit = visit(path, "visitor-1", 8_000, 88, 1);
+        when(visitRepository.findByPathAndStartedAtAfter(eq(path), any(OffsetDateTime.class)))
+                .thenReturn(List.of(visit));
+        when(visitorIdentityService.displayName("visitor-1", null)).thenReturn("匿名-TEST0001");
+        when(ipRegionService.resolve("203.0.113.1")).thenReturn("四川省 成都市");
+
+        AnalyticsArticleDetailDto result = service.articleDetail(30, path);
+
+        assertThat(result.recentVisits()).hasSize(1);
+        assertThat(result.recentVisits().get(0).nickname()).isEqualTo("匿名-TEST0001");
+        assertThat(result.recentVisits().get(0).region()).isEqualTo("四川省 成都市");
+        assertThat(result.recentVisits().get(0).durationSeconds()).isEqualTo(8);
+        assertThat(result.recentVisits().get(0).maxScrollPercent()).isEqualTo(88);
+        assertThat(result.recentVisits().get(0).visitedAt()).isEqualTo("2026-06-24T12:01:00+08:00");
     }
 
     @Test

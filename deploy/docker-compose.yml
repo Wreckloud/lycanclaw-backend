@@ -108,6 +108,8 @@ services:
       LYCAN_DB_PASSWORD: ${WALINE_DB_PASSWORD}
       LYCAN_CONTENT_POSTS_JSON_PATH: /data/content/posts.json
       LYCAN_CONTENT_KNOWLEDGE_STATS_JSON_PATH: /data/content/knowledge-stats.json
+      LYCAN_IP2REGION_V4_XDB_PATH: ${LYCAN_IP2REGION_V4_XDB_PATH:-}
+      LYCAN_IP2REGION_V6_XDB_PATH: ${LYCAN_IP2REGION_V6_XDB_PATH:-}
       LYCAN_MUSIC_UPSTREAM_BASE_URL: http://ncm-api:3000
       LYCAN_MUSIC_RANKING_OWNER_UID: "${MUSIC_RANKING_OWNER_UID:?MUSIC_RANKING_OWNER_UID is required}"
       LYCAN_MUSIC_PREFERRED_LEVEL: ${MUSIC_PREFERRED_LEVEL:-exhigh}
@@ -126,6 +128,7 @@ services:
       WALINE_AUTHOR_EMAIL: ${WALINE_AUTHOR_EMAIL}
     volumes:
       - ${CONTENT_DATA_HOST_PATH}:/data/content:ro
+      - ./data/ip2region:/data/ip2region:ro
     depends_on:
       mysql:
         condition: service_healthy

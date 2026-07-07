@@ -20,6 +20,8 @@ public record AnalyticsPageMetricDto(
         @Schema(description = "独立访客数")
         long uniqueVisitors,
         @Schema(description = "平均停留秒数")
-        double averageDurationSeconds
+        double averageDurationSeconds,
+        @Schema(description = "最近访问时间")
+        String lastVisitedAt
 ) {
 }
