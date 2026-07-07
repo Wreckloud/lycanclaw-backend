@@ -233,7 +233,7 @@ public class AdminCommentService {
                 text(item, "browser"),
                 text(item, "os"),
                 text(item, "ip"),
-                firstNonBlank(text(item, "addr"), ipRegionService.resolve(text(item, "ip"))),
+                ipRegionService.format(firstNonBlank(text(item, "addr"), ipRegionService.resolve(text(item, "ip")))),
                 text(item, "user_id", "userId"),
                 text(item, "type")
         );

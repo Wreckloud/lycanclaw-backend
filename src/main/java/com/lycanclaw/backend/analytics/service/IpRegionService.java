@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * IP 地区解析服务。
@@ -29,7 +31,7 @@ public class IpRegionService {
     }
 
     /**
-     * 查询地区原始文本；未配置数据库或查询失败时返回空字符串。
+     * 查询并格式化地区文本；未配置数据库或查询失败时返回空字符串。
      */
     public String resolve(String ip) {
         if (ip2Region == null || ip == null || ip.isBlank()) {
@@ -37,10 +39,36 @@ public class IpRegionService {
         }
         try {
             String region = ip2Region.search(ip.trim());
-            return region == null ? "" : region.replace("|0", "").replace("0|", "").trim();
+            return format(region);
         } catch (Exception ignored) {
             return "";
         }
+    }
+
+    public String format(String region) {
+        if (region == null || region.isBlank()) {
+            return "";
+        }
+        String trimmed = region.trim();
+        if (!trimmed.contains("|")) {
+            return trimmed.replaceAll("\\s+", " ");
+        }
+
+        List<String> parts = new ArrayList<>();
+        for (String item : trimmed.split("\\|")) {
+            String value = item == null ? "" : item.trim();
+            if (value.isBlank() || "0".equals(value) || "中国".equals(value)) {
+                continue;
+            }
+            parts.add(value);
+        }
+        if (parts.isEmpty()) {
+            return "";
+        }
+
+        int lastIndex = parts.size() - 1;
+        parts.set(lastIndex, normalizeIsp(parts.get(lastIndex)));
+        return String.join(" ", parts);
     }
 
     public boolean isAvailable() {
@@ -84,5 +112,15 @@ public class IpRegionService {
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    private String normalizeIsp(String value) {
+        if (value.startsWith("中国")) {
+            return value;
+        }
+        if (value.contains("电信") || value.contains("联通") || value.contains("移动")) {
+            return "中国" + value;
+        }
+        return value;
     }
 }

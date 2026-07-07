@@ -172,6 +172,8 @@ nano .env
 - `BACKEND_ADMIN_QQ_WHITELIST`：允许进入后台的 Waline QQ 身份。QQ OAuth 可能不会暴露真实 QQ 号，而是在 `wl_Users.qq` 写入 `UID_...` 标识；此时把这个 `UID_...` 填入白名单，或与真实 QQ 号一起用英文逗号分隔。
 - `WALINE_AUTHOR_EMAIL`：作者通知邮箱，也用于管理员维护脚本识别唯一 Waline 管理员。
 - SMTP 相关配置：需要邮件通知时填写；暂时不用邮件时可先保留占位，但后台会显示通知不可用。
+- `LYCAN_ANALYTICS_EXCLUDED_VISITOR_NAMES`：后台访问统计排除的访客昵称，建议填自己的 Waline 昵称，例如 `维克罗德`。
+- `LYCAN_ANALYTICS_EXCLUDED_WALINE_USER_IDS`：后台访问统计排除的 Waline 用户 ID，昵称不稳定时再填。
 - `LYCAN_IP2REGION_V4_XDB_PATH`、`LYCAN_IP2REGION_V6_XDB_PATH`：IP 地区库容器内路径。默认值配合下方脚本使用，不需要改成宿主机路径。
 
 `BACKEND_ADMIN_TOKEN` 是应急静态管理员令牌；日常使用 Waline 登录后台，可以留空。然后：

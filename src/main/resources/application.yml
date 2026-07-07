@@ -86,6 +86,11 @@ lycan:
     # 在线对战 WebSocket 单 IP 消息限流（每分钟）
     message-rate-limit-per-minute: ${LYCAN_GAME_MESSAGE_RATE_LIMIT_PER_MINUTE:120}
   analytics:
+    exclude:
+      # 后台统计排除的访客昵称，多个值用英文逗号分隔；用于过滤站长自己的访问
+      visitor-names: ${LYCAN_ANALYTICS_EXCLUDED_VISITOR_NAMES:}
+      # 后台统计排除的 Waline 用户 ID，默认复用管理员白名单
+      waline-user-ids: ${LYCAN_ANALYTICS_EXCLUDED_WALINE_USER_IDS:${lycan.security.admin-qq-whitelist:}}
     ip-region:
       # ip2region IPv4 XDB 文件路径；留空时仅展示原始 IP
       v4-xdb-path: ${LYCAN_IP2REGION_V4_XDB_PATH:}

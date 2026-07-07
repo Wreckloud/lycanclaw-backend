@@ -8,6 +8,7 @@ import com.lycanclaw.backend.analytics.dto.AnalyticsPageMetricDto;
 import com.lycanclaw.backend.analytics.dto.AnalyticsVisitorProfileDto;
 import com.lycanclaw.backend.analytics.dto.MusicAnalyticsSummaryDto;
 import com.lycanclaw.backend.analytics.entity.AnalyticsVisitEntity;
+import com.lycanclaw.backend.analytics.entity.AnalyticsVisitorIdentityEntity;
 import com.lycanclaw.backend.analytics.entity.EncouragementEventEntity;
 import com.lycanclaw.backend.analytics.entity.MusicListenSessionEntity;
 import com.lycanclaw.backend.analytics.repository.AnalyticsVisitRepository;
@@ -56,21 +57,11 @@ class AdminAnalyticsServiceTest {
     private final VisitorIdentityService visitorIdentityService = mock(VisitorIdentityService.class);
     private final ArticleMetricService articleMetricService = mock(ArticleMetricService.class);
 
-    private final AdminAnalyticsService service = new AdminAnalyticsService(
-            visitRepository,
-            encouragementRepository,
-            identityRepository,
-            musicRepository,
-            contentCatalogService,
-            new AnalyticsPathPolicy(),
-            ipRegionService,
-            visitorIdentityService,
-            articleMetricService,
-            "Asia/Shanghai"
-    );
+    private AdminAnalyticsService service;
 
     @BeforeEach
     void setUp() {
+        service = createService("", "");
         when(contentCatalogService.loadArticleMap()).thenReturn(Map.of());
         when(articleMetricService.loadEntities(anyList())).thenReturn(Map.of());
         when(identityRepository.findByVisitorIdIn(anyCollection())).thenReturn(List.of());
@@ -184,6 +175,28 @@ class AdminAnalyticsServiceTest {
         assertThat(result.abnormalPages()).extracting(AnalyticsPageMetricDto::path)
                 .containsExactly("/missing.html");
         assertThat(summary.dataQuality().notFoundVisits()).isEqualTo(1);
+    }
+
+    @Test
+    void excludesConfiguredOwnerVisitsFromAdminOverview() {
+        AnalyticsVisitEntity owner = visit("/about.html", "owner-visitor", 10_000, 0, 1);
+        owner.setTitle("关于");
+        AnalyticsVisitEntity guest = visit("/about.html", "guest-visitor", 20_000, 0, 2);
+        guest.setTitle("关于");
+        AnalyticsVisitorIdentityEntity ownerIdentity = new AnalyticsVisitorIdentityEntity();
+        ownerIdentity.setVisitorId("owner-visitor");
+        ownerIdentity.setNickname("维克罗德");
+        when(visitRepository.findByStartedAtAfter(any(OffsetDateTime.class)))
+                .thenReturn(List.of(owner, guest));
+        when(encouragementRepository.findByCreatedAtAfter(any(OffsetDateTime.class))).thenReturn(List.of());
+        when(identityRepository.findByVisitorIdIn(anyCollection())).thenReturn(List.of(ownerIdentity));
+
+        AdminAnalyticsSummaryDto result = createService("维克罗德", "").summary();
+
+        assertThat(result.visits()).isEqualTo(1);
+        assertThat(result.uniqueVisitors()).isEqualTo(1);
+        assertThat(result.topPages()).hasSize(1);
+        assertThat(result.topPages().get(0).visits()).isEqualTo(1);
     }
 
     @Test
@@ -454,5 +467,22 @@ class AdminAnalyticsServiceTest {
     @SuppressWarnings("unchecked")
     private ArgumentCaptor<Collection<String>> visitorIdCollectionCaptor() {
         return ArgumentCaptor.forClass(Collection.class);
+    }
+
+    private AdminAnalyticsService createService(String excludedVisitorNames, String excludedWalineUserIds) {
+        return new AdminAnalyticsService(
+                visitRepository,
+                encouragementRepository,
+                identityRepository,
+                musicRepository,
+                contentCatalogService,
+                new AnalyticsPathPolicy(),
+                ipRegionService,
+                visitorIdentityService,
+                articleMetricService,
+                "Asia/Shanghai",
+                excludedVisitorNames,
+                excludedWalineUserIds
+        );
     }
 }

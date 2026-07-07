@@ -5,16 +5,19 @@ import com.lycanclaw.backend.analytics.dto.VisitStartRequest;
 import com.lycanclaw.backend.analytics.entity.AnalyticsVisitEntity;
 import com.lycanclaw.backend.analytics.repository.AnalyticsVisitRepository;
 import com.lycanclaw.backend.common.security.ClientIpResolver;
+import com.lycanclaw.backend.content.service.ContentCatalogService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -67,6 +70,31 @@ class AnalyticsVisitServiceTest {
                 new VisitStartRequest("/admin/", "管理端", "", "visitor-1"),
                 mock(HttpServletRequest.class)
         )).isInstanceOf(IllegalArgumentException.class);
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void rejectsUnknownPublishedPathBeforeSaving() {
+        AnalyticsVisitRepository repository = mock(AnalyticsVisitRepository.class);
+        AnalyticsVisitService service = createService(repository, mock(ClientIpResolver.class));
+
+        assertThatThrownBy(() -> service.start(
+                new VisitStartRequest("/thoughts/deleted.html", "已删除文章", "", "visitor-1"),
+                mock(HttpServletRequest.class)
+        )).isInstanceOf(IllegalArgumentException.class);
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void rejectsNotFoundTitleBeforeSaving() {
+        AnalyticsVisitRepository repository = mock(AnalyticsVisitRepository.class);
+        AnalyticsVisitService service = createService(repository, mock(ClientIpResolver.class));
+
+        assertThatThrownBy(() -> service.start(
+                new VisitStartRequest("/", "404", "", "visitor-1"),
+                mock(HttpServletRequest.class)
+        )).isInstanceOf(IllegalArgumentException.class);
+        verify(repository, never()).save(any());
     }
 
     @Test
@@ -91,9 +119,20 @@ class AnalyticsVisitServiceTest {
             AnalyticsVisitRepository repository,
             ClientIpResolver clientIpResolver
     ) {
+        ContentCatalogService contentCatalogService = mock(ContentCatalogService.class);
+        when(contentCatalogService.findPublishedArticle("/thoughts/example.html"))
+                .thenReturn(Optional.of(new ContentCatalogService.ContentItem(
+                        "/thoughts/example.html",
+                        "示例文章",
+                        "",
+                        "2026-06-24 12:00:00",
+                        List.of("测试"),
+                        ContentCatalogService.ContentKind.THOUGHT
+                )));
         return new AnalyticsVisitService(
                 repository,
                 new AnalyticsPathPolicy(),
+                contentCatalogService,
                 clientIpResolver,
                 "Asia/Shanghai"
         );

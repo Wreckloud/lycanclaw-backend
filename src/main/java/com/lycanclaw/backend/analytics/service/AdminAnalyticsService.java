@@ -79,6 +79,8 @@ public class AdminAnalyticsService {
     private final VisitorIdentityService visitorIdentityService;
     private final ArticleMetricService articleMetricService;
     private final ZoneId zoneId;
+    private final Set<String> excludedVisitorNames;
+    private final Set<String> excludedWalineUserIds;
 
     public AdminAnalyticsService(
             AnalyticsVisitRepository visitRepository,
@@ -90,7 +92,9 @@ public class AdminAnalyticsService {
             IpRegionService ipRegionService,
             VisitorIdentityService visitorIdentityService,
             ArticleMetricService articleMetricService,
-            @Value("${lycan.system.zone-id:Asia/Shanghai}") String zoneId
+            @Value("${lycan.system.zone-id:Asia/Shanghai}") String zoneId,
+            @Value("${lycan.analytics.exclude.visitor-names:}") String excludedVisitorNames,
+            @Value("${lycan.analytics.exclude.waline-user-ids:${lycan.security.admin-qq-whitelist:}}") String excludedWalineUserIds
     ) {
         this.visitRepository = visitRepository;
         this.encouragementRepository = encouragementRepository;
@@ -102,6 +106,8 @@ public class AdminAnalyticsService {
         this.visitorIdentityService = visitorIdentityService;
         this.articleMetricService = articleMetricService;
         this.zoneId = ZoneId.of(zoneId);
+        this.excludedVisitorNames = parseSet(excludedVisitorNames);
+        this.excludedWalineUserIds = parseSet(excludedWalineUserIds);
     }
 
     /**
@@ -110,7 +116,7 @@ public class AdminAnalyticsService {
     public AdminAnalyticsSummaryDto summary() {
         int safeDays = DEFAULT_DAYS;
         OffsetDateTime since = since(safeDays);
-        List<AnalyticsVisitEntity> visits = visitRepository.findByStartedAtAfter(since);
+        List<AnalyticsVisitEntity> visits = filterExcludedVisits(visitRepository.findByStartedAtAfter(since));
         List<EncouragementEventEntity> encouragements = encouragementRepository.findByCreatedAtAfter(since);
         List<AnalyticsArticleMetricDto> articles = buildArticleMetrics(visits);
         return new AdminAnalyticsSummaryDto(
@@ -138,7 +144,7 @@ public class AdminAnalyticsService {
             int pageSize
     ) {
         int safeDays = normalizeDays(days);
-        List<AnalyticsVisitEntity> visits = visitRepository.findByStartedAtAfter(since(safeDays));
+        List<AnalyticsVisitEntity> visits = filterExcludedVisits(visitRepository.findByStartedAtAfter(since(safeDays)));
         List<AnalyticsPageMetricDto> filtered = buildPageMetrics(visits).stream()
                 .filter(item -> matchesPageKeyword(item, keyword))
                 .sorted(pageComparator(sort))
@@ -171,7 +177,7 @@ public class AdminAnalyticsService {
     ) {
         int safeDays = normalizeDays(days);
         OffsetDateTime since = since(safeDays);
-        List<AnalyticsVisitEntity> visits = visitRepository.findByStartedAtAfter(since);
+        List<AnalyticsVisitEntity> visits = filterExcludedVisits(visitRepository.findByStartedAtAfter(since));
         List<AnalyticsArticleMetricDto> filtered = buildArticleMetrics(visits).stream()
                 .filter(item -> matchesKeyword(item, keyword))
                 .sorted(articleComparator(sort))
@@ -201,7 +207,9 @@ public class AdminAnalyticsService {
             throw new IllegalArgumentException("path 必须是文章路径");
         }
         OffsetDateTime since = since(safeDays);
-        List<AnalyticsVisitEntity> visits = visitRepository.findByPathAndStartedAtAfter(normalizedPath, since);
+        List<AnalyticsVisitEntity> visits = filterExcludedVisits(
+                visitRepository.findByPathAndStartedAtAfter(normalizedPath, since)
+        );
         AnalyticsArticleMetricDto metric = buildArticleMetrics(visits).stream()
                 .findFirst()
                 .orElseGet(() -> emptyArticleMetric(normalizedPath));
@@ -732,6 +740,40 @@ public class AdminAnalyticsService {
                 Function.identity(),
                 (left, right) -> right
         ));
+    }
+
+    private List<AnalyticsVisitEntity> filterExcludedVisits(List<AnalyticsVisitEntity> visits) {
+        if (visits.isEmpty() || (excludedVisitorNames.isEmpty() && excludedWalineUserIds.isEmpty())) {
+            return visits;
+        }
+        Map<String, AnalyticsVisitorIdentityEntity> identities = identityMap(
+                visits.stream().map(AnalyticsVisitEntity::getVisitorId).toList()
+        );
+        return visits.stream()
+                .filter(visit -> !isExcludedVisitor(identities.get(visit.getVisitorId())))
+                .toList();
+    }
+
+    private boolean isExcludedVisitor(AnalyticsVisitorIdentityEntity identity) {
+        if (identity == null) {
+            return false;
+        }
+        return excludedVisitorNames.contains(identity.getNickname())
+                || excludedWalineUserIds.contains(identity.getWalineUserId());
+    }
+
+    private Set<String> parseSet(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return Set.of();
+        }
+        Set<String> values = new HashSet<>();
+        for (String item : rawValue.split(",")) {
+            String value = item == null ? "" : item.trim();
+            if (!value.isBlank()) {
+                values.add(value);
+            }
+        }
+        return Set.copyOf(values);
     }
 
     private boolean matchesKeyword(AnalyticsArticleMetricDto item, String keyword) {

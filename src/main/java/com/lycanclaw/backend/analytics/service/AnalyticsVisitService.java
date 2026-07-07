@@ -7,12 +7,14 @@ import com.lycanclaw.backend.analytics.dto.VisitStartResponse;
 import com.lycanclaw.backend.analytics.entity.AnalyticsVisitEntity;
 import com.lycanclaw.backend.analytics.repository.AnalyticsVisitRepository;
 import com.lycanclaw.backend.common.security.ClientIpResolver;
+import com.lycanclaw.backend.content.service.ContentCatalogService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -25,20 +27,38 @@ import java.util.UUID;
 public class AnalyticsVisitService {
 
     private static final long MAX_DURATION_MS = 30 * 60 * 1000L;
+    private static final Set<String> TRACKABLE_STATIC_PAGES = Set.of(
+            "/",
+            "/index.html",
+            "/thoughts",
+            "/thoughts/",
+            "/thoughts/index.html",
+            "/knowledge",
+            "/knowledge/",
+            "/knowledge/index.html",
+            "/projects",
+            "/projects/",
+            "/projects/index.html",
+            "/about.html",
+            "/games/ultimate-tic-tac-toe.html"
+    );
 
     private final AnalyticsVisitRepository repository;
     private final AnalyticsPathPolicy pathPolicy;
+    private final ContentCatalogService contentCatalogService;
     private final ClientIpResolver clientIpResolver;
     private final ZoneId zoneId;
 
     public AnalyticsVisitService(
             AnalyticsVisitRepository repository,
             AnalyticsPathPolicy pathPolicy,
+            ContentCatalogService contentCatalogService,
             ClientIpResolver clientIpResolver,
             @Value("${lycan.system.zone-id:Asia/Shanghai}") String zoneId
     ) {
         this.repository = repository;
         this.pathPolicy = pathPolicy;
+        this.contentCatalogService = contentCatalogService;
         this.clientIpResolver = clientIpResolver;
         this.zoneId = ZoneId.of(zoneId);
     }
@@ -52,6 +72,9 @@ public class AnalyticsVisitService {
         }
         String path = pathPolicy.normalizePath(request.path());
         if (!pathPolicy.isTrackable(path)) {
+            throw new IllegalArgumentException("当前路径不纳入访问统计: " + path);
+        }
+        if (isNotFoundTitle(request.title()) || !isKnownPublicPage(path)) {
             throw new IllegalArgumentException("当前路径不纳入访问统计: " + path);
         }
 
@@ -120,6 +143,18 @@ public class AnalyticsVisitService {
     private String normalizeTitle(String value, String fallback) {
         String resolved = value == null ? "" : value.trim();
         return truncate(resolved.isBlank() ? fallback : resolved, 255);
+    }
+
+    private boolean isKnownPublicPage(String path) {
+        if (TRACKABLE_STATIC_PAGES.contains(path)) {
+            return true;
+        }
+        return pathPolicy.isArticle(path) && contentCatalogService.findPublishedArticle(path).isPresent();
+    }
+
+    private boolean isNotFoundTitle(String title) {
+        String value = title == null ? "" : title.trim();
+        return "404".equals(value) || value.equalsIgnoreCase("Not Found");
     }
 
     private String truncate(String value, int maxLength) {
