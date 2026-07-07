@@ -185,7 +185,7 @@ curl --fail http://127.0.0.1:8080/actuator/health
 
 前端尚未第一次发布时，后端会提示共享 JSON 暂缺，但仍可启动。前端 `master` 首次 Actions成功后会自动补齐。
 
-`install-ip2region.sh` 会从 ip2region 官方仓库固定版本下载 `ip2region_v4.xdb`，保存到 `deploy/data/ip2region/`，并在 `.env` 缺少配置时自动追加默认容器路径。脚本支持断点续传，服务器访问 GitHub 较慢时可以重复执行。加上 `--force-env` 时会把路径强制修正为默认容器路径。IPv6 数据库较大，个人博客通常不需要；确实需要时执行 `bash install-ip2region.sh --force-env --with-ipv6`。`.xdb` 文件是运行数据，不进入 Git。
+`install-ip2region.sh` 会从 ip2region 官方仓库固定版本下载 `ip2region_v4.xdb`，保存到 `deploy/data/ip2region/`，并在 `.env` 缺少配置时自动追加默认容器路径。脚本支持断点续传，服务器访问 GitHub 较慢时可以重复执行。加上 `--force-env` 时会把路径强制修正为默认容器路径。IPv6 地区库不安装，路径保持为空。`.xdb` 文件是运行数据，不进入 Git。
 
 Waline 1.41.1 使用的 MySQL 客户端不支持 MySQL 8.4 默认的 `caching_sha2_password` 认证。首次部署或看到 `ER_NOT_SUPPORTED_AUTH_MODE` 时，执行一次认证协议修复：
 

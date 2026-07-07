@@ -9,24 +9,18 @@ VERSION="${IP2REGION_VERSION:-v3.9.0}"
 GITHUB_RAW_BASE="https://raw.githubusercontent.com/lionsoul2014/ip2region/${VERSION}/data"
 DOWNLOAD_MAX_TIME="${IP2REGION_DOWNLOAD_MAX_TIME:-1800}"
 FORCE_ENV="false"
-WITH_IPV6="false"
 
 V4_FILENAME="ip2region_v4.xdb"
-V6_FILENAME="ip2region_v6.xdb"
 V4_CONTAINER_PATH="/data/ip2region/${V4_FILENAME}"
-V6_CONTAINER_PATH="/data/ip2region/${V6_FILENAME}"
 
 for arg in "$@"; do
   case "${arg}" in
     --force-env)
       FORCE_ENV="true"
       ;;
-    --with-ipv6)
-      WITH_IPV6="true"
-      ;;
     -h|--help)
-      echo "用法：bash install-ip2region.sh [--force-env] [--with-ipv6]"
-      echo "默认只安装 IPv4；IPv6 数据库较大且个人博客通常不需要。"
+      echo "用法：bash install-ip2region.sh [--force-env]"
+      echo "只安装 IPv4 地区库；IPv6 路径保持为空。"
       exit 0
       ;;
     *)
@@ -93,25 +87,13 @@ mkdir -p "${TARGET_DIR}"
 download_xdb "${V4_FILENAME}"
 
 ensure_env_value "LYCAN_IP2REGION_V4_XDB_PATH" "${V4_CONTAINER_PATH}"
-if [[ "${WITH_IPV6}" == "true" ]]; then
-  download_xdb "${V6_FILENAME}"
-  ensure_env_value "LYCAN_IP2REGION_V6_XDB_PATH" "${V6_CONTAINER_PATH}"
-else
-  ensure_env_value "LYCAN_IP2REGION_V6_XDB_PATH" ""
-fi
+ensure_env_value "LYCAN_IP2REGION_V6_XDB_PATH" ""
 
 echo "IP 地区库已准备完成："
 ls -lh "${TARGET_DIR}/${V4_FILENAME}"
-if [[ "${WITH_IPV6}" == "true" ]]; then
-  ls -lh "${TARGET_DIR}/${V6_FILENAME}"
-fi
 echo ""
 echo "Docker 容器内路径："
 echo "  LYCAN_IP2REGION_V4_XDB_PATH=${V4_CONTAINER_PATH}"
-if [[ "${WITH_IPV6}" == "true" ]]; then
-  echo "  LYCAN_IP2REGION_V6_XDB_PATH=${V6_CONTAINER_PATH}"
-else
-  echo "  LYCAN_IP2REGION_V6_XDB_PATH="
-fi
+echo "  LYCAN_IP2REGION_V6_XDB_PATH="
 echo ""
 echo "下一步执行：docker compose --env-file .env up -d --force-recreate backend"
